@@ -2,7 +2,7 @@
 
 Ein Fotoeditor für Menschen, die Bilder einfach bearbeiten möchten und ihre Fotos auf dem eigenen Computer behalten wollen.
 
-**Status: frühe Entwicklungs-Alpha. Es gibt noch keine geprüfte Endnutzer-Version.** Der Quellcode enthält die erste Implementierung. Der dokumentierte lokale Lauf umfasst 59 Tests: 51 bestanden, 8 Qt-Tests wegen der fehlenden lokalen Qt-Laufzeit übersprungen. Die echte Modellinferenz, die grafische Oberfläche und das Windows-Paket sind damit noch nicht nachgewiesen. Der genaue Stand steht im [Verifikationsprotokoll](docs/VERIFICATION.md).
+**Status: frühe Entwicklungs-Alpha. Es gibt noch keine geprüfte Endnutzer-Version und kein freigegebenes portables Paket.** Im abgeschlossenen [dritten Windows-Lauf](https://github.com/Cenn0/LocalAiPhotoEditor/actions/runs/38303734085) bestanden alle **62 Tests**. Die lokale KI funktioniert sowohl aus dem Quellcode als auch aus der gebauten Anwendung. Die deutsche und englische Oberfläche startet aus dem Quellcode; die Oberfläche des Pakets bricht beim Start jedoch mit Exit-Code 3 ab. Deshalb ist das Paket noch nicht zum Ausprobieren freigegeben. Nachweise und Grenzen stehen im [Verifikationsprotokoll](docs/VERIFICATION.md).
 
 ## Was du damit machen kannst
 
@@ -25,12 +25,12 @@ Die KI-Funktion erkennt einen Vordergrund und erzeugt eine Freistellmaske. Sie z
 
 Erstes Ziel ist **Windows 11 x64**. Die Auslieferung der Alpha ist als **portables ZIP mit Programm, Laufzeit und KI-Modell** vorgesehen. Ein Installer wird für diesen ersten Build nicht versprochen. Im vollständigen Paket soll keine separate Installation von Python, CUDA oder einem Modellserver nötig sein; der entsprechende Test auf einem frischen Windows-System steht noch aus.
 
-Wenn ein erfolgreicher Windows-Build vorliegt:
+Der zuletzt abgeschlossene [Windows-Lauf](https://github.com/Cenn0/LocalAiPhotoEditor/actions/runs/38303734085) stellt wegen des fehlgeschlagenen Oberflächenstarts kein freigegebenes portables Paket bereit. Sobald ein späterer Lauf Paketbau und Paketprüfungen erfolgreich abschließt:
 
 1. Öffne [GitHub Actions](https://github.com/Cenn0/LocalAiPhotoEditor/actions) und wähle den Workflow **Windows alpha**.
 2. Öffne einen erfolgreich abgeschlossenen Lauf und lade unter **Artifacts** das Paket **LocalAiPhotoEditor-windows-x64-alpha** herunter.
-3. Entpacke das heruntergeladene Archiv vollständig. Falls es das portable Paket als weiteres ZIP enthält, entpacke auch dieses.
-4. Starte die Programmdatei im entpackten Paketordner. Belasse Modell- und Laufzeitdateien bei der Anwendung.
+3. Entpacke das heruntergeladene ZIP vollständig in einen Ordner. `LocalAiPhotoEditor.exe` liegt direkt im Wurzelverzeichnis des ZIP.
+4. Starte `LocalAiPhotoEditor.exe` aus dem entpackten Ordner. Belasse sämtliche mitgelieferten Dateien und Unterordner bei der Anwendung.
 
 **Ein Actions-Artefakt ist ein Vorabpaket für Tests.** Ein grüner Build allein belegt weder die Qualität der Freistellung noch den erfolgreichen Offlinebetrieb auf einem frischen Windows-Rechner. Fehlt ein erfolgreiches Artefakt, ist über diesen Weg noch kein Paket verfügbar. Freigegebene Versionen gehören später auf die [Releases-Seite](https://github.com/Cenn0/LocalAiPhotoEditor/releases).
 
@@ -65,7 +65,7 @@ python -m venv .venv
 
 Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. Direkte Abhängigkeiten sind in [pyproject.toml](pyproject.toml) festgelegt. Ein vollständig mit Hashes gesperrter Satz aller transitiven Abhängigkeiten ist noch kein vorhandenes Versprechen.
 
-`prepare_model.py` ist ausschließlich ein Werkzeug zum Vorbereiten des Pakets. Beim Download prüft es Dateigröße, den festgelegten SHA-256 und den upstream angegebenen MD5-Kompatibilitätswert. Die Anwendung selbst ruft es nicht auf. Die Herkunft des erwarteten SHA-256 und die noch ausstehende eigene Prüfung des tatsächlichen Modellartefakts stehen in [MODELS.md](docs/MODELS.md).
+`prepare_model.py` ist ausschließlich ein Werkzeug zum Vorbereiten des Pakets. Beim Download prüft es Dateigröße, den festgelegten SHA-256 und den upstream angegebenen MD5-Kompatibilitätswert. Die Anwendung selbst ruft es nicht auf. Die Herkunft der Prüfsummen steht in [MODELS.md](docs/MODELS.md). Das tatsächliche Modell wurde im Windows-Quellcode-Worker und im Worker der kompilierten EXE mit Integritätsprüfung erfolgreich ausgeführt. Der noch fehlgeschlagene Start der Paketoberfläche ist im [Verifikationsprotokoll](docs/VERIFICATION.md) dokumentiert.
 
 ### Prüfungen ausführen
 
@@ -76,6 +76,8 @@ Nach Installation der Entwicklungsabhängigkeiten:
 .venv\Scripts\python -m compileall -q src tests tools
 .venv\Scripts\python -m local_ai_photo_editor --smoke-test smoke-output
 ```
+
+Im zuletzt abgeschlossenen Windows-Lauf bestanden **62 von 62 Tests ohne übersprungene Tests** für Commit `121d702f89885c9803a2dcc930ef02340607295f`. Die lokale Vergleichsbasis und die genaue Aussage der Paketprüfungen stehen im [Verifikationsprotokoll](docs/VERIFICATION.md). Ohne installierte Qt-Laufzeit werden die entsprechenden lokalen Tests ausdrücklich übersprungen.
 
 Der letzte Befehl benötigt das echte Modell und ONNX Runtime sowie ein noch nicht vorhandenes Ausgabeverzeichnis. Er erzeugt ein synthetisches Testbild und einen Ergebnisbericht. Tests mit künstlichen Masken oder Ersatzdaten bestätigen keine erfolgreiche Modellinferenz. Das gebaute Windows-Programm muss zusätzlich separat geprüft werden.
 
