@@ -56,13 +56,19 @@ def _configure_bundled_qt_plugins() -> Path | None:
 
 
 def _synthetic_photo() -> PillowImage:
-    from PIL import Image, ImageDraw
+    import numpy as np
+    from PIL import Image
 
-    picture = Image.new("RGBA", (384, 256), (237, 240, 245, 255))
-    draw = ImageDraw.Draw(picture)
-    draw.ellipse((96, 32, 288, 224), fill=(160, 53, 36, 255))
-    draw.ellipse((144, 52, 200, 90), fill=(226, 99, 75, 255))
-    return picture
+    # This fixture needs only pixels. ImageDraw also imports font machinery,
+    # which crashed during its late import in the compiled Windows GUI smoke.
+    pixels = np.empty((256, 384, 4), dtype=np.uint8)
+    pixels[:] = (237, 240, 245, 255)
+    y, x = np.ogrid[:256, :384]
+    foreground = (x - 192) ** 2 + (y - 128) ** 2 <= 96 ** 2
+    highlight = (x - 172) ** 2 * 19 ** 2 + (y - 71) ** 2 * 28 ** 2 <= 28 ** 2 * 19 ** 2
+    pixels[foreground] = (160, 53, 36, 255)
+    pixels[highlight] = (226, 99, 75, 255)
+    return Image.fromarray(pixels)
 
 
 def smoke_test(output_directory: Path) -> int:
@@ -165,7 +171,7 @@ def smoke_test(output_directory: Path) -> int:
 
 
 def ui_smoke_test(output_directory: Path) -> int:
-    """Capture the actual window and verify that its Qt event loop shuts down."""
+    """Exercise image codecs after Qt startup, capture the window and exit."""
     import faulthandler
     import os
 
@@ -182,6 +188,8 @@ def ui_smoke_test(output_directory: Path) -> int:
     fault_handler_installed = False
     message_handler_errors = []
     qt_details = {}
+    image_io = {}
+    scope = "ui_startup_image_io_and_capture_only"
     runtime = {
         "sys_executable": sys.executable,
         "process_exe": getattr(globals().get("__compiled__"), "process_exe", None),
@@ -193,7 +201,7 @@ def ui_smoke_test(output_directory: Path) -> int:
     }
     startup_phase = "initialize"
     code = 1
-    report = {"status": "error", "scope": "ui_startup_and_capture_only"}
+    report = {"status": "error", "scope": scope}
 
     def checkpoint(phase: str, status: str = "running") -> None:
         nonlocal startup_phase
@@ -202,6 +210,7 @@ def ui_smoke_test(output_directory: Path) -> int:
         # abort(), bypassing Python exception handling and the final report.
         (output_directory / "ui-startup.json").write_text(json.dumps({
             "status": status, "phase": phase, "runtime": runtime, "qt": qt_details,
+            "image_io": image_io,
         }, indent=2), encoding="utf-8")
 
     def record_error(exc: Exception, phase: str) -> None:
@@ -209,7 +218,7 @@ def ui_smoke_test(output_directory: Path) -> int:
         code = 1
         report = {
             "status": "error",
-            "scope": "ui_startup_and_capture_only",
+            "scope": scope,
             "phase": phase,
             "error_type": type(exc).__name__,
             "error_message": str(exc),
@@ -280,8 +289,29 @@ def ui_smoke_test(output_directory: Path) -> int:
         app.setQuitOnLastWindowClosed(False)
         checkpoint("create_editor_window")
         window = EditorWindow()
+        checkpoint("create_synthetic_photo")
         picture = _synthetic_photo()
-        window.set_document(picture)
+        from .core import export_image, load_image
+
+        # Exercise real encoder/decoder imports after QApplication exists.
+        # Showing an in-memory Pillow fixture alone would miss this path.
+        source_path = output_directory / "ui-input.png"
+        checkpoint("export_synthetic_png_after_qt")
+        export_image(picture, source_path)
+        checkpoint("load_synthetic_png_after_qt")
+        decoded = load_image(source_path)
+        if decoded.size != picture.size or decoded.mode != picture.mode or decoded.tobytes() != picture.tobytes():
+            raise ValueError("The synthetic PNG import did not preserve dimensions, mode and pixels.")
+        image_io.update({
+            "after_qt_initialization": True,
+            "input_file": source_path.name,
+            "input_dimensions": list(decoded.size),
+            "input_mode": decoded.mode,
+            "input_pixels_preserved": True,
+        })
+        checkpoint("set_document")
+        window.set_document(decoded, source_path=source_path)
+        checkpoint("set_language")
         window.set_language("de")
         checkpoint("show_window")
         window.show()
@@ -334,15 +364,45 @@ def ui_smoke_test(output_directory: Path) -> int:
                     window.set_language(languages[len(captures)])
                     capture_timer.start(100)
                     return
+                checkpoint("read_current_document")
+                current = window.document.current
+                if current.size != picture.size or current.mode != picture.mode or current.tobytes() != picture.tobytes():
+                    raise ValueError("The displayed document did not preserve the imported pixels.")
+                image_io["document_pixels_preserved"] = True
+                image_io["exports"] = {}
+                for format_name, suffix in (("PNG", "png"), ("JPEG", "jpg"), ("WebP", "webp")):
+                    export_path = output_directory / f"ui-export.{suffix}"
+                    checkpoint(f"export_current_document_{suffix}")
+                    export_image(current, export_path, source_path=window.document.source_path)
+                    checkpoint(f"verify_exported_document_{suffix}")
+                    exported = load_image(export_path)
+                    if exported.size != current.size or exported.mode not in ("RGB", "RGBA"):
+                        raise ValueError(f"The {format_name} export returned invalid dimensions or mode.")
+                    if format_name == "JPEG":
+                        if exported.mode != "RGB":
+                            raise ValueError("The JPEG export must decode as RGB.")
+                        validation = "dimensions_and_rgb_mode"
+                    else:
+                        # WebP may omit a fully opaque alpha channel. Compare
+                        # all visible colour and alpha values in a common mode.
+                        if exported.convert("RGBA").tobytes() != current.convert("RGBA").tobytes():
+                            raise ValueError(f"The lossless {format_name} export did not preserve pixels.")
+                        validation = "dimensions_and_exact_rgba_pixels"
+                    image_io["exports"][format_name] = {
+                        "file": export_path.name,
+                        "dimensions": list(exported.size),
+                        "mode": exported.mode,
+                        "validation": validation,
+                    }
                 report = {
                     "status": "ok",
-                    "scope": "ui_startup_and_capture_only",
+                    "scope": scope,
                     "image_dimensions": list(picture.size),
                     "captures": captures,
                 }
                 code = 0
             except Exception as exc:
-                record_error(exc, "capture")
+                record_error(exc, startup_phase)
             finish()
 
         def timed_out() -> None:
@@ -387,6 +447,7 @@ def ui_smoke_test(output_directory: Path) -> int:
                     stream.close()
     report["qt"] = qt_details
     report["runtime"] = runtime
+    report["image_io"] = image_io
     if message_handler_errors:
         report["message_handler_errors"] = message_handler_errors
     (output_directory / "ui-smoke-result.json").write_text(json.dumps(report, indent=2), encoding="utf-8")

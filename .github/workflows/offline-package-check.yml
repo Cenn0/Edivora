@@ -1,0 +1,404 @@
+name: Offline portable package check
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Windows alpha run ID containing the checked portable artifact
+        required: true
+        type: string
+
+permissions:
+  actions: read
+
+jobs:
+  downloaded-package:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      EVIDENCE_PATH: ${{ github.workspace }}/offline-check
+    steps:
+      # Intentionally no checkout, Python setup, dependency install or build.
+      - name: Identify an exact checked artifact from this repository
+        id: source
+        env:
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path $env:EVIDENCE_PATH -Force | Out-Null
+          try {
+            if ($env:SOURCE_RUN_ID -notmatch '^[0-9]+$') {
+              throw 'run_id must contain decimal digits only.'
+            }
+            if ($env:GITHUB_API_URL -ne 'https://api.github.com') {
+              throw 'This workflow expects the GitHub.com API.'
+            }
+            $headers = @{
+              Authorization = "Bearer $env:GH_READ_TOKEN"
+              Accept = 'application/vnd.github+json'
+              'X-GitHub-Api-Version' = '2022-11-28'
+            }
+            $base = "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/actions/runs/$env:SOURCE_RUN_ID"
+            $source = Invoke-RestMethod -Uri $base -Headers $headers
+            if ($source.repository.full_name -ne $env:GITHUB_REPOSITORY -or
+                $source.head_repository.full_name -ne $env:GITHUB_REPOSITORY -or
+                $source.path -ne '.github/workflows/windows-alpha.yml' -or
+                $source.event -notin @('push', 'workflow_dispatch') -or
+                $source.status -ne 'completed' -or $source.conclusion -ne 'success') {
+              throw 'The source must be a successful completed Windows alpha push/manual run in this repository.'
+            }
+            $listing = Invoke-RestMethod -Uri "$base/artifacts?per_page=100" -Headers $headers
+            if ($listing.total_count -gt 100) {
+              throw 'Unexpected artifact count; refusing an incomplete artifact inventory.'
+            }
+            $artifacts = @($listing.artifacts | Where-Object {
+              $_.name -eq 'LocalAiPhotoEditor-windows-x64-alpha' -and -not $_.expired
+            })
+            if ($artifacts.Count -ne 1) {
+              throw 'Expected exactly one unexpired checked portable artifact.'
+            }
+            $artifact = $artifacts[0]
+            if ($artifact.digest -notmatch '^sha256:[0-9a-fA-F]{64}$') {
+              throw 'The source artifact has no verifiable SHA-256 digest.'
+            }
+            $caseRoot = Join-Path $env:RUNNER_TEMP ('local-ai-offline-' + [guid]::NewGuid().ToString('N'))
+            New-Item -ItemType Directory -Path $caseRoot | Out-Null
+            $packagePath = Join-Path $caseRoot 'Portable photo editor'
+            $workingPath = Join-Path $caseRoot 'Empty working directory'
+            [ordered]@{
+              repository = $env:GITHUB_REPOSITORY
+              run_id = $source.id
+              run_attempt = $source.run_attempt
+              run_url = $source.html_url
+              workflow_path = $source.path
+              event = $source.event
+              head_sha = $source.head_sha
+              conclusion = $source.conclusion
+              artifact_id = $artifact.id
+              artifact_name = $artifact.name
+              artifact_digest = $artifact.digest
+              artifact_size_bytes = $artifact.size_in_bytes
+              artifact_created_at = $artifact.created_at
+              artifact_expires_at = $artifact.expires_at
+              download_action = 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
+              package_path = $packagePath
+              working_directory = $workingPath
+            } | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8NoBOM (Join-Path $env:EVIDENCE_PATH 'source-artifact.json')
+            "artifact_id=$($artifact.id)" >> $env:GITHUB_OUTPUT
+            "package_path=$packagePath" >> $env:GITHUB_OUTPUT
+            "working_path=$workingPath" >> $env:GITHUB_OUTPUT
+          } catch {
+            @{ status = 'error'; phase = 'identify_source'; message = $_.Exception.Message } |
+              ConvertTo-Json | Set-Content -Encoding utf8NoBOM (Join-Path $env:EVIDENCE_PATH 'source-error.json')
+            throw
+          }
+
+      - name: Download that artifact with mandatory digest verification
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ steps.source.outputs.artifact_id }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ steps.source.outputs.package_path }}
+          digest-mismatch: error
+
+      - name: Exercise the downloaded EXE under a verified outbound block
+        env:
+          PACKAGE_PATH: ${{ steps.source.outputs.package_path }}
+          EMPTY_WORKING_PATH: ${{ steps.source.outputs.working_path }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $report = [ordered]@{
+            status = 'error'
+            scope = 'downloaded_portable_runtime_with_per_executable_outbound_firewall_block'
+            started_at = [DateTime]::UtcNow.ToString('o')
+            phase = 'verify_package'
+            offline_enforcement_confirmed = $false
+            smoke_checks = @()
+          }
+          $ruleName = $null
+          $appPath = $null
+          $ruleRemovalVerified = $false
+
+          function Save-Json($Value, [string]$Name) {
+            $Value | ConvertTo-Json -Depth 12 |
+              Set-Content -Encoding utf8NoBOM (Join-Path $env:EVIDENCE_PATH $Name)
+          }
+
+          function Assert-EffectiveFirewall([string]$Checkpoint, [bool]$RequireRule) {
+            $services = @(Get-Service -Name MpsSvc, BFE | Select-Object Name, @{n='status';e={$_.Status.ToString()}})
+            $connections = @(Get-NetConnectionProfile | Select-Object InterfaceAlias, InterfaceIndex,
+              @{n='category';e={$_.NetworkCategory.ToString()}},
+              @{n='ipv4';e={$_.IPv4Connectivity.ToString()}}, @{n='ipv6';e={$_.IPv6Connectivity.ToString()}})
+            $profiles = @(Get-NetFirewallProfile -PolicyStore ActiveStore)
+            $snapshot = [ordered]@{
+              checked_at = [DateTime]::UtcNow.ToString('o')
+              services = $services
+              connections = $connections
+              profiles = @($profiles | Select-Object Name,
+                @{n='enabled';e={$_.Enabled.ToString()}},
+                @{n='allow_local_firewall_rules';e={$_.AllowLocalFirewallRules.ToString()}},
+                DisabledInterfaceAliases, DefaultInboundAction, DefaultOutboundAction)
+              rule_required = $RequireRule
+              verified = $false
+            }
+            try {
+              if ($services.Count -ne 2 -or @($services | Where-Object status -ne 'Running').Count) {
+                throw 'Windows Firewall and Base Filtering Engine must already be running.'
+              }
+              if ($connections.Count -eq 0) { throw 'No active network profile could be verified.' }
+              foreach ($connection in $connections) {
+                $profileName = switch ($connection.category) {
+                  'DomainAuthenticated' { 'Domain' }
+                  'Private' { 'Private' }
+                  'Public' { 'Public' }
+                  default { throw "Unknown active network category: $($connection.category)" }
+                }
+                $effective = @($profiles | Where-Object { $_.Name.ToString() -eq $profileName })
+                if ($effective.Count -ne 1 -or $effective[0].Enabled.ToString() -ne 'True') {
+                  throw "Firewall is not enabled for active profile $profileName. No global settings will be changed."
+                }
+                if ($effective[0].AllowLocalFirewallRules.ToString() -eq 'False') {
+                  throw "Active profile $profileName ignores local firewall rules."
+                }
+                foreach ($disabledAlias in @($effective[0].DisabledInterfaceAliases)) {
+                  if ($disabledAlias -and $connection.InterfaceAlias -like $disabledAlias) {
+                    throw "Firewall excludes active interface $($connection.InterfaceAlias)."
+                  }
+                }
+              }
+              if ($RequireRule) {
+                $rules = @(Get-NetFirewallRule -PolicyStore ActiveStore -Name $ruleName -ErrorAction Stop)
+                if ($rules.Count -ne 1) { throw 'The block rule is not unique in ActiveStore.' }
+                $rule = $rules[0]
+                $applications = @($rule | Get-NetFirewallApplicationFilter)
+                $enforcement = @($rule.EnforcementStatus | ForEach-Object { [int]$_ })
+                $snapshot.rule = [ordered]@{
+                  name = $rule.Name
+                  enabled = $rule.Enabled.ToString()
+                  direction = $rule.Direction.ToString()
+                  action = $rule.Action.ToString()
+                  profile = $rule.Profile.ToString()
+                  primary_status = $rule.PrimaryStatus.ToString()
+                  status = $rule.Status
+                  enforcement_status = $enforcement
+                  program_filters = @($applications | Select-Object Program, Package)
+                  address_filters = @($rule | Get-NetFirewallAddressFilter | Select-Object LocalAddress, RemoteAddress)
+                  port_filters = @($rule | Get-NetFirewallPortFilter | Select-Object Protocol, LocalPort, RemotePort)
+                }
+                if ($rule.Enabled.ToString() -ne 'True' -or $rule.Direction.ToString() -ne 'Outbound' -or
+                    $rule.Action.ToString() -ne 'Block' -or $rule.Profile.ToString() -ne 'Any' -or
+                    $rule.PrimaryStatus.ToString() -ne 'OK' -or $applications.Count -ne 1 -or
+                    [IO.Path]::GetFullPath($applications[0].Program) -ne $appPath) {
+                  throw 'The effective rule does not match the requested full outbound EXE block.'
+                }
+                # MSFT_NetFirewallRule documents Full=1, InactiveProfile=5.
+                # Inactive profiles may coexist; an actual Full status is required.
+                if (1 -notin $enforcement -or @($enforcement | Where-Object { $_ -notin @(1, 5) }).Count) {
+                  throw "The rule is not fully enforced: $($enforcement -join ',')."
+                }
+              }
+              $snapshot.verified = $true
+            } catch {
+              $snapshot.error = $_.Exception.Message
+              throw
+            } finally {
+              Save-Json $snapshot "firewall-$Checkpoint.json"
+            }
+          }
+
+          function Invoke-PackagedSmoke([string]$Name, [string]$Switch, [string]$ReportName) {
+            $outputPath = Join-Path $env:EVIDENCE_PATH $Name
+            $result = [ordered]@{ name = $Name; status = 'error'; executable = $appPath; arguments = @($Switch, $outputPath) }
+            $process = $null
+            try {
+              Assert-EffectiveFirewall "before-$Name" $true
+              $start = [Diagnostics.ProcessStartInfo]::new()
+              $start.FileName = $appPath
+              $start.WorkingDirectory = $env:EMPTY_WORKING_PATH
+              $start.UseShellExecute = $false
+              $start.ArgumentList.Add($Switch)
+              $start.ArgumentList.Add($outputPath)
+              $process = [Diagnostics.Process]::Start($start)
+              $result.process_id = $process.Id
+              if (-not $process.WaitForExit(180000)) {
+                $process.Kill($true)
+                if (-not $process.WaitForExit(10000)) { throw 'Timed-out process tree could not be stopped.' }
+                throw 'Packaged smoke exceeded its 180-second time limit.'
+              }
+              $result.exit_code = $process.ExitCode
+              if ($process.ExitCode -ne 0) { throw "Packaged process exited with code $($process.ExitCode)." }
+              $runtime = Get-Content -Raw (Join-Path $outputPath $ReportName) | ConvertFrom-Json
+              if ($runtime.status -ne 'ok') { throw 'The native runtime did not report success.' }
+              if ($Name -eq 'worker') {
+                if ([IO.Path]::GetFullPath($runtime.worker.program) -ne $appPath -or
+                    $runtime.worker.returncode -ne 0 -or -not $runtime.worker.program_exists) {
+                  throw 'The AI worker must use this same blocked executable and exit successfully.'
+                }
+                $result.same_executable_worker_confirmed = $true
+              } else {
+                $startup = Get-Content -Raw (Join-Path $outputPath 'ui-startup.json') | ConvertFrom-Json
+                if ([IO.Path]::GetFullPath($startup.runtime.process_exe) -ne $appPath -or
+                    [IO.Path]::GetFullPath($startup.runtime.working_directory) -ne $env:EMPTY_WORKING_PATH) {
+                  throw 'GUI startup does not match the downloaded EXE and fresh working directory.'
+                }
+              }
+              Assert-EffectiveFirewall "after-$Name" $true
+              $result.status = 'ok'
+            } catch {
+              $result.error = $_.Exception.Message
+            } finally {
+              if ($null -ne $process) {
+                if (-not $process.HasExited) {
+                  $process.Kill($true)
+                  if (-not $process.WaitForExit(10000)) { throw 'A smoke process remained active during cleanup.' }
+                }
+                $process.Dispose()
+              }
+              Save-Json $result "$Name-process.json"
+            }
+            return $result
+          }
+
+          try {
+            $source = Get-Content -Raw (Join-Path $env:EVIDENCE_PATH 'source-artifact.json') | ConvertFrom-Json
+            $appPath = (Resolve-Path (Join-Path $env:PACKAGE_PATH 'LocalAiPhotoEditor.exe')).Path
+            $buildInfo = Get-Content -Raw (Join-Path $env:PACKAGE_PATH 'build-info.json') | ConvertFrom-Json
+            if ($buildInfo.commit -ne $source.head_sha) { throw 'Package commit does not match the selected successful run.' }
+            Copy-Item (Join-Path $env:PACKAGE_PATH 'build-info.json') (Join-Path $env:EVIDENCE_PATH 'build-info.json')
+            New-Item -ItemType Directory -Path $env:EMPTY_WORKING_PATH | Out-Null
+            if (@(Get-ChildItem -Force $env:EMPTY_WORKING_PATH).Count -ne 0) { throw 'The working directory must start empty.' }
+            $report.executable = $appPath
+            $report.executable_sha256 = (Get-FileHash -Algorithm SHA256 $appPath).Hash.ToLowerInvariant()
+            $report.working_directory = $env:EMPTY_WORKING_PATH
+            $report.phase = 'prepare_environment'
+            $pythonNames = @('PYTHONPATH', 'PYTHONHOME', 'PYTHONUSERBASE')
+            $before = [ordered]@{ PATH = $env:PATH }
+            foreach ($name in $pythonNames) {
+              $before[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
+              Remove-Item "Env:$name" -ErrorAction SilentlyContinue
+            }
+            $env:PATH = "$(Join-Path $env:SystemRoot 'System32');$env:SystemRoot"
+            Remove-Item Env:QT_PLUGIN_PATH, Env:QT_QPA_PLATFORM_PLUGIN_PATH -ErrorAction SilentlyContinue
+            $env:QT_QPA_PLATFORM = 'windows'
+            $env:QT_DEBUG_PLUGINS = '1'
+            $after = [ordered]@{ PATH = $env:PATH; QT_QPA_PLATFORM = $env:QT_QPA_PLATFORM; QT_DEBUG_PLUGINS = $env:QT_DEBUG_PLUGINS }
+            foreach ($name in $pythonNames) {
+              $after[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
+              if ($null -ne $after[$name]) { throw "Python environment variable $name remains set." }
+            }
+            $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+            $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            Save-Json ([ordered]@{
+              os = Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber, OSArchitecture
+              powershell_version = $PSVersionTable.PSVersion.ToString()
+              runner_os = $env:RUNNER_OS
+              image_os = $env:ImageOS
+              image_version = $env:ImageVersion
+              administrator = $isAdmin
+              environment_before = $before
+              child_environment = $after
+              initial_working_directory_entries = 0
+              checkout_performed = $false
+              python_setup_performed = $false
+              dependency_install_performed = $false
+              scope_note = 'A hosted Windows Server 2022 runner with a restricted child PATH; not a bare Windows installation.'
+            }) 'environment.json'
+            if (-not $isAdmin) { throw 'Administrator rights are required to establish and verify the outbound block.' }
+            $report.phase = 'verify_existing_firewall'
+            Assert-EffectiveFirewall 'initial' $false
+            $report.phase = 'install_specific_rule'
+            $ruleName = 'LocalAiPhotoEditor-Offline-' + [guid]::NewGuid().ToString('N')
+            Save-Json @{ rule_name = $ruleName; executable = $appPath } 'cleanup-target.json'
+            New-NetFirewallRule -Name $ruleName -DisplayName $ruleName -Direction Outbound -Action Block `
+              -Program $appPath -Profile Any -Enabled True -Protocol Any -LocalAddress Any -RemoteAddress Any `
+              -PolicyStore PersistentStore | Out-Null
+            Assert-EffectiveFirewall 'installed' $true
+            $report.phase = 'native_smoke_tests'
+            $report.smoke_checks = @(
+              Invoke-PackagedSmoke 'worker' '--smoke-test' 'smoke-result.json'
+              Invoke-PackagedSmoke 'gui' '--ui-smoke-test' 'ui-smoke-result.json'
+            )
+            Assert-EffectiveFirewall 'final' $true
+            if (@($report.smoke_checks | Where-Object status -ne 'ok').Count) {
+              throw 'At least one downloaded native runtime check failed; see the process and application reports.'
+            }
+            $report.offline_enforcement_confirmed = $true
+            $report.status = 'ok'
+            $report.phase = 'complete'
+          } catch {
+            $report.error = $_.Exception.Message
+            $report.script_stack_trace = $_.ScriptStackTrace
+          } finally {
+            if ($null -ne $ruleName) {
+              try {
+                # Enumerate with Stop so a failed query cannot look like an absent rule.
+                $existing = @(Get-NetFirewallRule -PolicyStore PersistentStore -ErrorAction Stop |
+                  Where-Object Name -eq $ruleName)
+                if ($existing.Count) { $existing | Remove-NetFirewallRule -ErrorAction Stop }
+                $persistent = @(Get-NetFirewallRule -PolicyStore PersistentStore -ErrorAction Stop |
+                  Where-Object Name -eq $ruleName)
+                $active = @(Get-NetFirewallRule -PolicyStore ActiveStore -ErrorAction Stop |
+                  Where-Object Name -eq $ruleName)
+                if ($persistent.Count -or $active.Count) { throw 'The temporary block rule remains installed.' }
+                $ruleRemovalVerified = $true
+              } catch {
+                $report.status = 'error'
+                $report.cleanup_error = $_.Exception.Message
+              }
+            }
+            $report.temporary_rule_name = $ruleName
+            $report.rule_removal_verified = $ruleRemovalVerified
+            $report.finished_at = [DateTime]::UtcNow.ToString('o')
+            Save-Json $report 'offline-package-result.json'
+          }
+          if ($report.status -ne 'ok') { throw "Offline package verification failed: $($report.error) $($report.cleanup_error)" }
+
+      - name: Ensure this job's temporary firewall rule is removed
+        if: always()
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targetFile = Join-Path $env:EVIDENCE_PATH 'cleanup-target.json'
+          if (-not (Test-Path $targetFile)) { exit 0 }
+          $target = Get-Content -Raw $targetFile | ConvertFrom-Json
+          if ($target.rule_name -notmatch '^LocalAiPhotoEditor-Offline-[0-9a-f]{32}$') {
+            throw 'Refusing an unexpected firewall cleanup target.'
+          }
+          $cleanup = [ordered]@{ rule_name = $target.rule_name; status = 'error' }
+          try {
+            $rules = @(Get-NetFirewallRule -PolicyStore PersistentStore -ErrorAction Stop |
+              Where-Object Name -eq $target.rule_name)
+            foreach ($rule in $rules) {
+              $filter = @($rule | Get-NetFirewallApplicationFilter)
+              if ($filter.Count -ne 1 -or $filter[0].Program -ne $target.executable) {
+                throw 'Refusing to remove a rule whose program differs from this job target.'
+              }
+              $rule | Remove-NetFirewallRule -ErrorAction Stop
+            }
+            $persistent = @(Get-NetFirewallRule -PolicyStore PersistentStore -ErrorAction Stop |
+              Where-Object Name -eq $target.rule_name)
+            $active = @(Get-NetFirewallRule -PolicyStore ActiveStore -ErrorAction Stop |
+              Where-Object Name -eq $target.rule_name)
+            if ($persistent.Count -or $active.Count) { throw 'The temporary rule was not removed.' }
+            $cleanup.status = 'ok'
+          } catch {
+            $cleanup.error = $_.Exception.Message
+            throw
+          } finally {
+            $cleanup | ConvertTo-Json -Depth 4 |
+              Set-Content -Encoding utf8NoBOM (Join-Path $env:EVIDENCE_PATH 'firewall-cleanup.json')
+          }
+
+      - name: Upload source identity, environment, firewall and runtime evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: offline-package-check-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_PATH }}/
+          if-no-files-found: error
+          retention-days: 14
