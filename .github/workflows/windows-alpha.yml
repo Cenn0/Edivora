@@ -49,19 +49,29 @@ jobs:
           QT_QPA_PLATFORM: windows
         run: python -m local_ai_photo_editor --ui-smoke-test test-results/source-gui
       - name: Build standalone application
+        id: standalone_build
         run: python tools/build_windows.py
-      - name: Exercise packaged worker and GUI from a temporary working directory
+      - name: Exercise packaged worker from a temporary working directory
+        if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+          $appPath = (Resolve-Path 'dist/LocalAiPhotoEditor/LocalAiPhotoEditor.exe').Path
+          $workerOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-worker'
+          $worker = Start-Process -FilePath $appPath -ArgumentList "--smoke-test `"$workerOutput`"" -WorkingDirectory $env:RUNNER_TEMP -PassThru -Wait
+          if ($worker.ExitCode -ne 0) { throw "Packaged worker failed: $($worker.ExitCode)" }
+      - name: Open packaged GUI from a temporary working directory
+        if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
         shell: pwsh
         run: |
           Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
           $env:QT_QPA_PLATFORM = 'windows'
           $appPath = (Resolve-Path 'dist/LocalAiPhotoEditor/LocalAiPhotoEditor.exe').Path
-          $workerOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-worker'
           $guiOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-gui'
-          $worker = Start-Process -FilePath $appPath -ArgumentList "--smoke-test `"$workerOutput`"" -WorkingDirectory $env:RUNNER_TEMP -PassThru -Wait
-          if ($worker.ExitCode -ne 0) { throw "Packaged worker failed: $($worker.ExitCode)" }
           $gui = Start-Process -FilePath $appPath -ArgumentList "--ui-smoke-test `"$guiOutput`"" -WorkingDirectory $env:RUNNER_TEMP -PassThru -Wait
           if ($gui.ExitCode -ne 0) { throw "Packaged GUI failed: $($gui.ExitCode)" }
+      - name: Add successful runtime verification to the portable package
+        run: |
           Copy-Item -Recurse test-results dist/LocalAiPhotoEditor/verification
       - name: Upload checked portable alpha
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -78,5 +88,7 @@ jobs:
           path: |
             test-results/
             build/nuitka-report.xml
+            dist/LocalAiPhotoEditor/build-info.json
+            dist/LocalAiPhotoEditor/third-party-licenses/
           if-no-files-found: warn
           retention-days: 14

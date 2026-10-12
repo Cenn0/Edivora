@@ -17,7 +17,15 @@ SMOKE_TIMEOUT_SECONDS = 120
 
 def worker_command(directory: str | Path) -> tuple[str, list[str]]:
     args = ["--worker", str(directory)]
-    if getattr(sys, "frozen", False) or "__compiled__" in globals():
+    compiled = globals().get("__compiled__")
+    if compiled is not None:
+        # Nuitka 4.3's standalone sys.executable names a Python executable in
+        # the distribution directory. process_exe identifies this actual app.
+        program = getattr(compiled, "process_exe", None)
+        if not program:
+            raise RuntimeError("The compiled application did not expose its executable path.")
+        return str(program), args
+    if getattr(sys, "frozen", False):
         return sys.executable, args
     return sys.executable, ["-m", "local_ai_photo_editor", *args]
 
@@ -39,54 +47,93 @@ def smoke_test(output_directory: Path) -> int:
     from .core import export_image, load_image
 
     output_directory.mkdir(parents=True, exist_ok=False)
+    phase = "synthetic_image"
+    diagnostics = {"sys_executable": sys.executable}
     try:
         picture = _synthetic_photo()
+        phase = "create_job_directory"
         with tempfile.TemporaryDirectory(prefix="local-ai-photo-editor-smoke-") as temporary:
             directory = Path(temporary)
-            export_image(picture, directory / "input.png")
-            (directory / "request.json").write_text(
-                json.dumps({"version": 1, "operation": "remove_background"}),
-                encoding="utf-8",
-            )
-            program, arguments = worker_command(directory)
-            # run() kills and waits for this child before raising TimeoutExpired.
-            completed = subprocess.run(
-                [program, *arguments],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=SMOKE_TIMEOUT_SECONDS,
-                check=False,
-            )
-            if completed.returncode != 0:
-                raise RuntimeError("The smoke-test worker failed.")
             status_path = directory / "result.json"
-            if status_path.stat().st_size > 4096:
-                raise ValueError("The worker returned an invalid status file.")
-            if json.loads(status_path.read_text(encoding="utf-8")) != {"status": "ok"}:
-                raise ValueError("The worker did not report a successful job.")
-            result_path = directory / "output.png"
-            with Image.open(result_path) as encoded:
-                if encoded.format != "PNG" or encoded.size != picture.size:
-                    raise ValueError("The worker returned an invalid PNG result.")
-                encoded.verify()
-            result = load_image(result_path)
-            if result.mode != "RGBA":
-                raise ValueError("The worker result has no alpha channel.")
-            low, high = result.getchannel("A").getextrema()
-            if low == 255 or high == 0:
-                raise ValueError("The worker did not preserve a foreground with transparency.")
-            export_image(result, output_directory / "smoke-output.png")
+            try:
+                phase = "write_input"
+                export_image(picture, directory / "input.png")
+                phase = "write_request"
+                (directory / "request.json").write_text(
+                    json.dumps({"version": 1, "operation": "remove_background"}),
+                    encoding="utf-8",
+                )
+                phase = "worker_command"
+                program, arguments = worker_command(directory)
+                diagnostics.update({
+                    "program": program,
+                    "arguments": arguments,
+                    "program_exists": Path(program).is_file(),
+                })
+                phase = "start_and_wait_for_worker"
+                # run() kills and waits for this child before raising TimeoutExpired.
+                completed = subprocess.run(
+                    [program, *arguments],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=SMOKE_TIMEOUT_SECONDS,
+                    check=False,
+                )
+                diagnostics["returncode"] = completed.returncode
+                phase = "worker_exit"
+                if completed.returncode != 0:
+                    raise RuntimeError("The smoke-test worker failed.")
+                phase = "read_worker_status"
+                if status_path.stat().st_size > 4096:
+                    raise ValueError("The worker returned an invalid status file.")
+                if json.loads(status_path.read_text(encoding="utf-8")) != {"status": "ok"}:
+                    raise ValueError("The worker did not report a successful job.")
+                phase = "read_worker_output"
+                result_path = directory / "output.png"
+                with Image.open(result_path) as encoded:
+                    if encoded.format != "PNG" or encoded.size != picture.size:
+                        raise ValueError("The worker returned an invalid PNG result.")
+                    encoded.verify()
+                result = load_image(result_path)
+                phase = "validate_transparency"
+                if result.mode != "RGBA":
+                    raise ValueError("The worker result has no alpha channel.")
+                low, high = result.getchannel("A").getextrema()
+                if low == 255 or high == 0:
+                    raise ValueError("The worker did not preserve a foreground with transparency.")
+                phase = "export_output"
+                export_image(result, output_directory / "smoke-output.png")
+                phase = "cleanup_job"
+            finally:
+                # This CLI uses synthetic pixels only. Preserve the bounded
+                # child status before TemporaryDirectory removes the job.
+                try:
+                    if status_path.is_file() and status_path.stat().st_size <= 4096:
+                        (output_directory / "worker-result.json").write_bytes(status_path.read_bytes())
+                except OSError as archive_error:
+                    diagnostics["status_archive_error"] = str(archive_error)
         report = {
             "status": "ok",
             "scope": "worker_runtime_only",
             "provider": "CPUExecutionProvider",
             "model_sha256": MODEL_SHA256,
             "dimensions": list(result.size),
+            "worker": diagnostics,
         }
         code = 0
     except Exception as exc:
-        report = {"status": "error", "scope": "worker_runtime_only", "error_type": type(exc).__name__}
+        import traceback
+
+        report = {
+            "status": "error",
+            "scope": "worker_runtime_only",
+            "phase": phase,
+            "error_type": type(exc).__name__,
+            "error_message": str(exc),
+            "traceback": traceback.format_exc(),
+            "worker": diagnostics,
+        }
         code = 1
     (output_directory / "smoke-result.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return code
