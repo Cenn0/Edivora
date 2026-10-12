@@ -45,6 +45,8 @@ jobs:
       - name: Exercise the real source worker
         run: python -m local_ai_photo_editor --smoke-test test-results/source-worker
       - name: Open source GUI with synthetic pixels
+        env:
+          QT_QPA_PLATFORM: windows
         run: python -m local_ai_photo_editor --ui-smoke-test test-results/source-gui
       - name: Build standalone application
         run: python tools/build_windows.py
@@ -52,6 +54,7 @@ jobs:
         shell: pwsh
         run: |
           Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+          $env:QT_QPA_PLATFORM = 'windows'
           $appPath = (Resolve-Path 'dist/LocalAiPhotoEditor/LocalAiPhotoEditor.exe').Path
           $workerOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-worker'
           $guiOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-gui'
@@ -59,6 +62,7 @@ jobs:
           if ($worker.ExitCode -ne 0) { throw "Packaged worker failed: $($worker.ExitCode)" }
           $gui = Start-Process -FilePath $appPath -ArgumentList "--ui-smoke-test `"$guiOutput`"" -WorkingDirectory $env:RUNNER_TEMP -PassThru -Wait
           if ($gui.ExitCode -ne 0) { throw "Packaged GUI failed: $($gui.ExitCode)" }
+          Copy-Item -Recurse test-results dist/LocalAiPhotoEditor/verification
       - name: Upload checked portable alpha
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
