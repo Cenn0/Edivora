@@ -1,10 +1,10 @@
 # Architecture
 
-Decision date: 2026-10-12. Status: accepted for the initial alpha; package and hardware support require verification.
+Decision date: 2026-10-12. Status: accepted for the initial alpha. Native and downloaded-package checks passed on Windows Server 2022, including actual model inference, the DE/EN UI and image import/export under an outbound network block for the application. Exact evidence is recorded in [VERIFICATION.md](VERIFICATION.md); clean Windows 11 acceptance and hardware support remain unverified.
 
 ## Stack
 
-Use Python 3.12, PySide6/Qt Widgets for the desktop UI, Pillow and NumPy for conventional image operations, and ONNX Runtime's CPU execution provider for the first neural network. Use Nuitka through Qt's documented deployment approach to bundle the runtime, and a Windows installer or portable directory for distribution.
+Use Python 3.12, PySide6/Qt Widgets for the desktop UI, Pillow and NumPy for conventional image operations, and ONNX Runtime's CPU execution provider for the first neural network. Use Nuitka 4.2.2 to bundle the runtime into a standalone Windows application directory, delivered as a portable ZIP. An installer remains a later distribution option.
 
 Python owns application behaviour; native libraries perform image processing and inference. Avoid per-pixel Python loops. Qt Widgets keeps the first UI and its logic in one language. QML remains an option if a later design demonstrably needs it; introducing Python, TypeScript, and Rust at once is unnecessary for this scope.
 
@@ -51,7 +51,7 @@ The initial inference adapter accepts only a known file shipped beside the appli
 
 Preprocessing and compositing are independent functions with tests. The U2NETP model receives a 320×320 tensor using the upstream preprocessing convention. The output mask is resized to the image size and multiplied with any existing alpha. Foreground colour pixels remain the source pixels. Thus background removal does not redraw the face or clothing, although imperfect masks can still remove wanted pixels.
 
-The CPU provider is the supported MVP target after its package tests pass. The presence of CUDA, DirectML, CoreML, or Windows ML upstream does not establish support in this application. Each future provider needs a matching model, a distributable runtime, target-device tests, fallback behaviour, and a published support matrix.
+The CPU provider is covered by the successful alpha package checks on Windows Server 2022. The presence of CUDA, DirectML, CoreML, or Windows ML upstream does not establish support in this application. Each future provider needs a matching model, a distributable runtime, target-device tests, fallback behaviour, and a published support matrix.
 
 ## Future generative adapter
 
@@ -61,9 +61,11 @@ For a masked edit, preserve the original outside the accepted mask. Model output
 
 ## Distribution
 
-Windows 11 x64 is the initial target assumption. The first alpha is a portable ZIP containing a standalone application directory, with the model already included. An installer is a later packaging option, not a promised output of the first CI build. A single self-extracting executable would repeatedly unpack runtime/model data. Build and validate on Windows; a Linux source test is not a Windows package test.
+Windows 11 x64 remains the initial product target. The checked portable test alpha uses `LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip`, containing the top-level directory `LocalAiPhotoEditor/` with the application, runtime and bundled model. Extract the complete archive and run the EXE inside that directory. [Download](https://github.com/Cenn0/LocalAiPhotoEditor/releases/download/v0.1.0-alpha.1/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip) · [Prerelease information](https://github.com/Cenn0/LocalAiPhotoEditor/releases/tag/v0.1.0-alpha.1). An installer remains a later packaging option.
 
-The build must collect dependency licenses, record resolved versions, verify the model, run headless and real-model checks, and then run the frozen executable. The `Windows alpha` workflow is intended to provide `LocalAiPhotoEditor-windows-x64-alpha`; the workflow's existence does not establish a successful build. An unsigned alpha artifact may be provided explicitly for testing. A signed Windows package and a clean-machine offline acceptance run are requirements before the first stable end-user release. No signing key or paid certificate is assumed to exist. Record actual evidence and unresolved checks in [VERIFICATION.md](VERIFICATION.md).
+The successful `Windows alpha` workflow produced the build artifact `LocalAiPhotoEditor-windows-x64-alpha` after 69 passing tests, actual model inference and native UI/image-I/O checks of the compiled executable. A separate workflow downloaded that exact artifact, verified its digest and ran its worker and GUI with a verified outbound firewall block for the same executable. No repository checkout, Python setup or project dependency installation took place in that second job. Build-artifact, executable and test-evidence identities are recorded in [VERIFICATION.md](VERIFICATION.md); the final release-archive checksum belongs to the separate `SHA256SUMS.txt` asset.
+
+The alpha is unsigned. These checks used Windows Server 2022 with a restricted child-process environment, not a clean Windows 11 installation. Full interactive acceptance remains open. A signed Windows package and the existing clean-machine offline acceptance are requirements before the first stable end-user release. No signing certificate is assumed to be available.
 
 Sources: [Qt deployment](https://doc.qt.io/qtforpython-6/deployment/deployment-pyside6-deploy.html), [Qt package/licensing](https://pypi.org/project/PySide6/), [ONNX Python](https://onnxruntime.ai/docs/get-started/with-python.html), [FLUX.2 klein model card](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B).
 
