@@ -30,6 +30,31 @@ def worker_command(directory: str | Path) -> tuple[str, list[str]]:
     return sys.executable, ["-m", "local_ai_photo_editor", *args]
 
 
+def _bundled_qt_plugin_directory() -> Path | None:
+    """Resolve the Windows standalone layout without importing Qt."""
+    compiled = globals().get("__compiled__")
+    if compiled is None:
+        return None
+    executable = getattr(compiled, "process_exe", None)
+    if not executable:
+        raise RuntimeError("The compiled application did not expose its executable path.")
+    plugins = Path(executable).parent / "PySide6" / "qt-plugins"
+    platform_plugin = plugins / "platforms" / "qwindows.dll"
+    if not platform_plugin.is_file():
+        raise FileNotFoundError(2, "The bundled Qt Windows platform plugin is missing.", str(platform_plugin))
+    return plugins
+
+
+def _configure_bundled_qt_plugins() -> Path | None:
+    """Apply our package layout after Qt imports and before QApplication."""
+    plugins = _bundled_qt_plugin_directory()
+    if plugins is not None:
+        from PySide6.QtCore import QCoreApplication
+
+        QCoreApplication.setLibraryPaths([str(plugins)])
+    return plugins
+
+
 def _synthetic_photo() -> PillowImage:
     from PIL import Image, ImageDraw
 
@@ -141,14 +166,43 @@ def smoke_test(output_directory: Path) -> int:
 
 def ui_smoke_test(output_directory: Path) -> int:
     """Capture the actual window and verify that its Qt event loop shuts down."""
+    import faulthandler
+    import os
+
     output_directory.mkdir(parents=True, exist_ok=False)
     app = None
     window = None
     capture_timer = None
     watchdog = None
     quit_on_last_window_closed = None
+    qt_messages = None
+    native_faults = None
+    previous_qt_handler = None
+    qt_handler_installed = False
+    fault_handler_installed = False
+    message_handler_errors = []
+    qt_details = {}
+    runtime = {
+        "sys_executable": sys.executable,
+        "process_exe": getattr(globals().get("__compiled__"), "process_exe", None),
+        "argv": sys.argv,
+        "working_directory": str(Path.cwd()),
+        "environment": {name: os.environ.get(name) for name in (
+            "QT_QPA_PLATFORM", "QT_PLUGIN_PATH", "QT_QPA_PLATFORM_PLUGIN_PATH", "QT_DEBUG_PLUGINS",
+        )},
+    }
+    startup_phase = "initialize"
     code = 1
     report = {"status": "error", "scope": "ui_startup_and_capture_only"}
+
+    def checkpoint(phase: str, status: str = "running") -> None:
+        nonlocal startup_phase
+        startup_phase = phase
+        # Closing this file flushes a usable checkpoint even if Qt later calls
+        # abort(), bypassing Python exception handling and the final report.
+        (output_directory / "ui-startup.json").write_text(json.dumps({
+            "status": status, "phase": phase, "runtime": runtime, "qt": qt_details,
+        }, indent=2), encoding="utf-8")
 
     def record_error(exc: Exception, phase: str) -> None:
         nonlocal code, report
@@ -162,21 +216,74 @@ def ui_smoke_test(output_directory: Path) -> int:
         }
 
     try:
-        from PySide6.QtCore import QTimer
+        checkpoint("before_qt_import")
+        qt_messages = (output_directory / "qt-messages.log").open("w", encoding="utf-8")
+        native_faults = (output_directory / "python-fault.log").open("w", encoding="utf-8")
+        if not faulthandler.is_enabled():
+            faulthandler.enable(file=native_faults, all_threads=True)
+            fault_handler_installed = True
+        checkpoint("import_qt_core")
+        from PySide6.QtCore import QCoreApplication, QLibraryInfo, QTimer, qInstallMessageHandler, qVersion
+
+        def qt_message_handler(message_type, context, message) -> None:
+            try:
+                qt_messages.write(f"{message_type} [{context.category}]: {message}\n")
+                qt_messages.flush()
+            except Exception as exc:
+                message_handler_errors.append(f"{type(exc).__name__}: {exc}")
+            if previous_qt_handler is not None:
+                previous_qt_handler(message_type, context, message)
+            # Qt still terminates after a fatal message; logging never changes
+            # the native error or turns a failed startup into a successful test.
+
+        previous_qt_handler = qInstallMessageHandler(qt_message_handler)
+        qt_handler_installed = True
+        library_paths = list(QCoreApplication.libraryPaths())
+        qt_details.update({
+            "version": qVersion(),
+            "core_module_file": sys.modules["PySide6.QtCore"].__file__,
+            "plugins_path": QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath),
+            "prefix_path": QLibraryInfo.path(QLibraryInfo.LibraryPath.PrefixPath),
+            "library_paths_before_configuration": library_paths,
+            "windows_plugin_candidates_before_configuration": [
+                {"path": str(Path(path) / "platforms" / "qwindows.dll"),
+                 "exists": (Path(path) / "platforms" / "qwindows.dll").is_file()}
+                for path in library_paths
+            ],
+        })
+        checkpoint("import_qt_widgets")
         from PySide6.QtWidgets import QApplication
         from shiboken6 import delete
+
+        checkpoint("import_editor")
         from .ui import EditorWindow
 
+        checkpoint("configure_bundled_qt_plugins")
+        plugins = _configure_bundled_qt_plugins()
+        qt_details["configured_plugins_path"] = str(plugins) if plugins is not None else None
+        library_paths = list(QCoreApplication.libraryPaths())
+        qt_details["library_paths_before_app"] = library_paths
+        qt_details["windows_plugin_candidates_before_app"] = [
+            {"path": str(Path(path) / "platforms" / "qwindows.dll"),
+             "exists": (Path(path) / "platforms" / "qwindows.dll").is_file()}
+            for path in library_paths
+        ]
+        checkpoint("create_application")
         app = QApplication.instance() or QApplication(sys.argv[:1])
+        qt_details["library_paths_after_app"] = list(QCoreApplication.libraryPaths())
+        qt_details["application_directory"] = QCoreApplication.applicationDirPath()
+        qt_details["platform"] = app.platformName()
         app.setApplicationName("localAiPhotoEditor")
         app.setOrganizationName("localAiPhotoEditor")
         quit_on_last_window_closed = app.quitOnLastWindowClosed()
         # Exit only after the window and its children have been destroyed.
         app.setQuitOnLastWindowClosed(False)
+        checkpoint("create_editor_window")
         window = EditorWindow()
         picture = _synthetic_photo()
         window.set_document(picture)
         window.set_language("de")
+        checkpoint("show_window")
         window.show()
         captures = {}
         languages = ("de", "en")
@@ -189,6 +296,7 @@ def ui_smoke_test(output_directory: Path) -> int:
             nonlocal window
             window = None
             try:
+                checkpoint("window_destroyed")
                 watchdog.stop()
             except Exception as exc:
                 record_error(exc, "shutdown")
@@ -198,6 +306,7 @@ def ui_smoke_test(output_directory: Path) -> int:
         def finish() -> None:
             capture_timer.stop()
             try:
+                checkpoint("close_window")
                 if not window.close():
                     raise RuntimeError("The editor refused to close.")
                 # The running event loop delivers DeferredDelete before exit.
@@ -210,6 +319,7 @@ def ui_smoke_test(output_directory: Path) -> int:
             nonlocal code, report
             try:
                 language = languages[len(captures)]
+                checkpoint(f"capture_{language}")
                 capture = window.grab()
                 if capture.isNull() or capture.width() <= 0 or capture.height() <= 0:
                     raise RuntimeError("The editor window did not render.")
@@ -244,13 +354,14 @@ def ui_smoke_test(output_directory: Path) -> int:
         watchdog.timeout.connect(timed_out)
         capture_timer.start(100)
         watchdog.start(30_000)
+        checkpoint("event_loop")
         loop_code = app.exec()
         if loop_code != 0 or code != 0 or window is not None:
             if report["status"] != "error" or "error_type" not in report:
                 record_error(RuntimeError("The Qt event loop did not complete a clean shutdown."), "event_loop")
         report["event_loop_exit_code"] = loop_code
     except Exception as exc:
-        record_error(exc, "startup")
+        record_error(exc, startup_phase)
     finally:
         try:
             # Also dispose of a partially started window after an exception or
@@ -266,7 +377,20 @@ def ui_smoke_test(output_directory: Path) -> int:
                 app.setQuitOnLastWindowClosed(quit_on_last_window_closed)
         except Exception as exc:
             record_error(exc, "cleanup")
+        finally:
+            if qt_handler_installed:
+                qInstallMessageHandler(previous_qt_handler)
+            if fault_handler_installed:
+                faulthandler.disable()
+            for stream in (qt_messages, native_faults):
+                if stream is not None:
+                    stream.close()
+    report["qt"] = qt_details
+    report["runtime"] = runtime
+    if message_handler_errors:
+        report["message_handler_errors"] = message_handler_errors
     (output_directory / "ui-smoke-result.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    checkpoint("complete" if code == 0 else startup_phase, status=report["status"])
     return code
 
 
@@ -284,6 +408,7 @@ def main(argv: list[str] | None = None) -> int:
     from PySide6.QtWidgets import QApplication
     from .ui import EditorWindow
 
+    _configure_bundled_qt_plugins()
     app = QApplication(sys.argv[:1])
     app.setApplicationName("localAiPhotoEditor")
     app.setOrganizationName("localAiPhotoEditor")
