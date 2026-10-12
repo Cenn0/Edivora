@@ -93,54 +93,132 @@ def smoke_test(output_directory: Path) -> int:
 
 
 def ui_smoke_test(output_directory: Path) -> int:
-    """Start and capture the actual window using only a synthetic photo."""
+    """Capture the actual window and verify that its Qt event loop shuts down."""
     output_directory.mkdir(parents=True, exist_ok=False)
     app = None
     window = None
+    capture_timer = None
+    watchdog = None
+    quit_on_last_window_closed = None
+    code = 1
+    report = {"status": "error", "scope": "ui_startup_and_capture_only"}
+
+    def record_error(exc: Exception, phase: str) -> None:
+        nonlocal code, report
+        code = 1
+        report = {
+            "status": "error",
+            "scope": "ui_startup_and_capture_only",
+            "phase": phase,
+            "error_type": type(exc).__name__,
+            "error_message": str(exc),
+        }
+
     try:
+        from PySide6.QtCore import QTimer
         from PySide6.QtWidgets import QApplication
+        from shiboken6 import delete
         from .ui import EditorWindow
 
         app = QApplication.instance() or QApplication(sys.argv[:1])
         app.setApplicationName("localAiPhotoEditor")
         app.setOrganizationName("localAiPhotoEditor")
+        quit_on_last_window_closed = app.quitOnLastWindowClosed()
+        # Exit only after the window and its children have been destroyed.
+        app.setQuitOnLastWindowClosed(False)
         window = EditorWindow()
         picture = _synthetic_photo()
         window.set_document(picture)
+        window.set_language("de")
         window.show()
         captures = {}
-        for language in ("de", "en"):
-            window.set_language(language)
-            app.processEvents()
-            capture = window.grab()
-            if capture.isNull() or capture.width() <= 0 or capture.height() <= 0:
-                raise RuntimeError("The editor window did not render.")
-            filename = f"ui-smoke-{language}.png"
-            if not capture.save(str(output_directory / filename), "PNG"):
-                raise OSError("The editor window capture could not be saved.")
-            captures[language] = {
-                "file": filename,
-                "dimensions": [capture.width(), capture.height()],
-            }
-        report = {
-            "status": "ok",
-            "scope": "ui_startup_and_capture_only",
-            "image_dimensions": list(picture.size),
-            "captures": captures,
-        }
-        code = 0
+        languages = ("de", "en")
+        capture_timer = QTimer(app)
+        capture_timer.setSingleShot(True)
+        watchdog = QTimer(app)
+        watchdog.setSingleShot(True)
+
+        def window_destroyed(*_args) -> None:
+            nonlocal window
+            window = None
+            try:
+                watchdog.stop()
+            except Exception as exc:
+                record_error(exc, "shutdown")
+            finally:
+                app.exit(code)
+
+        def finish() -> None:
+            capture_timer.stop()
+            try:
+                if not window.close():
+                    raise RuntimeError("The editor refused to close.")
+                # The running event loop delivers DeferredDelete before exit.
+                window.deleteLater()
+            except Exception as exc:
+                record_error(exc, "shutdown")
+                app.exit(1)
+
+        def capture_next() -> None:
+            nonlocal code, report
+            try:
+                language = languages[len(captures)]
+                capture = window.grab()
+                if capture.isNull() or capture.width() <= 0 or capture.height() <= 0:
+                    raise RuntimeError("The editor window did not render.")
+                filename = f"ui-smoke-{language}.png"
+                if not capture.save(str(output_directory / filename), "PNG"):
+                    raise OSError("The editor window capture could not be saved.")
+                captures[language] = {
+                    "file": filename,
+                    "dimensions": [capture.width(), capture.height()],
+                }
+                if len(captures) < len(languages):
+                    window.set_language(languages[len(captures)])
+                    capture_timer.start(100)
+                    return
+                report = {
+                    "status": "ok",
+                    "scope": "ui_startup_and_capture_only",
+                    "image_dimensions": list(picture.size),
+                    "captures": captures,
+                }
+                code = 0
+            except Exception as exc:
+                record_error(exc, "capture")
+            finish()
+
+        def timed_out() -> None:
+            record_error(TimeoutError("The UI smoke test did not finish within 30 seconds."), "event_loop")
+            app.exit(1)
+
+        window.destroyed.connect(window_destroyed)
+        capture_timer.timeout.connect(capture_next)
+        watchdog.timeout.connect(timed_out)
+        capture_timer.start(100)
+        watchdog.start(30_000)
+        loop_code = app.exec()
+        if loop_code != 0 or code != 0 or window is not None:
+            if report["status"] != "error" or "error_type" not in report:
+                record_error(RuntimeError("The Qt event loop did not complete a clean shutdown."), "event_loop")
+        report["event_loop_exit_code"] = loop_code
     except Exception as exc:
-        report = {
-            "status": "error",
-            "scope": "ui_startup_and_capture_only",
-            "error_type": type(exc).__name__,
-        }
-        code = 1
+        record_error(exc, "startup")
     finally:
-        if window is not None:
-            window.close()
-        if app is not None:
-            app.processEvents()
+        try:
+            # Also dispose of a partially started window after an exception or
+            # timeout. QApplication must outlive every QWidget and QPixmap.
+            if window is not None:
+                delete(window)
+                window = None
+            for timer in (capture_timer, watchdog):
+                if timer is not None:
+                    timer.stop()
+                    delete(timer)
+            if app is not None and quit_on_last_window_closed is not None:
+                app.setQuitOnLastWindowClosed(quit_on_last_window_closed)
+        except Exception as exc:
+            record_error(exc, "cleanup")
     (output_directory / "ui-smoke-result.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return code
 

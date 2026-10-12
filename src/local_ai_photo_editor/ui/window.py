@@ -38,6 +38,7 @@ QLabel#cropHint { color: #d8c6ff; padding: 10px; background: #342e45; border-rad
 QFrame#toolCard { background: #262a34; border: 1px solid #343946; border-radius: 12px; }
 QFrame#previewFrame { background: #15181e; border: 1px solid #353a47; border-radius: 12px; }
 QFrame#jobBar { background: #302940; border: 1px solid #65527f; border-radius: 8px; }
+QWidget#toolsPanel, QWidget#toolsViewport { background: #1d2028; }
 QPushButton { color: #ecebf5; background: #343949; border: 1px solid #4b5162; border-radius: 7px; padding: 9px 12px; min-height: 20px; }
 QPushButton:hover { background: #40475a; border-color: #807493; }
 QPushButton:pressed, QPushButton:checked { background: #544469; border-color: #b29ad7; }
@@ -235,6 +236,7 @@ class EditorWindow(QMainWindow):
         content.addWidget(photo_frame, 1)
 
         panel = QWidget()
+        panel.setObjectName("toolsPanel")
         panel.setMinimumWidth(286)
         panel.setMaximumWidth(330)
         panel_layout = QVBoxLayout(panel)
@@ -291,6 +293,7 @@ class EditorWindow(QMainWindow):
         panel_layout.addWidget(ai_card)
         panel_layout.addStretch()
         scroll = QScrollArea()
+        scroll.viewport().setObjectName("toolsViewport")
         scroll.setWidget(panel)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
