@@ -177,7 +177,13 @@ jobs:
                 if ($rules.Count -ne 1) { throw 'The block rule is not unique in ActiveStore.' }
                 $rule = $rules[0]
                 $applications = @($rule | Get-NetFirewallApplicationFilter)
-                $enforcement = @($rule.EnforcementStatus | ForEach-Object { [int]$_ })
+                # NetSecurity exposes formatted strings (for example ProfileInactive)
+                # through EnforcementStatus. Read the underlying CIM uint16[] instead.
+                $enforcementProperty = $rule.PSBase.CimInstanceProperties['EnforcementStatus']
+                $enforcement = @()
+                if ($null -ne $enforcementProperty) {
+                  $enforcement = @($enforcementProperty.Value)
+                }
                 $snapshot.rule = [ordered]@{
                   name = $rule.Name
                   enabled = $rule.Enabled.ToString()
@@ -187,9 +193,16 @@ jobs:
                   primary_status = $rule.PrimaryStatus.ToString()
                   status = $rule.Status
                   enforcement_status = $enforcement
+                  enforcement_status_display = @($rule.EnforcementStatus)
+                  enforcement_cim_type = if ($null -ne $enforcementProperty) { $enforcementProperty.CimType.ToString() } else { $null }
                   program_filters = @($applications | Select-Object Program, Package)
                   address_filters = @($rule | Get-NetFirewallAddressFilter | Select-Object LocalAddress, RemoteAddress)
                   port_filters = @($rule | Get-NetFirewallPortFilter | Select-Object Protocol, LocalPort, RemotePort)
+                }
+                if ($null -eq $enforcementProperty -or
+                    $enforcementProperty.CimType -ne [Microsoft.Management.Infrastructure.CimType]::UInt16Array -or
+                    $enforcementProperty.Value -isnot [uint16[]] -or $enforcement.Count -eq 0) {
+                  throw 'The effective rule has no nonempty CIM UInt16Array enforcement status.'
                 }
                 if ($rule.Enabled.ToString() -ne 'True' -or $rule.Direction.ToString() -ne 'Outbound' -or
                     $rule.Action.ToString() -ne 'Block' -or $rule.Profile.ToString() -ne 'Any' -or
@@ -198,6 +211,7 @@ jobs:
                   throw 'The effective rule does not match the requested full outbound EXE block.'
                 }
                 # MSFT_NetFirewallRule documents Full=1, InactiveProfile=5.
+                # https://learn.microsoft.com/en-us/windows/win32/fwp/wmi/wfascimprov/msft-netfirewallrule
                 # Inactive profiles may coexist; an actual Full status is required.
                 if (1 -notin $enforcement -or @($enforcement | Where-Object { $_ -notin @(1, 5) }).Count) {
                   throw "The rule is not fully enforced: $($enforcement -join ',')."
