@@ -29,7 +29,7 @@ The dependency direction is from UI/adapters to the core. There is one repositor
 
 ## Document behaviour
 
-Import normalizes EXIF orientation and converts a valid embedded ICC profile into sRGB. Images without a profile are treated as sRGB; an invalid profile must produce an understandable error rather than silently changing colours. The initial working format is 8-bit RGBA. This is a deliberate MVP limit, not a RAW/HDR or professional colour-grading pipeline.
+Import normalizes EXIF orientation and converts a valid embedded ICC profile into sRGB. Untagged RGB, greyscale and palette images are treated as sRGB; untagged CMYK and LAB inputs are rejected because the application does not guess their colour space. Invalid or unsupported profiles produce an error. The initial working format is 8-bit RGB or RGBA, preserving transparency when present. Animated/multipage inputs and unsupported higher-bit-depth modes are rejected. These are deliberate MVP limits; RAW/HDR and professional colour grading require a different pipeline.
 
 The original decoded image is retained and never mutated. UI previews use a scaled copy. Editing operations produce a new result, which the document accepts as a history step. Undo/redo uses bounded snapshots for the initial single-image application. This is simpler than a full dependency graph and makes AI results exactly recoverable. A labelled operation journal plus on-disk tile/cache storage can replace snapshots when persistent projects and larger images justify it.
 
@@ -61,9 +61,9 @@ For a masked edit, preserve the original outside the accepted mask. Model output
 
 ## Distribution
 
-Windows 11 x64 is the initial target assumption. Use a standalone application directory inside an installer or portable ZIP, with the model already included. A single self-extracting executable would repeatedly unpack runtime/model data. Build and validate on Windows; a Linux source test is not a Windows installer test.
+Windows 11 x64 is the initial target assumption. The first alpha is a portable ZIP containing a standalone application directory, with the model already included. An installer is a later packaging option, not a promised output of the first CI build. A single self-extracting executable would repeatedly unpack runtime/model data. Build and validate on Windows; a Linux source test is not a Windows package test.
 
-The build must collect dependency licenses, record resolved versions, verify the model, run headless and real-model checks, and then run the frozen executable. Signed installers and a clean-machine offline acceptance run are release requirements. No signing key or paid certificate is assumed to exist.
+The build must collect dependency licenses, record resolved versions, verify the model, run headless and real-model checks, and then run the frozen executable. The `Windows alpha` workflow is intended to provide `LocalAiPhotoEditor-windows-x64-alpha`; the workflow's existence does not establish a successful build. An unsigned alpha artifact may be provided explicitly for testing. A signed Windows package and a clean-machine offline acceptance run are requirements before the first stable end-user release. No signing key or paid certificate is assumed to exist. Record actual evidence and unresolved checks in [VERIFICATION.md](VERIFICATION.md).
 
 Sources: [Qt deployment](https://doc.qt.io/qtforpython-6/deployment/deployment-pyside6-deploy.html), [Qt package/licensing](https://pypi.org/project/PySide6/), [ONNX Python](https://onnxruntime.ai/docs/get-started/with-python.html), [FLUX.2 klein model card](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B).
 

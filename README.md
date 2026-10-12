@@ -1,36 +1,60 @@
 # localAiPhotoEditor
 
-A beginner-friendly desktop photo editor that processes images on your computer.
+Ein Fotoeditor für Menschen, die Bilder einfach bearbeiten möchten und ihre Fotos auf dem eigenen Computer behalten wollen.
 
-**Status: initial development alpha.** This repository contains the architecture and the first implementation. An installer is only considered usable after the Windows package, actual model inference, and offline smoke checks succeed. Do not interpret a source checkout as a finished end-user release.
+**Status: frühe Entwicklungs-Alpha. Es gibt noch keine geprüfte Endnutzer-Version.** Der Quellcode enthält die erste Implementierung. Der dokumentierte lokale Lauf umfasst 59 Tests: 51 bestanden, 8 Qt-Tests wegen der fehlenden lokalen Qt-Laufzeit übersprungen. Die echte Modellinferenz, die grafische Oberfläche und das Windows-Paket sind damit noch nicht nachgewiesen. Der genaue Stand steht im [Verifikationsprotokoll](docs/VERIFICATION.md).
 
-## Intended experience
+## Was du damit machen kannst
 
-Open a photo, choose a clearly named tool, compare the result, and export a copy. The source photo is never overwritten. The first target platform is **Windows 11 x64**; macOS and Linux are future packaging targets, not currently certified releases.
+Der vorgesehene Ablauf ist: Foto öffnen, eine verständlich benannte Funktion wählen, das Ergebnis mit dem Original vergleichen und eine Kopie exportieren.
 
-The initial scope is:
+Die Alpha umfasst:
 
-- Open JPEG, PNG, and WebP images, with orientation and embedded colour profiles handled at import.
-- Adjust brightness, contrast, and saturation; rotate, crop, and resize.
-- Remove a background using the bundled U2NETP neural network and ONNX Runtime on the CPU.
-- Compare with the original, undo/redo within a bounded history, and export JPEG, PNG, or WebP.
-- Use German or English task labels.
+- JPEG-, PNG- und WebP-Fotos öffnen.
+- Helligkeit, Kontrast und Farbsättigung ändern.
+- Fotos drehen, zuschneiden und ihre Größe ändern.
+- Den Hintergrund mit einem mitgelieferten lokalen KI-Modell entfernen.
+- Änderungen rückgängig machen, wiederholen und zum Original zurückkehren.
+- PNG, JPEG oder WebP exportieren; die Bedienoberfläche ist für Deutsch und Englisch vorgesehen.
 
-The adjustments are conventional image processing. Background removal is the AI feature. This alpha does **not** include editing from text prompts, generative object removal, RAW development, or a persistent layered project format.
+**Die Originaldatei bleibt geschützt.** Der Export verlangt einen anderen Dateinamen. PNG und WebP können einen transparenten Hintergrund behalten; JPEG bekommt an transparenten Stellen einen weißen Hintergrund. Übernommene EXIF-, GPS- und Kommentardaten werden beim Export entfernt. Die Ausgabe enthält ein sRGB-Farbprofil.
 
-## Privacy and offline use
+Die KI-Funktion erkennt einen Vordergrund und erzeugt eine Freistellmaske. Sie zeichnet Gesicht, Kleidung oder andere Bildinhalte nicht neu. Fehlerhafte Ränder oder versehentlich entfernte Bereiche sind trotzdem möglich. Die Alpha unterstützt noch keine Bearbeitung durch Textanweisungen, generatives Entfernen einzelner Objekte, RAW-Entwicklung oder dauerhaft gespeicherte Projekte mit Ebenen. Modellwahl und Grenzen sind in [MODELS.md](docs/MODELS.md) beschrieben.
 
-The editor has no account, backend, cloud inference endpoint, analytics, runtime updater, or model downloader. Inference runs in a child process using a prepackaged model. Only the developer's build step downloads dependencies and the model. A complete distribution must contain the required runtime and model before installation.
+## Ausprobieren unter Windows
 
-Temporary inference inputs and results are stored locally and removed after a completed or cancelled job. They are not encrypted and a forced process or operating-system crash can leave temporary files. Do not assume local processing also protects against another administrator, malware, OS backups, or a cloud-synced folder chosen by the user.
+Erstes Ziel ist **Windows 11 x64**. Die Auslieferung der Alpha ist als **portables ZIP mit Programm, Laufzeit und KI-Modell** vorgesehen. Ein Installer wird für diesen ersten Build nicht versprochen. Im vollständigen Paket soll keine separate Installation von Python, CUDA oder einem Modellserver nötig sein; der entsprechende Test auf einem frischen Windows-System steht noch aus.
 
-## Installation
+Wenn ein erfolgreicher Windows-Build vorliegt:
 
-End-user delivery is planned as a Windows installer and a portable archive containing the complete app and model. There is no published, verified installer at the initial source commit. Use a download only when its build is marked successful. The developer instructions below are not the intended end-user setup.
+1. Öffne [GitHub Actions](https://github.com/Cenn0/LocalAiPhotoEditor/actions) und wähle den Workflow **Windows alpha**.
+2. Öffne einen erfolgreich abgeschlossenen Lauf und lade unter **Artifacts** das Paket **LocalAiPhotoEditor-windows-x64-alpha** herunter.
+3. Entpacke das heruntergeladene Archiv vollständig. Falls es das portable Paket als weiteres ZIP enthält, entpacke auch dieses.
+4. Starte die Programmdatei im entpackten Paketordner. Belasse Modell- und Laufzeitdateien bei der Anwendung.
 
-## Development
+**Ein Actions-Artefakt ist ein Vorabpaket für Tests.** Ein grüner Build allein belegt weder die Qualität der Freistellung noch den erfolgreichen Offlinebetrieb auf einem frischen Windows-Rechner. Fehlt ein erfolgreiches Artefakt, ist über diesen Weg noch kein Paket verfügbar. Freigegebene Versionen gehören später auf die [Releases-Seite](https://github.com/Cenn0/LocalAiPhotoEditor/releases).
 
-Use Python 3.12. From the repository root:
+## Was „lokal“ bedeutet
+
+Die Anwendung hat keine Konten, Cloud-Anbindung, Analyseberichte, automatische Modell-Downloads oder Laufzeit-Updates. Der KI-Auftrag wird in einem eigenen Prozess auf dem Computer ausgeführt. Internetzugriff ist für das Herstellen eines vollständigen Pakets vorgesehen, nicht für die spätere Bildbearbeitung.
+
+Temporäre Eingaben und Ergebnisse liegen lokal und sollen nach Abschluss oder Abbruch des Auftrags entfernt werden. Ein erzwungener Prozess- oder Systemabbruch kann Dateien zurücklassen; diese Arbeitsdateien sind nicht verschlüsselt. Wenn du selbst einen synchronisierten Ordner als Speicherziel wählst, kann dessen Synchronisierungsdienst die exportierte Datei übertragen.
+
+Die Umsetzung und die noch ausstehende Prüfung des vollständigen Pakets sind im [Architekturdokument](docs/ARCHITECTURE.md) und [Verifikationsprotokoll](docs/VERIFICATION.md) getrennt beschrieben.
+
+## Aktuelle Grenzen
+
+- Unterstützt werden passende **8-Bit-Einzelbilder bis 40 Millionen Pixel**. Animierte und mehrseitige Dateien sowie RAW-/16-Bit-Bearbeitung sind ausgeschlossen.
+- Die Ausrichtung aus EXIF wird berücksichtigt. Gültige eingebettete Farbprofile werden nach sRGB umgerechnet; ungültige oder nicht unterstützte Profile lösen einen Fehler aus. RGB-, Graustufen- und Palettenbilder ohne Profil werden als sRGB behandelt. CMYK und LAB benötigen ein gültiges eingebettetes Profil.
+- Der Verlauf bleibt im Arbeitsspeicher. Große Fotos behalten weniger rückgängig machbare Schritte. Das ursprüngliche Bild bleibt während der Bearbeitung unabhängig davon verfügbar.
+- Die erste KI-Ausführung ist auf die CPU ausgelegt. GPU-Unterstützung, Mindestgeschwindigkeit und konkrete RAM-Anforderungen sind noch nicht für dieses Programm freigegeben.
+- macOS- und Linux-Pakete sind spätere Ziele. Lokale Quellcode-Tests sind kein Nachweis für fertige Pakete dieser Plattformen.
+
+## Für Entwicklerinnen und Entwickler
+
+Die folgenden Befehle sind für die Arbeit am Quellcode gedacht. Der vorgesehene Einstieg für Anwender ist das vollständige Paket oben.
+
+Mit Python 3.12 im Repository-Hauptverzeichnis, unter Windows:
 
 ```powershell
 python -m venv .venv
@@ -39,30 +63,31 @@ python -m venv .venv
 .venv\Scripts\python -m local_ai_photo_editor
 ```
 
-On Linux/macOS, the virtual environment interpreter is `.venv/bin/python`. Application dependencies are directly pinned in `pyproject.toml`; the build records resolved transitive dependency versions. A fully hashed transitive lock is a follow-up release-hardening task, not an existing guarantee.
+Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. Direkte Abhängigkeiten sind in [pyproject.toml](pyproject.toml) festgelegt. Ein vollständig mit Hashes gesperrter Satz aller transitiven Abhängigkeiten ist noch kein vorhandenes Versprechen.
 
-The model preparation step downloads the fixed upstream release asset and requires the pinned SHA-256, original upstream MD5 compatibility value, and exact size to match. It is not called by the desktop application. The expected SHA-256 still needs an actual binary verification run in CI before the first binary can be called tested.
+`prepare_model.py` ist ausschließlich ein Werkzeug zum Vorbereiten des Pakets. Beim Download prüft es Dateigröße, den festgelegten SHA-256 und den upstream angegebenen MD5-Kompatibilitätswert. Die Anwendung selbst ruft es nicht auf. Die Herkunft des erwarteten SHA-256 und die noch ausstehende eigene Prüfung des tatsächlichen Modellartefakts stehen in [MODELS.md](docs/MODELS.md).
 
-## Verification
+### Prüfungen ausführen
 
-```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
-python -m compileall -q src tests tools
-PYTHONPATH=src python -m local_ai_photo_editor --smoke-test smoke-output
+Nach Installation der Entwicklungsabhängigkeiten:
+
+```powershell
+.venv\Scripts\python -m unittest discover -s tests -v
+.venv\Scripts\python -m compileall -q src tests tools
+.venv\Scripts\python -m local_ai_photo_editor --smoke-test smoke-output
 ```
 
-The first command can run headless. Tests requiring unavailable Qt or the real bundled model are explicitly skipped, never reported as successful inference checks. The smoke command requires the real model and ONNX Runtime and writes an inspection report and a synthetic output image. The packaging workflow must also run that command against the built executable.
+Der letzte Befehl benötigt das echte Modell und ONNX Runtime sowie ein noch nicht vorhandenes Ausgabeverzeichnis. Er erzeugt ein synthetisches Testbild und einen Ergebnisbericht. Tests mit künstlichen Masken oder Ersatzdaten bestätigen keine erfolgreiche Modellinferenz. Das gebaute Windows-Programm muss zusätzlich separat geprüft werden.
 
-## Design
+## Projektentscheidungen
 
-- [Project concept](docs/CONCEPT.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Model decisions and evidence](docs/MODELS.md)
-- [Roadmap and acceptance criteria](docs/ROADMAP.md)
-- [Verification record](docs/VERIFICATION.md)
-- [Third-party components](THIRD_PARTY_NOTICES.md)
+- [Konzept, Zielgruppe und Technologievergleich](docs/CONCEPT.md)
+- [Architektur und Modulgrenzen](docs/ARCHITECTURE.md)
+- [KI-Modelle, Herkunft und Lizenzabgrenzung](docs/MODELS.md)
+- [Roadmap und Abnahmekriterien](docs/ROADMAP.md)
+- [Tatsächlich durchgeführte Prüfungen](docs/VERIFICATION.md)
+- [Verwendete Drittkomponenten](THIRD_PARTY_NOTICES.md)
 
-## License
+## Lizenz
 
-Application code: Apache-2.0. Dependencies and model artifacts retain their own licenses. U-2-Net's source repository uses Apache-2.0; the U2NETP ONNX export is distributed by rembg. See the model decision record for the exact provenance and the distinction between repository-level licensing and a separate statement about a converted weights artifact.
-
+Der Anwendungscode steht unter **Apache-2.0**. Bibliotheken und Modelle behalten ihre jeweiligen Lizenzen. Die Lizenz des U-2-Net-Quellprojekts und die Herkunft des über rembg bereitgestellten ONNX-Artefakts werden ausdrücklich getrennt betrachtet; Details stehen in [MODELS.md](docs/MODELS.md) und den [Dritthinweisen](THIRD_PARTY_NOTICES.md).
