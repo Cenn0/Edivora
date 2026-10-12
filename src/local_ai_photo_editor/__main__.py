@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import json
 from pathlib import Path
 import subprocess
@@ -15,16 +16,26 @@ if TYPE_CHECKING:
 SMOKE_TIMEOUT_SECONDS = 120
 
 
+def _compiled_executable() -> str | None:
+    """Resolve Nuitka's actual program path without guessing an interpreter."""
+    compiled = globals().get("__compiled__")
+    if compiled is None:
+        return None
+    program = getattr(compiled, "process_exe", None)
+    if not program:
+        # Nuitka 4.2.2 exposes this builtin and uses it for multiprocessing.
+        # Newer versions expose the path on __compiled__.process_exe instead.
+        program = getattr(builtins, "__nuitka_binary_exe", None)
+    if not program:
+        raise RuntimeError("The compiled application did not expose its executable path.")
+    return str(program)
+
+
 def worker_command(directory: str | Path) -> tuple[str, list[str]]:
     args = ["--worker", str(directory)]
-    compiled = globals().get("__compiled__")
-    if compiled is not None:
-        # Nuitka 4.3's standalone sys.executable names a Python executable in
-        # the distribution directory. process_exe identifies this actual app.
-        program = getattr(compiled, "process_exe", None)
-        if not program:
-            raise RuntimeError("The compiled application did not expose its executable path.")
-        return str(program), args
+    program = _compiled_executable()
+    if program is not None:
+        return program, args
     if getattr(sys, "frozen", False):
         return sys.executable, args
     return sys.executable, ["-m", "local_ai_photo_editor", *args]
@@ -32,12 +43,9 @@ def worker_command(directory: str | Path) -> tuple[str, list[str]]:
 
 def _bundled_qt_plugin_directory() -> Path | None:
     """Resolve the Windows standalone layout without importing Qt."""
-    compiled = globals().get("__compiled__")
-    if compiled is None:
+    executable = _compiled_executable()
+    if executable is None:
         return None
-    executable = getattr(compiled, "process_exe", None)
-    if not executable:
-        raise RuntimeError("The compiled application did not expose its executable path.")
     plugins = Path(executable).parent / "PySide6" / "qt-plugins"
     platform_plugin = plugins / "platforms" / "qwindows.dll"
     if not platform_plugin.is_file():
@@ -59,8 +67,9 @@ def _synthetic_photo() -> PillowImage:
     import numpy as np
     from PIL import Image
 
-    # This fixture needs only pixels. ImageDraw also imports font machinery,
-    # which crashed during its late import in the compiled Windows GUI smoke.
+    # This fixture needs only pixels, so no drawing or font imports are needed.
+    # Those imports were a visible crash site of Nuitka 4.3's signal-connection
+    # regression; neither fonts nor this fixture were its established cause.
     pixels = np.empty((256, 384, 4), dtype=np.uint8)
     pixels[:] = (237, 240, 245, 255)
     y, x = np.ogrid[:256, :384]
@@ -192,7 +201,7 @@ def ui_smoke_test(output_directory: Path) -> int:
     scope = "ui_startup_image_io_and_capture_only"
     runtime = {
         "sys_executable": sys.executable,
-        "process_exe": getattr(globals().get("__compiled__"), "process_exe", None),
+        "process_exe": None,
         "argv": sys.argv,
         "working_directory": str(Path.cwd()),
         "environment": {name: os.environ.get(name) for name in (
@@ -225,6 +234,8 @@ def ui_smoke_test(output_directory: Path) -> int:
         }
 
     try:
+        checkpoint("resolve_compiled_executable")
+        runtime["process_exe"] = _compiled_executable()
         checkpoint("before_qt_import")
         qt_messages = (output_directory / "qt-messages.log").open("w", encoding="utf-8")
         native_faults = (output_directory / "python-fault.log").open("w", encoding="utf-8")
