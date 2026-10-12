@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import hashlib
 import json
 from pathlib import Path
@@ -128,6 +129,16 @@ class WorkerTests(unittest.TestCase):
 
 
 class WorkerCommandTests(unittest.TestCase):
+    def test_source_mode_ignores_a_stray_nuitka_builtin(self):
+        with patch.dict(entry.__dict__, {"__compiled__": None}), patch.object(
+            builtins, "__nuitka_binary_exe", "unrelated.exe", create=True,
+        ), patch.object(sys, "frozen", False, create=True):
+            self.assertIsNone(entry._compiled_executable())
+            self.assertEqual(
+                entry.worker_command("job"),
+                (sys.executable, ["-m", "local_ai_photo_editor", "--worker", "job"]),
+            )
+
     def test_packaged_worker_reuses_the_executable_without_a_python_module_switch(self):
         directory = Path("job with spaces")
         with patch.object(sys, "frozen", True, create=True):
@@ -138,11 +149,22 @@ class WorkerCommandTests(unittest.TestCase):
         executable = str(Path("portable app") / "LocalAiPhotoEditor.exe")
         python_executable = str(Path("portable app") / "python.exe")
         compiled = SimpleNamespace(process_exe=executable)
-        with patch.dict(entry.__dict__, {"__compiled__": compiled}), patch.object(sys, "executable", python_executable):
+        with patch.dict(entry.__dict__, {"__compiled__": compiled}), patch.object(sys, "executable", python_executable), patch.object(
+            builtins, "__nuitka_binary_exe", "obsolete.exe", create=True,
+        ):
             self.assertEqual(entry.worker_command(directory), (executable, ["--worker", str(directory)]))
 
-    def test_nuitka_worker_rejects_missing_process_exe_without_guessing_an_interpreter(self):
-        with patch.dict(entry.__dict__, {"__compiled__": SimpleNamespace(process_exe=None)}):
+    def test_nuitka_422_worker_uses_the_runtime_binary_builtin(self):
+        executable = str(Path("portable app") / "LocalAiPhotoEditor.exe")
+        with patch.dict(entry.__dict__, {"__compiled__": SimpleNamespace()}), patch.object(
+            builtins, "__nuitka_binary_exe", executable, create=True,
+        ), patch.object(sys, "executable", "absent-python.exe"):
+            self.assertEqual(entry.worker_command("job"), (executable, ["--worker", "job"]))
+
+    def test_nuitka_worker_rejects_both_missing_paths_without_guessing_an_interpreter(self):
+        with patch.dict(entry.__dict__, {"__compiled__": SimpleNamespace(process_exe=None)}), patch.object(
+            builtins, "__nuitka_binary_exe", None, create=True,
+        ):
             with self.assertRaisesRegex(RuntimeError, "executable path"):
                 entry.worker_command("job")
 
@@ -160,9 +182,36 @@ class QtPluginPathTests(unittest.TestCase):
             platform.parent.mkdir(parents=True)
             # Path fixture only; this is not a loadable Qt plugin or GUI test.
             platform.write_bytes(b"path fixture")
-            compiled = SimpleNamespace(process_exe=str(bundle / "LocalAiPhotoEditor.exe"))
-            with patch.dict(entry.__dict__, {"__compiled__": compiled}), patch.object(sys, "executable", str(Path(root) / "wrong" / "python.exe")):
-                self.assertEqual(entry._bundled_qt_plugin_directory(), plugins)
+            executable = str(bundle / "LocalAiPhotoEditor.exe")
+            for kind, compiled, legacy in (
+                ("modern", SimpleNamespace(process_exe=executable), "obsolete.exe"),
+                ("4.2.2", SimpleNamespace(), executable),
+            ):
+                with self.subTest(metadata=kind), patch.dict(entry.__dict__, {"__compiled__": compiled}), patch.object(
+                    builtins, "__nuitka_binary_exe", legacy, create=True,
+                ), patch.object(sys, "executable", str(Path(root) / "wrong" / "python.exe")):
+                    self.assertEqual(entry._bundled_qt_plugin_directory(), plugins)
+                    self.assertEqual(entry.worker_command("job")[0], executable)
+                    # Stop before Qt itself: verify the real early diagnostic
+                    # path without requiring a GUI or loading a dummy plugin.
+                    output = Path(root) / kind
+                    with patch.dict(sys.modules, {"PySide6.QtCore": None}):
+                        self.assertEqual(entry.ui_smoke_test(output), 1)
+                    report = json.loads((output / "ui-smoke-result.json").read_text())
+                    self.assertEqual(report["runtime"]["process_exe"], executable)
+                    self.assertEqual(report["phase"], "import_qt_core")
+
+    def test_missing_compiled_path_is_reported_before_qt_import(self):
+        with tempfile.TemporaryDirectory() as root, patch.dict(
+            entry.__dict__, {"__compiled__": SimpleNamespace()},
+        ), patch.object(builtins, "__nuitka_binary_exe", None, create=True):
+            with self.assertRaisesRegex(RuntimeError, "executable path"):
+                entry._bundled_qt_plugin_directory()
+            output = Path(root) / "smoke"
+            self.assertEqual(entry.ui_smoke_test(output), 1)
+            report = json.loads((output / "ui-smoke-result.json").read_text())
+            self.assertEqual(report["phase"], "resolve_compiled_executable")
+            self.assertEqual(report["error_type"], "RuntimeError")
 
     def test_incomplete_bundle_reports_the_exact_missing_platform_plugin(self):
         with tempfile.TemporaryDirectory() as root:

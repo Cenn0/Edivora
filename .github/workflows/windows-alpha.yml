@@ -35,7 +35,9 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
       - name: Install pinned application and build dependencies
-        run: python -m pip install -e . Nuitka==4.3
+        # 4.3 corrupts compiled-method storage during Qt signal connection.
+        # Maintainer-confirmed regression: https://github.com/Nuitka/Nuitka/issues/4081
+        run: python -m pip install -e . Nuitka==4.2.2
       - name: Core, adapter and Qt tests
         run: python -m unittest discover -s tests -v
       - name: Compile source
@@ -53,9 +55,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/local-ai-photo-editor-clcache
-          key: windows-2022-x64-python312-nuitka43-${{ hashFiles('pyproject.toml', 'tools/build_windows.py') }}-${{ github.sha }}
+          key: windows-2022-x64-python312-nuitka422-${{ hashFiles('pyproject.toml', 'tools/build_windows.py') }}-${{ github.sha }}
           restore-keys: |
-            windows-2022-x64-python312-nuitka43-${{ hashFiles('pyproject.toml', 'tools/build_windows.py') }}-
+            windows-2022-x64-python312-nuitka422-${{ hashFiles('pyproject.toml', 'tools/build_windows.py') }}-
       - name: Build standalone application
         id: standalone_build
         env:
