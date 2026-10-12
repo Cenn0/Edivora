@@ -7,9 +7,9 @@
 - Before/after view, bounded undo/redo, German and English labels.
 - One bundled U2NETP model, ONNX CPU execution, cancellable child-process inference.
 - Metadata-clean exports and readable errors.
-- Windows build pipeline and a portable package; generate an installer when the build tools are available.
+- Windows build pipeline and a portable ZIP containing the complete application, runtime and model. The first CI build does not promise an installer.
 
-Acceptance: actual packaged model inference works without developer tools; the first launch and edit/export succeed with networking disabled on a clean Windows 11 x64 machine. Unit tests alone do not satisfy this gate. No end-user release is claimed until it is verified.
+Acceptance: actual packaged model inference works without developer tools; the first launch and edit/export succeed with networking disabled on a clean Windows 11 x64 machine. Unit tests alone do not satisfy this gate. An unsigned build artifact may be offered explicitly as a test alpha while remaining checks are recorded in [VERIFICATION.md](VERIFICATION.md). Such an artifact must not be described as a verified end-user release.
 
 ## 0.2 — editing precision and project persistence
 
@@ -30,10 +30,18 @@ Acceptance: unwanted mask pixels can be corrected without regenerating protected
 
 Acceptance: no implicit network access, no account/API key, reliable failure recovery, measured limits, and explicit disclosure that generative edits can alter unmasked content unless composited with the original.
 
+## Before the first stable end-user release
+
+- Sign the Windows package and complete the clean-machine offline acceptance checks for the exact distributed build.
+- Publish the tested platform, dependency/model versions, known limits and corresponding verification evidence.
+- Add an installer if it demonstrably simplifies delivery; the tested portable package remains a valid distribution format.
+
+No signing certificate is assumed to be available during initial development. Signing is a stable-release requirement, not a prerequisite for a clearly labelled test-alpha artifact.
+
 ## Later, after measured demand
 
 - Local inpainting and super-resolution models with verified redistribution terms.
-- Linux and macOS packages, signed Windows installation and notarized macOS delivery as appropriate.
+- Linux and macOS packages, including notarized macOS delivery where required by the chosen distribution path.
 - GPU acceleration for segmentation only when its practical speed-up outweighs package and support cost.
 - RAW/16-bit workflows, batch editing and richer layers only after the basic editor is stable.
 
