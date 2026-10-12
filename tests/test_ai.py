@@ -147,6 +147,33 @@ class WorkerCommandTests(unittest.TestCase):
                 entry.worker_command("job")
 
 
+class QtPluginPathTests(unittest.TestCase):
+    def test_source_mode_does_not_change_paths_or_import_qt(self):
+        with patch.dict(entry.__dict__, {"__compiled__": None}), patch("builtins.__import__", side_effect=AssertionError("Source mode must not import Qt here.")):
+            self.assertIsNone(entry._configure_bundled_qt_plugins())
+
+    def test_bundle_plugins_follow_the_real_executable_not_the_python_path(self):
+        with tempfile.TemporaryDirectory() as root:
+            bundle = Path(root) / "portable app with spaces"
+            plugins = bundle / "PySide6" / "qt-plugins"
+            platform = plugins / "platforms" / "qwindows.dll"
+            platform.parent.mkdir(parents=True)
+            # Path fixture only; this is not a loadable Qt plugin or GUI test.
+            platform.write_bytes(b"path fixture")
+            compiled = SimpleNamespace(process_exe=str(bundle / "LocalAiPhotoEditor.exe"))
+            with patch.dict(entry.__dict__, {"__compiled__": compiled}), patch.object(sys, "executable", str(Path(root) / "wrong" / "python.exe")):
+                self.assertEqual(entry._bundled_qt_plugin_directory(), plugins)
+
+    def test_incomplete_bundle_reports_the_exact_missing_platform_plugin(self):
+        with tempfile.TemporaryDirectory() as root:
+            compiled = SimpleNamespace(process_exe=str(Path(root) / "LocalAiPhotoEditor.exe"))
+            expected = Path(root) / "PySide6" / "qt-plugins" / "platforms" / "qwindows.dll"
+            with patch.dict(entry.__dict__, {"__compiled__": compiled}):
+                with self.assertRaises(FileNotFoundError) as error:
+                    entry._bundled_qt_plugin_directory()
+            self.assertEqual(error.exception.filename, str(expected))
+
+
 class SmokeProtocolTests(unittest.TestCase):
     """Mocked process results validate the smoke harness, not model inference."""
 
