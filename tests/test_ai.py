@@ -174,6 +174,28 @@ class QtPluginPathTests(unittest.TestCase):
             self.assertEqual(error.exception.filename, str(expected))
 
 
+class SyntheticPhotoTests(unittest.TestCase):
+    def test_pixel_fixture_needs_no_drawing_or_font_modules(self):
+        real_import = __import__
+        blocked = {"ImageDraw", "ImageFont", "_imagingft"}
+
+        def import_without_fonts(name, globals=None, locals=None, fromlist=(), level=0):
+            if name in {f"PIL.{module}" for module in blocked} or (
+                name == "PIL" and blocked.intersection(fromlist or ())
+            ):
+                raise AssertionError("The synthetic pixel fixture must not import drawing or font modules.")
+            return real_import(name, globals, locals, fromlist, level)
+
+        with patch("builtins.__import__", side_effect=import_without_fonts):
+            picture = entry._synthetic_photo()
+        self.assertEqual(picture.size, (384, 256))
+        self.assertEqual(picture.mode, "RGBA")
+        self.assertEqual(picture.getchannel("A").getextrema(), (255, 255))
+        self.assertEqual(picture.getpixel((0, 0)), (237, 240, 245, 255))
+        self.assertEqual(picture.getpixel((192, 128)), (160, 53, 36, 255))
+        self.assertEqual(picture.getpixel((172, 71)), (226, 99, 75, 255))
+
+
 class SmokeProtocolTests(unittest.TestCase):
     """Mocked process results validate the smoke harness, not model inference."""
 
