@@ -1,0 +1,12 @@
+Bundled model: U2NETP, a compact U-2-Net foreground segmentation network.
+Original project: https://github.com/xuebinqin/U-2-Net
+Original source license: Apache-2.0, reproduced in U2NET_SOURCE_LICENSE.txt.
+ONNX export publisher: https://github.com/danielgatis/rembg
+Artifact: https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx
+
+The source repository license and the specific converted weights artifact's
+redistribution provenance must not be conflated. See docs/MODELS.md and
+THIRD_PARTY_NOTICES.md in the distribution/repository for the evidence and limits.
+
+The app reads only the bundled, size-checked, SHA-256-pinned file. The build tool
+prepares the model; the installed application contains no model downloader.
