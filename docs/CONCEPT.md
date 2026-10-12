@@ -67,7 +67,7 @@ Für eine später geforderte plattformübergreifende .NET-Oberfläche wäre die 
 
 | Kategorie | Aussage für das Projekt |
 | --- | --- |
-| **Funktioniert grundsätzlich** | Alle drei Ansätze können eine lokale Anwendung mit einer passenden Inferenzanbindung bilden. Der bisherige Core-Testlauf belegt einen konkreten Teil der Python-Implementierung. |
+| **Funktioniert grundsätzlich** | Alle drei Ansätze können eine lokale Anwendung mit einer passenden Inferenzanbindung bilden. Für die Python-Implementierung liegen inzwischen erfolgreiche Windows-Paketprüfungen und ein separater Lauf des heruntergeladenen Pakets unter ausgehendem Netzwerkblock vor; Umfang und Grenzen stehen im [Verifikationsprotokoll](VERIFICATION.md). |
 | **Offiziell unterstützt** | Die genannten Herstellerdokumentationen belegen die jeweiligen Framework-/Sprachanbindungen. Sie zertifizieren weder dieses Programm noch sein Modell auf einem beliebigen PC. |
 | **Best Practice für diesen Umfang** | Unsere Empfehlung ist eine kleine Anwendung mit klar getrenntem Core, UI und Modelladapter, vollständig mitgelieferten Laufzeiten und überprüfbaren Exporten. Das ist eine begründete Projektentscheidung, keine universelle Vorgabe für Fotoeditoren. |
 | **Sicherheitsseitig empfehlenswert** | Nur das vorgesehene, per Prüfsumme gebundene Modell laden, keine heruntergeladenen Python-Modelldateien ausführen und Fotos ohne Laufzeit-Netzwerkpfad verarbeiten. Der eigene Workerprozess dient der Abbrechbarkeit und ist keine Betriebssystem-Sandbox. |
@@ -98,10 +98,12 @@ Die nächsten Schritte sind eine vom Anwender korrigierbare Maske und der Vergle
 
 ## 7. Auslieferung und Abnahme
 
-Die erste Alpha wird als portables Windows-ZIP vorgesehen. Ein vollständiger Paketordner ist für diesen Stand ausreichend; ein Installer kann später darauf aufbauen. Der Workflow **Windows alpha** soll das Artefakt **LocalAiPhotoEditor-windows-x64-alpha** bereitstellen. Ein vorhandener Workflow ist noch kein erfolgreicher Lauf.
+Für die erste Version liegt eine **geprüfte portable Testalpha** vor. Das Paketformat ist `LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip` mit dem obersten Ordner `LocalAiPhotoEditor/`, der Anwendung, Laufzeit und U2NETP-Modell enthält. Ein Installer gehört nicht zu dieser Alpha. [Download](https://github.com/Cenn0/LocalAiPhotoEditor/releases/download/v0.1.0-alpha.1/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip) · [Informationen zur Vorabversion](https://github.com/Cenn0/LocalAiPhotoEditor/releases/tag/v0.1.0-alpha.1).
 
-Eine veröffentlichte Test-Alpha kann ausdrücklich als unsigniertes Vorabpaket gekennzeichnet sein. **Vor der ersten stabilen Endnutzer-Version sind signierte Windows-Pakete und eine bestandene Abnahme auf einem frischen Windows-System vorgesehen.** Es wird kein vorhandenes Signierzertifikat vorausgesetzt. Diese Abgrenzung gilt ebenso in Architektur und Roadmap.
+Der erfolgreiche Windows-Build prüfte Quellcode und kompilierte Anwendung. Ein separater Lauf bestätigte echte KI, native DE/EN-Oberfläche und Bildimport/-export aus dem erneut heruntergeladenen Paket unter einer wirksamen ausgehenden Netzwerksperre für die EXE. Die automatisierten Nachweise beziehen sich auf **Windows Server 2022**. Eine frische Windows-11-Installation und der vollständige interaktive Bedienablauf bleiben ungetestet; die genauen Nachweise stehen in [VERIFICATION.md](VERIFICATION.md).
+
+Die Testalpha ist unsigniert. **Vor der ersten stabilen Endnutzer-Version sind signierte Windows-Pakete und eine bestandene Abnahme auf einem frischen Windows-System vorgesehen.** Es wird kein vorhandenes Signierzertifikat vorausgesetzt. Diese Abgrenzung gilt ebenso in Architektur und Roadmap.
 
 Die Abnahme beantwortet die ursprüngliche Produktfrage: Funktioniert die vollständige Anwendung ohne Entwicklerwerkzeuge und bei abgeschaltetem Netzwerk vom ersten Start bis zum Export? Dafür müssen auch Modellinitialisierung, Abbruch, Originalschutz, deutsche/englische Bedienung und Paketvollständigkeit geprüft werden. Ein Quellcode-Review oder ein Test mit künstlichen Masken genügt dafür nicht.
 
-Die Empfehlung bleibt daher: **Zuerst den kleinen lokalen Editor mit einer funktionierenden, vollständig paketierten Freistellfunktion abschließen.** Anschließend Maskenkorrektur und gespeicherte Projekte ergänzen, bevor umfangreiche generative Modelle die Hardware- und Auslieferungsanforderungen verändern. Die ausführliche Reihenfolge steht in [ROADMAP.md](ROADMAP.md).
+Die nächste Priorität ist die vollständige Abnahme der vorhandenen Testalpha. Darauf aufbauend folgen Maskenkorrektur und gespeicherte Projekte, bevor umfangreiche generative Modelle die Hardware- und Auslieferungsanforderungen verändern. Die ausführliche Reihenfolge steht in [ROADMAP.md](ROADMAP.md).

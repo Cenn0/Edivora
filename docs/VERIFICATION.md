@@ -1,80 +1,108 @@
 # Verifikationsprotokoll
 
-**Der dritte Windows-Lauf ist abgeschlossen: 62 Tests, echte KI im Quellcode und im gebauten Paket sowie die Quellcode-Oberfläche waren erfolgreich. Die native Paketoberfläche brach beim Start mit Exit-Code 3 ab. Es gibt deshalb noch kein freigegebenes portables Paket.**
+**Der Windows-Build einschließlich aller Paketprüfungen ist erfolgreich abgeschlossen.** 69 von 69 Tests bestanden ohne Skips. Tatsächliche U2NETP-Ausführung und native Oberfläche auf Deutsch und Englisch funktionieren sowohl aus dem Quellcode als auch aus der kompilierten EXE. PNG-Import sowie PNG/JPEG/WebP-Export nach Qt-Initialisierung wurden ebenfalls bestätigt. **Ergebnis des separat heruntergeladenen Pakets unter Netzwerksperre:** Erfolgreich: echter KI-Worker und native Oberfläche mit Exit-Code 0 unter einem nachgewiesen wirksamen ausgehenden Firewallblock für die Anwendung.
 
-## Aktuelles bestätigtes Windows-Ergebnis
+## Geprüfter Stand und Paketidentität
 
-Geprüfter Quellcode: Commit [`121d702f89885c9803a2dcc930ef02340607295f`](https://github.com/Cenn0/LocalAiPhotoEditor/commit/121d702f89885c9803a2dcc930ef02340607295f). Umgebung laut Buildbericht: **Windows Server 2022, Python 3.12.10**, CPU-Ausführung. Nachweis: [Windows-alpha-Lauf 38303734085](https://github.com/Cenn0/LocalAiPhotoEditor/actions/runs/38303734085).
-
-| Prüfung | Bestätigtes Ergebnis | Aussagegrenze |
-| --- | --- | --- |
-| Vollständige Testsuite | **62 von 62 Tests bestanden, keine übersprungenen Tests.** | Die Tests laufen in der installierten Python-Umgebung des Runners. |
-| Echtes U2NETP im Quellcode-Worker | **Erfolgreich**, einschließlich Integritätsprüfung des geladenen Modells; Worker-Exit-Code 0. | Begrenzte Inferenz-/Exportstrecke mit synthetischem Testbild; keine Messung der Freistellqualität. |
-| Native Quellcode-Oberfläche | **Deutscher und englischer Qt-Start, Bildschirmaufnahmen und reguläres Beenden der Ereignisschleife erfolgreich.** | Kein vollständiger Test aller Dialoge, Windows-Skalierungen oder der Barrierefreiheit. |
-| Bau der eigenständigen Windows-Anwendung | **Nuitka-Standalone-Bau erfolgreich abgeschlossen.** | Der Bau allein bestätigt noch keine funktionsfähige Paketoberfläche. |
-| Echtes U2NETP im Worker der kompilierten EXE | **Erfolgreich**, einschließlich Integritätsprüfung; `LocalAiPhotoEditor.exe --worker` beendet sich mit Code 0. | Bestätigt die tatsächliche KI-Ausführung aus dem Paket auf diesem Runner. Der Bericht bezeichnet seinen Umfang ausdrücklich als `worker_runtime_only`. |
-| Native Oberfläche der kompilierten EXE | **Start fehlgeschlagen: nativer Abbruch mit Exit-Code 3.** | Es entstand kein erfolgreicher `ui-smoke-result.json`-Bericht. Die Ursache ist für diesen Lauf nicht abschließend bestimmt. |
-| Portables Paket | **Kein freigegebenes portables Artefakt.** | Der fehlgeschlagene Oberflächenstart verhindert die Bereitstellung als erfolgreich geprüftes Paket. |
-
-Die archivierten Nachweise des Laufs enthalten `test-results/source-worker/smoke-result.json`, `test-results/frozen-worker/smoke-result.json`, die zugehörigen Workerberichte und Ergebnisbilder sowie `test-results/source-gui/ui-smoke-result.json` mit deutschen und englischen Bildschirmaufnahmen. Beide KI-Berichte bestätigen `CPUExecutionProvider`, denselben festgelegten Modell-SHA-256 und ein Ergebnis mit 384 × 256 Pixeln. `build-info.json` ordnet das Paket dem oben genannten Commit und dem Kanal `unsigned-development-alpha` zu.
-
-Windows Server 2022 mit vorhandener Entwicklungsumgebung ist keine frische Windows-11-Installation. Ein erfolgreicher Paket-Worker auf diesem Runner belegt daher noch keinen ersten Offline-Start auf einem Rechner ohne Python.
-
-## Kurze Diagnosehistorie
-
-Im [zweiten Windows-Lauf 38301256500](https://github.com/Cenn0/LocalAiPhotoEditor/actions/runs/38301256500) für Commit [`13e69ad6`](https://github.com/Cenn0/LocalAiPhotoEditor/commit/13e69ad6339fde9d3f23aa960adae0a3c23dc7fd) bestanden 59 Tests, Quellcode-KI und Quellcode-Oberfläche. Der Standalone-Bau gelang; der Paket-Worker scheiterte mit `FileNotFoundError`, weil Nuitka 4.3 über `sys.executable` auf `dist/python.exe` statt auf die Anwendung verwies.
-
-Der dritte Lauf bestätigt die Korrektur mit `__compiled__.process_exe`: Der Paketbericht führt die tatsächlich gestartete `LocalAiPhotoEditor.exe` auf und meldet erfolgreichen Workerabschluss. Der anschließende Abbruch der Paketoberfläche ist der verbleibende, separat zu untersuchende Fehler. Für nachfolgende Änderungen wird hier erst nach deren tatsächlicher Prüfung ein Ergebnis ergänzt.
-
-## Lokale Quellcode-Prüfungen
-
-Der zuletzt dokumentierte lokale Lauf für Anwendungscode `9e6dada` umfasst **65 Tests: 57 bestanden, 8 Qt-Tests wegen fehlender lokaler Qt-Laufzeit übersprungen**. Auch `python -m compileall -q src tests tools` wurde erfolgreich mit Exit-Code 0 abgeschlossen. Die lokale Umgebung verwendete Python **3.12.14**, Pillow **12.3.0** und NumPy **2.3.5**; NumPy weicht damit vom vorgesehenen Paket-Pin **2.5.4** ab. Dieser Lauf enthält keine echte lokale Modellinferenz und prüft keine native Windows-EXE. Die Windows-Ergebnisse oben sind eigenständige Nachweise für den ausdrücklich angegebenen Commit.
-
-Die [Coretests](../tests/test_core.py) prüfen unter anderem EXIF-Ausrichtung, LAB-zu-sRGB-Konvertierung durch LittleCMS, transparente Palettenbilder, ungültige ICC-Profile, das Pixel-Limit vor dem Decodieren, Bearbeitung ohne Mutation der Eingabe und begrenztes Undo/Redo. Exporttests prüfen PNG-/WebP-Pixelrundläufe, JPEG mit weißem Transparenzhintergrund, entfernte Eingabemetadaten, Originalschutz einschließlich harter und symbolischer Links sowie den Erhalt eines vorhandenen Exports bei einem simulierten Schreibfehler.
-
-Die [Adaptertests](../tests/test_ai.py) verwenden synthetische Bilder, berechnete Masken und teilweise Ersatzdaten. Sie prüfen unter anderem Vorverarbeitung, Erhalt der RGB-Werte, Kombination vorhandener Transparenz, ungültige Ausgabeformen und Modellintegritätsfehler. Der Netzwerktest betrifft den Fehlerpfad „Modell fehlt“. Er ist kein systemweiter Nachweis des Offlinebetriebs. Die separat ausgeführten Quellcode- und Paket-Workerprüfungen bestätigen dagegen die tatsächliche Modellinferenz auf dem Windows-Runner.
-
-## Noch offene Nachweise
-
-| Bereich | Stand |
+| Feld | Nachweis |
 | --- | --- |
-| Paketoberfläche und vollständiger Bedienablauf | Der native EXE-Start ist im dritten Lauf fehlgeschlagen. Erfolgreicher Start, alle wesentlichen Dialoge, Export aus der Oberfläche, Abbruch, Skalierungen und Barrierefreiheit sind für das Paket noch zu prüfen. |
-| Freigegebenes portables ZIP | Noch nicht vorhanden. Ein künftiges erfolgreiches Actions-Artefakt bleibt zunächst eine Entwicklungs-Alpha. |
-| Offlinebetrieb ab erstem Start | Nicht auf einem frischen Windows-11-x64-Rechner ohne Python und mit abgeschaltetem Netzwerk geprüft. |
-| Bildqualität und Hardwarebedarf | Keine veröffentlichte Qualitätsmessung, kein bestätigter Mindest-RAM und keine garantierten Inferenzzeiten oder GPU-Konfigurationen. |
-| Signierung | Kein signiertes Windows-Paket bestätigt; Voraussetzung für die erste stabile Endnutzer-Version. |
+| Anwendungscode | [`2b1682b74bd406238865e0b6f8ad1ed151890032`](https://github.com/Cenn0/LocalAiPhotoEditor/commit/2b1682b74bd406238865e0b6f8ad1ed151890032) |
+| Windows-Build | [Windows alpha, Lauf 38311556834](https://github.com/Cenn0/LocalAiPhotoEditor/actions/runs/38311556834) |
+| Umgebung | Windows Server 2022, Python 3.12, CPU-Ausführung |
+| Paketwerkzeug | Nuitka **4.2.2**, PySide6 **6.12.0** |
+| Actions-Artefakt | `LocalAiPhotoEditor-windows-x64-alpha`; ID **11775901053** |
+| Größe des Actions-Artefakts | **70.652.403 Bytes** |
+| SHA-256 des Actions-Artefakts | `0abda2fb998a43ce01ef989ed51fd4dfa128de006f3956ccd4c725c7b34e70b9` |
+| SHA-256 der enthaltenen EXE | `cc8ab845f93310a63b16187a5143fef43d71e98dbf55b7aaf4f098457fc5cb8a` |
+| Vorabversions-Tag | `v0.1.0-alpha.1` |
+| Portable Vorabversion mit Paketnachweisen | [Paketinformationen](https://github.com/Cenn0/LocalAiPhotoEditor/releases/tag/v0.1.0-alpha.1) |
+| Release-Asset | `LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip` |
+| Prüfsumme des Release-ZIP | Separates Release-Asset `SHA256SUMS.txt` in der oben verlinkten Vorabveröffentlichung |
+| Download des Release-ZIP | https://github.com/Cenn0/LocalAiPhotoEditor/releases/download/v0.1.0-alpha.1/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip |
+| Separater Offline-Lauf | [Offline-Paketprüfung 38313711747](https://github.com/Cenn0/LocalAiPhotoEditor/actions/runs/38313711747) |
+| Veröffentlichungskanal | Unsignierte Entwicklungs-Alpha; keine stabile Endnutzer-Version |
+
+Das Actions-Artefakt wurde heruntergeladen und sein SHA-256 gegen den oben angegebenen Wert geprüft. `build-info.json` im Paket dokumentiert dessen tatsächlichen Buildcommit, Python-Version, Plattform, Modell-SHA-256 und Veröffentlichungskanal. `build-resolved.txt` sowie die Lizenzinventare dokumentieren die aufgelösten Abhängigkeiten. Eine spätere Dokumentationskorrektur ändert die Identität des kompilierten Anwendungscodes nicht. Beim Zusammenstellen ergänzt `distribution-info.json` die Zuordnung zum endgültigen Dokumentationsstand; die Identität des kompilierten Anwendungscodes bleibt erhalten.
+
+Das Release-ZIP enthält den obersten Ordner `LocalAiPhotoEditor/`. Nach dem vollständigen Entpacken wird `LocalAiPhotoEditor.exe` innerhalb dieses Ordners gestartet. Der oben eingetragene Actions-Artefakt-Hash und die separate Prüfsummendatei des Release-ZIP kennzeichnen jeweils das konkrete Archiv; sie werden nicht gleichgesetzt. Der Offline-Nachweis bezieht sich auf das darin ausdrücklich identifizierte Download-Artefakt.
+
+## Bestätigte Ergebnisse
+
+| Prüfung | Ergebnis | Was dadurch belegt wird |
+| --- | --- | --- |
+| Windows-Testsuite | **69 bestanden, keine übersprungenen Tests.** | Die geprüften Core-, KI-, Laufzeit- und Oberflächenverträge in der installierten Python-Umgebung des Runners. |
+| Echter Quellcode-KI-Worker | **Erfolgreich.** | Tatsächliche Inferenz mit dem festgelegten lokalen U2NETP-Modell und ONNX Runtime CPU; keine Ersatzmaske. |
+| Native Quelloberfläche | **Erfolgreich.** | Qt-Start, deutsche und englische Bildschirmaufnahmen sowie reguläres Beenden. Nach Qt-Initialisierung wurden Bildimport und alle drei Exportformate geprüft. |
+| Nuitka-Standalone-Bau | **Mit Nuitka 4.2.2 erfolgreich abgeschlossen.** | Herstellung des vollständigen Anwendungspakets für den angegebenen Commit. |
+| Echter KI-Worker der EXE | **Status `ok`, `CPUExecutionProvider`.** | Tatsächliche Inferenz aus der kompilierten Anwendung und dem mitgelieferten Modell. |
+| Native Oberfläche der EXE | **Status `ok`, Qt-Plattform `windows`, DE/EN-Aufnahmen mit jeweils 1028 × 749 Pixeln; Ereignisschleife mit Exit-Code 0 beendet.** | Paketstart, Darstellung, Bildimport/-export nach Qt-Initialisierung und reguläres Beenden im dokumentierten Umfang. PNG und WebP bewahrten die exakten Pixel; bei JPEG wurden Dimensionen und RGB-Modus bestätigt. |
+| Portables Actions-Artefakt | **Erfolgreich bereitgestellt und heruntergeladen; Archiv-SHA-256 bestätigt.** | Bereitstellung des oben eindeutig angegebenen Build-Artefakts. |
+| Portable Vorabversion | **Geprüfter Paketinhalt für `v0.1.0-alpha.1`.** | Das Release-ZIP übernimmt die geprüften Binärdateien; Dokumentation und Archivstruktur werden beim Zusammenstellen ergänzt. |
+| Erneut heruntergeladenes Paket unter ausgehendem EXE-Netzwerkblock | **Status `ok`; Worker und GUI mit Exit-Code 0, wirksame Sperre und Entfernen der temporären Regel bestätigt** | Ergebnis des separaten Workflows mit der unten beschriebenen Umgebung und Sperre. |
+
+Die Laufnachweise enthalten die erfolgreichen Berichte unter `test-results/source-worker/`, `test-results/source-gui/`, `test-results/frozen-worker/` und `test-results/frozen-gui/`. Die KI-Berichte nennen Modell-SHA-256, Ausführungsanbieter und Workerabschluss. Die GUI-Berichte enthalten Sprachaufnahmen, Bild-I/O-Prüfungen und den Exit-Code der Ereignisschleife. Die Aufnahmen der kompilierten Anwendung sind auch auf [Deutsch](screenshots/ui-smoke-de.png) und [Englisch](screenshots/ui-smoke-en.png) verfügbar.
+
+## Was die unterschiedlichen Prüfungen aussagen
+
+**Unit- und Oberflächentests:** Die [Coretests](../tests/test_core.py) prüfen unter anderem EXIF-Ausrichtung, ICC-Konvertierung und Profilfehler, Transparenz, das Pixel-Limit, unveränderte Eingaben, begrenztes Undo/Redo, Exportmetadaten und Originalschutz einschließlich Datei-Aliasen. Simulierte Schreibfehler prüfen, dass ein bestehender Export erhalten bleibt. Die [Adaptertests](../tests/test_ai.py) verwenden für einzelne Verträge synthetische Bilder, berechnete Masken und Ersatzdaten. Sie ersetzen keinen Lauf des echten Modells. Lokale Tests ohne Qt weisen die übersprungenen Qt-Fälle ausdrücklich aus; diese lokalen Skips sind nicht Bestandteil der 69 erfolgreichen Windows-Tests.
+
+**Tatsächliche Modellinferenz:** Der separate Worker-Smoke lädt das echte, auf Größe und SHA-256 geprüfte Modell und erzeugt ein Ergebnisbild. Sein begrenzter Umfang ist `worker_runtime_only`. Ein Erfolg bestätigt die ausgeführte Inferenz-/Exportstrecke, keine Freistellqualität an realen Fotos und keinen vollständigen Bedienablauf in der Oberfläche.
+
+**Native Oberfläche und Bild-I/O:** Nach `QApplication` und `EditorWindow` wird eine synthetische Grafik als PNG exportiert, wieder importiert und als Dokument angezeigt. PNG und WebP werden beim Export auf übereinstimmende RGBA-Pixel geprüft; bei JPEG werden die Dimensionen und der RGB-Modus geprüft. JPEG ist verlustbehaftet, weshalb dafür keine pixelgenaue Übereinstimmung zugesagt wird. DE/EN-Aufnahmen und reguläres Beenden ergänzen diese Prüfung. Die automatisierten Aufrufe bedienen nicht jeden Dateidialog oder jeden Bearbeitungsschritt wie ein Mensch.
+
+## Separater Offline-Prüfumfang
+
+**Erfolgreich am 12. Oktober 2026 im [Offline-Lauf 38313711747](https://github.com/Cenn0/LocalAiPhotoEditor/actions/runs/38313711747).** Der Bericht meldet `status: ok`, `offline_enforcement_confirmed: true` und `rule_removal_verified: true`. Worker und Oberfläche endeten mit Code 0; `same_executable_worker_confirmed: true` bestätigt die Verwendung derselben gesperrten EXE für den KI-Auftrag. Die EXE-Prüfsumme entspricht dem oben angegebenen Windows-Build.
+
+| Zusätzlicher Offline-Nachweis | Identität |
+| --- | --- |
+| Prüfharness-Commit | [`6d75397a8cf4ca6f573c650033b6f4018f650b1f`](https://github.com/Cenn0/LocalAiPhotoEditor/commit/6d75397a8cf4ca6f573c650033b6f4018f650b1f) |
+| Nachweis-Artefakt | ID **11775129907**, **125.337 Bytes** |
+| SHA-256 des Nachweis-Artefakts | `abaf7edaa502118f1d0c7de5d32df3bb66a4f0eef7376973c620c010888bfdc5` |
+
+Auch dieses Nachweis-Artefakt wurde heruntergeladen und seine Prüfsumme bestätigt. Der Prüfharness-Commit bezeichnet die separate Prüfung, nicht einen anderen Anwendungscode.
+
+Der abgeschlossene [Workflow für die Prüfung des heruntergeladenen Pakets](https://github.com/Cenn0/LocalAiPhotoEditor/blob/6d75397a8cf4ca6f573c650033b6f4018f650b1f/.github/workflows/offline-package-check.yml) ist vom Build getrennt. Folgende Schritte wurden erfolgreich ausgeführt:
+
+- Das eindeutig ausgewählte Portable-Artefakt eines erfolgreichen Windows-Laufs herunterladen und seinen SHA-256 überprüfen.
+- Das Paket auf einem weiteren Windows-Server-2022-Runner ohne Checkout, Python-Einrichtung oder Installation von Projektabhängigkeiten starten.
+- Einen neuen Paketpfad und ein anfangs leeres Arbeitsverzeichnis verwenden; Python-Umgebungsvariablen entfernen und den `PATH` des gestarteten Prozesses auf Windows-Verzeichnisse beschränken.
+- Einen ausgehenden Windows-Firewallblock für genau die heruntergeladene EXE einrichten und dessen aktive Durchsetzung vor und nach den Prüfungen kontrollieren. Der KI-Worker muss dieselbe blockierte EXE verwenden.
+- Echten Paket-Worker und native Oberfläche einschließlich der im GUI-Smoke enthaltenen Bild-I/O-Prüfungen ausführen und die vorübergehende Firewallregel wieder entfernen.
+
+Die Belege dazu sind `source-artifact.json`, `environment.json`, die Firewall-Snapshots, Worker-/GUI-Berichte und `offline-package-result.json` des angegebenen Offline-Laufs. Die aktive Public-Firewall war eingeschaltet; die wirksame Regel blockierte ausgehenden Verkehr der genauen EXE für alle Adressen, Ports und Protokolle. Die nach Qt-Initialisierung ausgeführten Bild-I/O-Prüfungen bestanden auch in diesem Lauf.
+
+Dieser erfolgreiche Test erfolgte **nicht auf einer frischen Windows-11-Installation ohne vorhandene Entwicklungssoftware**. Der Runner kann vorinstallierte Systemkomponenten enthalten. Gesperrt wird der ausgehende Netzwerkzugriff der Anwendung; das Netzwerk des gesamten Rechners wird nicht abgeschaltet. Der Nachweis ist deshalb genau auf das heruntergeladene Paket und diese dokumentierte Testumgebung begrenzt.
+
+## Kurze Fehlerhistorie
+
+Der ursprüngliche Worker-Start über `sys.executable` verwies im betroffenen Paket auf eine nicht vorhandene `python.exe`; die Auswahl der tatsächlichen Paket-EXE korrigierte diesen Fehler. Anschließende native Abstürze wurden auf die Callback-Probe in **Nuitka 4.3** zurückgeführt ([Issue #4081](https://github.com/Nuitka/Nuitka/issues/4081)); die späteren Importabstürze bei Pillow und NumPy waren Symptome. Mit Nuitka **4.2.2** und unverändertem PySide6 **6.12.0** bestanden die Paketprüfungen.
+
+Der erste Offline-Versuch scheiterte im PowerShell-Prüfharness vor dem Appstart. Nach Korrektur der Statuskonvertierung bestand die unveränderte Anwendung den oben angegebenen Offline-Lauf.
+
+## Verbleibende Grenzen
+
+- Eine frische Windows-11-x64-Installation ohne Entwicklungswerkzeuge und mit vor dem ersten Start abgeschaltetem Netzwerk wurde noch nicht vollständig abgenommen.
+- Vollständige interaktive Bearbeitungsabläufe, Abbruch- und Neustartverhalten am ausgelieferten Paket, unterschiedliche Windows-Skalierungen und Barrierefreiheit bleiben gesondert zu beurteilen.
+- Es gibt keine veröffentlichte Freistellqualitätsmessung, keine garantierten Inferenzzeiten und keine bestätigten Mindestanforderungen an RAM oder GPU.
+- Das Paket ist unsigniert. Signierung und die dokumentierte Abnahme bleiben Voraussetzungen für die erste stabile Endnutzer-Version. Modellherkunft und Pflichten für Drittkomponenten werden durch erfolgreiche Laufzeittests nicht zusätzlich bestätigt; siehe [MODELS.md](MODELS.md) und [Dritthinweise](../THIRD_PARTY_NOTICES.md).
 
 ## Prüfungen reproduzieren
 
-Für eine vorbereitete Quellcode-Umgebung mit installierten Entwicklungsabhängigkeiten:
-
-```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
-python -m compileall -q src tests tools
-```
-
-Unter Windows mit der Entwicklungsumgebung aus dem README:
+In einer vorbereiteten Entwicklungsumgebung unter Windows:
 
 ```powershell
 .venv\Scripts\python -m unittest discover -s tests -v
 .venv\Scripts\python -m compileall -q src tests tools
-.venv\Scripts\python -m local_ai_photo_editor --smoke-test smoke-output
+.venv\Scripts\python -m local_ai_photo_editor --smoke-test source-worker-output
+.venv\Scripts\python -m local_ai_photo_editor --ui-smoke-test source-gui-output
 ```
 
-Der letzte Befehl benötigt das echte, erfolgreich geprüfte Modell und ONNX Runtime. Das Ausgabeverzeichnis darf noch nicht existieren. Er erzeugt ein synthetisches Testbild, `smoke-result.json` und bei Erfolg `smoke-output.png`; er bewertet keine Freistellqualität an realen Fotos. Für das gebaute Programm wird dieselbe Prüfung separat über `LocalAiPhotoEditor.exe --smoke-test smoke-output` gestartet. Sie ersetzt keinen Start der Oberfläche.
+Die beiden Smoke-Prüfungen werden für das Paket separat über dessen EXE ausgeführt:
 
-## Abnahme eines vollständigen Windows-Pakets
+```powershell
+.\LocalAiPhotoEditor.exe --smoke-test package-worker-output
+.\LocalAiPhotoEditor.exe --ui-smoke-test package-gui-output
+```
 
-Der Workflow lädt nach erfolgreichen Paketprüfungen den Inhalt von `dist/LocalAiPhotoEditor` als `LocalAiPhotoEditor-windows-x64-alpha` hoch. Im Artefakt-ZIP liegt `LocalAiPhotoEditor.exe` direkt im Wurzelverzeichnis. Zum Start ist der gesamte Inhalt einschließlich aller Unterordner zu entpacken.
-
-Vor einer als einsatzbereit beschriebenen Endnutzer-Version sind mindestens folgende Schritte zu protokollieren:
-
-1. Geprüften Commit, [Windows-alpha-Lauf](https://github.com/Cenn0/LocalAiPhotoEditor/actions), konkretes Paket, Abhängigkeiten und Modellbytes festhalten.
-2. Das vollständige Paket auf einem frischen Windows-11-x64-System ohne Entwicklungsinstallation bereitstellen und vor dem ersten Start das Netzwerk abschalten.
-3. Oberfläche, Deutsch/Englisch und wesentliche Dialoge prüfen; normale und transparente Testbilder öffnen.
-4. Anpassung, Zuschnitt, Drehung, Größenänderung, Originalvergleich, Undo/Redo und Export durchführen; den unveränderten Zustand der Originaldatei prüfen.
-5. Das echte Modell ausführen, einen laufenden Auftrag abbrechen und erneut starten. Halbfertige Ergebnisse dürfen nicht übernommen werden.
-6. Erneuten Programmstart und Verhalten bei fehlendem oder beschädigtem Modell prüfen; dabei darf kein stiller Download stattfinden.
-7. Vor der ersten stabilen Veröffentlichung die Windows-Signierung ergänzen und im Release-Nachweis festhalten.
-
-Ausdrücklich als unvollständig geprüfte Alpha bezeichnete Vorabartefakte ersetzen diese Abnahme nicht. Neue Ergebnisse werden erst nach tatsächlicher Ausführung mit Plattform, Commit, Paket und verbleibenden Einschränkungen ergänzt.
+Ausgabeverzeichnisse dürfen noch nicht existieren. Die Workerprüfung benötigt das echte Modell und ONNX Runtime. Diese Befehle allein richten keine Netzwerksperre ein; dafür ist der separat protokollierte Offline-Workflow zuständig. Das Paket muss vollständig entpackt sein, einschließlich aller Bibliotheken, des Modells und der Unterordner.
