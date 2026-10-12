@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -131,8 +132,19 @@ class WorkerCommandTests(unittest.TestCase):
         directory = Path("job with spaces")
         with patch.object(sys, "frozen", True, create=True):
             self.assertEqual(entry.worker_command(directory), (sys.executable, ["--worker", str(directory)]))
-        with patch.dict(entry.__dict__, {"__compiled__": object()}):
-            self.assertEqual(entry.worker_command(directory), (sys.executable, ["--worker", str(directory)]))
+
+    def test_nuitka_worker_uses_process_exe_instead_of_the_absent_python_executable(self):
+        directory = Path("job with spaces")
+        executable = str(Path("portable app") / "LocalAiPhotoEditor.exe")
+        python_executable = str(Path("portable app") / "python.exe")
+        compiled = SimpleNamespace(process_exe=executable)
+        with patch.dict(entry.__dict__, {"__compiled__": compiled}), patch.object(sys, "executable", python_executable):
+            self.assertEqual(entry.worker_command(directory), (executable, ["--worker", str(directory)]))
+
+    def test_nuitka_worker_rejects_missing_process_exe_without_guessing_an_interpreter(self):
+        with patch.dict(entry.__dict__, {"__compiled__": SimpleNamespace(process_exe=None)}):
+            with self.assertRaisesRegex(RuntimeError, "executable path"):
+                entry.worker_command("job")
 
 
 class SmokeProtocolTests(unittest.TestCase):
@@ -180,6 +192,8 @@ class SmokeProtocolTests(unittest.TestCase):
             report = json.loads((output / "smoke-result.json").read_text())
             self.assertEqual(report["status"], "ok")
             self.assertEqual(report["scope"], "worker_runtime_only")
+            self.assertEqual(report["worker"]["returncode"], 0)
+            self.assertEqual(json.loads((output / "worker-result.json").read_text()), {"status": "ok"})
             with Image.open(output / "smoke-output.png") as result:
                 self.assertEqual(result.size, (384, 256))
             self.assertFalse(jobs[0].exists())
@@ -197,7 +211,41 @@ class SmokeProtocolTests(unittest.TestCase):
                         self.assertEqual(entry.smoke_test(output), 1)
                     report = json.loads((output / "smoke-result.json").read_text())
                     self.assertEqual(report["status"], "error")
+                    self.assertEqual(
+                        json.loads((output / "worker-result.json").read_text())["status"],
+                        "error" if outcome == "error_status" else "ok",
+                    )
                     self.assertFalse((output / "smoke-output.png").exists())
+
+    def test_missing_executable_status_and_output_have_distinct_diagnostics(self):
+        phases = ("start_and_wait_for_worker", "read_worker_status", "read_worker_output")
+        with tempfile.TemporaryDirectory() as root:
+            for phase in phases:
+                with self.subTest(phase=phase):
+                    jobs = []
+
+                    def missing_file(command, **kwargs):
+                        directory = Path(command[-1])
+                        jobs.append(directory)
+                        if phase == "start_and_wait_for_worker":
+                            raise FileNotFoundError(2, "The executable does not exist.", command[0])
+                        if phase == "read_worker_output":
+                            (directory / "result.json").write_text('{"status": "ok"}', encoding="utf-8")
+                        return subprocess.CompletedProcess(command, 0)
+
+                    output = Path(root) / phase
+                    with patch.object(entry.subprocess, "run", side_effect=missing_file):
+                        self.assertEqual(entry.smoke_test(output), 1)
+                    report = json.loads((output / "smoke-result.json").read_text())
+                    self.assertEqual(report["phase"], phase)
+                    self.assertEqual(report["error_type"], "FileNotFoundError")
+                    self.assertTrue(report["error_message"])
+                    self.assertIn("FileNotFoundError", report["traceback"])
+                    self.assertEqual(report["worker"]["program"], sys.executable)
+                    self.assertEqual(report["worker"]["arguments"][-2], "--worker")
+                    if phase != "start_and_wait_for_worker":
+                        self.assertEqual(report["worker"]["returncode"], 0)
+                    self.assertFalse(jobs[0].exists())
 
     def test_timeout_reports_failure_and_removes_the_worker_job(self):
         jobs = []

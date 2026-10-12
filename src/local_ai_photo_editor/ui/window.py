@@ -242,6 +242,12 @@ class EditorWindow(QMainWindow):
         panel_layout = QVBoxLayout(panel)
         panel_layout.setContentsMargins(0, 0, 6, 0)
         panel_layout.setSpacing(14)
+        ai_card, ai_layout = self._card("ai_title", "ai_hint")
+        self.ai_button = self._button("ai_action", self.start_background_removal, "primary")
+        ai_layout.addWidget(self.ai_button)
+        ai_layout.addWidget(self._label("ai_note", "muted", wrap=True))
+        panel_layout.addWidget(ai_card)
+
         adjust_card, adjustments = self._card("adjust_title", "adjust_hint")
         self.sliders: dict[str, QSlider] = {}
         self._slider_values: dict[str, QLabel] = {}
@@ -286,11 +292,6 @@ class EditorWindow(QMainWindow):
         shape_layout.addWidget(self.resize_button)
         panel_layout.addWidget(shape_card)
 
-        ai_card, ai_layout = self._card("ai_title", "ai_hint")
-        self.ai_button = self._button("ai_action", self.start_background_removal, "primary")
-        ai_layout.addWidget(self.ai_button)
-        ai_layout.addWidget(self._label("ai_note", "muted", wrap=True))
-        panel_layout.addWidget(ai_card)
         panel_layout.addStretch()
         scroll = QScrollArea()
         scroll.viewport().setObjectName("toolsViewport")

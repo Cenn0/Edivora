@@ -34,7 +34,7 @@ def main() -> int:
         "--enable-plugin=pyside6", "--include-qt-plugins=platforms,imageformats",
         "--include-package=local_ai_photo_editor", "--include-package=onnxruntime.capi",
         "--include-package-data=onnxruntime", "--assume-yes-for-downloads",
-        "--msvc=latest", "--windows-console-mode=disable",
+        "--msvc=latest", "--lto=no", "--windows-console-mode=disable",
         "--output-filename=LocalAiPhotoEditor.exe", f"--output-dir={build}",
         f"--include-data-dir={model_path().parent}=local_ai_photo_editor/models",
         f"--report={build / 'nuitka-report.xml'}", "--jobs=2", str(ROOT / "main.py"),
