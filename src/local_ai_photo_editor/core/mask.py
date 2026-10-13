@@ -11,7 +11,7 @@ import math
 from numbers import Real
 from typing import Sequence
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from .editing import _normalise_image
 
@@ -108,7 +108,18 @@ def paint_alpha_strokes(image: Image.Image, strokes: Sequence[MaskStroke]) -> Im
         for x, y in local:
             draw.ellipse((x - inner, y - inner, x + inner, y + inner), fill=255)
         if blur > 0:
-            mask = mask.filter(ImageFilter.GaussianBlur(blur))
+            # GaussianBlur alone weakens even the brush center, so a user
+            # cannot fully recover/erase a subject at maximum feather.
+            # Preserve a fully covering inner core and soften only its rim.
+            softened = mask.filter(ImageFilter.GaussianBlur(blur))
+            core = Image.new("L", mask.size, 0)
+            core_draw = ImageDraw.Draw(core)
+            core_radius = max(0.85, radius - blur * 1.5)
+            if len(local) > 1:
+                core_draw.line(local, fill=255, width=max(1, round(core_radius * 2)), joint="curve")
+            for x, y in local:
+                core_draw.ellipse((x - core_radius, y - core_radius, x + core_radius, y + core_radius), fill=255)
+            mask = ImageChops.lighter(softened, core)
 
         old_alpha = alpha.crop(box)
         target = Image.new("L", mask.size, 255 if mode == "restore" else 0)
