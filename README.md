@@ -27,6 +27,16 @@ Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte
 
 **Die Originaldatei bleibt geschützt.** Der Export verlangt ein anderes Ziel. PNG und WebP können Transparenz erhalten; bei JPEG werden transparente Stellen weiß. Die Ausgabe übernimmt keine EXIF-, GPS- oder Kommentardaten des Eingabebildes und enthält ein sRGB-Farbprofil.
 
+## Neu im Quellstand: KI-Motivwerkzeuge
+
+Unter **KI-Motivwerkzeuge** oder mit **Strg+Umschalt+E** erkennt die lokale KI zunächst das Motiv. Danach kannst du den **vorhandenen Hintergrund unscharf machen**, das **Motiv aufhellen**, den **Hintergrund abdunkeln** oder **nur das Motiv farbig lassen**. Auch **auf das erkannte Motiv zuschneiden** und **mit Vorschau freistellen** stehen im selben Dialog bereit.
+
+Du brauchst für die Hintergrund-Unschärfe kein zweites Hintergrundfoto. Die Erkennung läuft einmal pro geöffnetem KI-Bearbeitungsbereich; beim Wechseln der Effekte wird dieselbe Auswahl weiterverwendet. Über **KI-Auswahl anzeigen** lässt sich die Auswahl als violette Markierung kontrollieren. Stärke, weiche Kante und beim Zuschnitt der Rand sind einstellbar. Erst **Übernehmen** legt einen rückgängig machbaren Schritt an; **Abbrechen** verwirft die Vorschau.
+
+**Was daran KI ist:** Das bereits mitgelieferte U2NETP-Modell erkennt die Motivbereiche. Die anschließenden Effekte sind lokale Bildoperationen. Es gibt kein neues Modell, keine zusätzliche Einrichtung und keine generative Rekonstruktion. Die Auswahl kann weiterhin Fehler machen, insbesondere an Haaren, Glas und ähnlichen Vorder-/Hintergrundfarben. Farb- und Hintergrundeffekte erhalten die ursprüngliche Transparenz; Freistellen und Zuschneiden verändern sie beziehungsweise die Bildgröße gezielt.
+
+**Bereitstellung:** Diese Erweiterung gehört zum neueren Entwicklungsstand, **nicht zum oben verlinkten `v0.1.0-alpha.1`-ZIP**. Details, Prüfablauf und Grenzen: [Lokale KI-Motivwerkzeuge](docs/AI_SUBJECT_TOOLS.md).
+
 ## Neu im Quellstand: Mehr Werkzeuge, einfach bedienbar
 
 Unter **Weitere Werkzeuge** oder mit **Strg+E** öffnet sich ein gemeinsamer Bearbeitungsbereich mit vier übersichtlichen Reitern:
@@ -77,7 +87,7 @@ Temporäre Auftragsdateien liegen lokal. Nach einem erzwungenen Prozess- oder Sy
 | Python 3.12 | Anwendungslogik und Verbindung der Komponenten |
 | PySide6 6.12 / Qt Widgets | Desktopoberfläche auf Deutsch und Englisch |
 | Pillow und NumPy | Bildimport, Farbverarbeitung, Anpassungen und Export |
-| ONNX Runtime CPU + U2NETP | Lokale Hintergrundentfernung |
+| ONNX Runtime CPU + U2NETP | Lokale Hintergrundentfernung und Motivauswahl |
 | Nuitka 4.2.2 | Vollständiges Windows-Paket mit eingebundener Laufzeit |
 
 Die Bildlogik ist von Oberfläche und KI getrennt. Ein eigener KI-Prozess hält die Oberfläche bedienbar und ermöglicht den Abbruch eines Auftrags. Python und Qt halten diese erste Version in einer Anwendungssprache; der Vergleich mit Tauri/Rust und C# sowie die Gründe für diese Wahl stehen im [Projektkonzept](docs/CONCEPT.md). Die konkrete Aufteilung beschreibt die [Architektur](docs/ARCHITECTURE.md).
@@ -87,7 +97,7 @@ Die Bildlogik ist von Oberfläche und KI getrennt. Ein eigener KI-Prozess hält 
 - Unterstützt werden passende **8-Bit-Einzelbilder bis 40 Millionen Pixel**. RAW-, 16-Bit-, animierte und mehrseitige Dateien gehören nicht zur Alpha.
 - Die EXIF-Ausrichtung wird berücksichtigt. Gültige eingebettete Farbprofile werden nach sRGB umgerechnet; ungültige oder nicht unterstützte Profile werden abgelehnt. RGB-, Graustufen- und Palettenbilder ohne Profil gelten als sRGB. CMYK und LAB benötigen ein gültiges eingebettetes Profil.
 - Der Verlauf liegt im Arbeitsspeicher und ist begrenzt. Große Fotos behalten weniger rückgängig machbare Schritte; das Original bleibt während der Bearbeitung verfügbar.
-- Die veröffentlichte Alpha bietet weder Projektdateien, manuelle Maskenkorrektur noch die neuen geführten Werkzeuge. Diese Funktionen sind im neueren Quellstand implementiert; Ebenen, Bearbeitung durch Textanweisungen und generatives Entfernen einzelner Objekte fehlen weiterhin.
+- Die veröffentlichte Alpha bietet weder Projektdateien, manuelle Maskenkorrektur, die geführten Werkzeuge noch die neuen KI-Motiveffekte. Diese Funktionen sind im neueren Entwicklungsstand implementiert; Ebenen, Bearbeitung durch Textanweisungen und generatives Entfernen einzelner Objekte fehlen weiterhin.
 - GPU-Betrieb, Mindest-RAM, garantierte Geschwindigkeit, macOS- und Linux-Pakete sind noch nicht freigegeben. Signierung, umfassende Bedienprüfungen und die frische Windows-11-Abnahme bleiben offen.
 
 ## Am Quellcode arbeiten
@@ -108,6 +118,7 @@ Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. `prepare_model.
 - [Konzept, Zielgruppe und Technologievergleich](docs/CONCEPT.md)
 - [Architektur und Modulgrenzen](docs/ARCHITECTURE.md)
 - [KI-Modell, Herkunft und Grenzen](docs/MODELS.md)
+- [Lokale KI-Motivwerkzeuge](docs/AI_SUBJECT_TOOLS.md)
 - [Geführte Bildbearbeitung: Licht, Looks, Ausschnitt und Hintergrund](docs/EDITING_TOOLS.md)
 - [Lokale Bearbeitungsprojekte (.laip)](docs/PROJECT_FORMAT.md)
 - [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md)
