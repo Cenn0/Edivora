@@ -27,6 +27,23 @@ Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte
 
 **Die Originaldatei bleibt geschützt.** Der Export verlangt ein anderes Ziel. PNG und WebP können Transparenz erhalten; bei JPEG werden transparente Stellen weiß. Die Ausgabe übernimmt keine EXIF-, GPS- oder Kommentardaten des Eingabebildes und enthält ein sRGB-Farbprofil.
 
+## Neu im Quellstand: Mehr Werkzeuge, einfach bedienbar
+
+Unter **Weitere Werkzeuge** oder mit **Strg+E** öffnet sich ein gemeinsamer Bearbeitungsbereich mit vier übersichtlichen Reitern:
+
+| Bereich | Möglichkeiten |
+| --- | --- |
+| **Licht & Farbe** | Sanfter Verbesserungsvorschlag, heller/dunkler, dunkle Stellen aufhellen, helle Stellen abdunkeln, wärmere/kühlere Farben, Farbstärke, Kontrast und Details schärfen. |
+| **Looks** | Natürlich, Kräftig, Sanft, Warm, Schwarz-Weiß und Sepia mit einstellbarer Stärke; Bildränder weich abdunkeln. |
+| **Ausschnitt** | Feste Formate 1:1, 4:3, 3:2, 16:9, 4:5 und 9:16, Ausschnitt verschieben, horizontal/vertikal spiegeln und in 90°-Schritten drehen. |
+| **Hintergrund** | Nach dem Freistellen eine Farbe oder ein eigenes lokales Foto einsetzen; nur das gewählte Hintergrundfoto weichzeichnen. |
+
+Du siehst zuerst eine **Vorschau**, kannst den vorherigen Stand vergleichen und einzelne Regler, einen Bereich oder alles zurücksetzen. Erst **Übernehmen** legt einen neuen, rückgängig machbaren Bearbeitungsschritt an. **Abbrechen** lässt den bisherigen Stand unverändert. Die Berechnung in voller Bildgröße läuft in einem abbrechbaren Hintergrund-Thread.
+
+Die Regler haben verständliche Beschriftungen, kurze Erklärungen und sichtbare Werte. Es werden keine zusätzlichen Modelle, Konten oder Server benötigt. „Sanft verbessern“ ist eine klassische Bildkorrektur, keine generative KI. Ein Hintergrund lässt sich nur ersetzen, wenn das Bild bereits transparente Stellen enthält.
+
+**Wichtig:** Auch diese Werkzeuge sind **Quellcodefunktionen nach `v0.1.0-alpha.1`**, nicht Bestandteil des oben verlinkten alten ZIPs. Kleine Unterschiede zwischen verkleinerter Vorschau und voller Auflösung sind möglich. Projektdateien speichern die angenommenen Bildstände, nicht nachträglich editierbare Einstellungsebenen. Anleitung, Umsetzung und Grenzen: [Geführte Bildbearbeitung](docs/EDITING_TOOLS.md).
+
 ## Neu im Quellstand nach v0.1.0-alpha.1: Bearbeitungsprojekte
 
 Der neue Quellstand kann Bearbeitungen als **lokale `.laip`-Projektdatei** speichern und später wieder öffnen. Gesichert werden das unveränderte Original, der angenommene Bearbeitungsstand und die noch im Verlauf verfügbaren Undo/Redo-Bilder. Über **Datei → Projekt speichern (Strg+S)** und **Datei → Projekt öffnen** kannst du die Bearbeitung fortsetzen. Ein Projekt kann auch in das Fenster gezogen werden.
@@ -70,7 +87,7 @@ Die Bildlogik ist von Oberfläche und KI getrennt. Ein eigener KI-Prozess hält 
 - Unterstützt werden passende **8-Bit-Einzelbilder bis 40 Millionen Pixel**. RAW-, 16-Bit-, animierte und mehrseitige Dateien gehören nicht zur Alpha.
 - Die EXIF-Ausrichtung wird berücksichtigt. Gültige eingebettete Farbprofile werden nach sRGB umgerechnet; ungültige oder nicht unterstützte Profile werden abgelehnt. RGB-, Graustufen- und Palettenbilder ohne Profil gelten als sRGB. CMYK und LAB benötigen ein gültiges eingebettetes Profil.
 - Der Verlauf liegt im Arbeitsspeicher und ist begrenzt. Große Fotos behalten weniger rückgängig machbare Schritte; das Original bleibt während der Bearbeitung verfügbar.
-- Die veröffentlichte Alpha bietet weder Projektdateien noch manuelle Maskenkorrektur. Beide Funktionen sind im neueren Quellstand implementiert; Ebenen, Bearbeitung durch Textanweisungen und generatives Entfernen einzelner Objekte fehlen weiterhin.
+- Die veröffentlichte Alpha bietet weder Projektdateien, manuelle Maskenkorrektur noch die neuen geführten Werkzeuge. Diese Funktionen sind im neueren Quellstand implementiert; Ebenen, Bearbeitung durch Textanweisungen und generatives Entfernen einzelner Objekte fehlen weiterhin.
 - GPU-Betrieb, Mindest-RAM, garantierte Geschwindigkeit, macOS- und Linux-Pakete sind noch nicht freigegeben. Signierung, umfassende Bedienprüfungen und die frische Windows-11-Abnahme bleiben offen.
 
 ## Am Quellcode arbeiten
@@ -91,6 +108,7 @@ Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. `prepare_model.
 - [Konzept, Zielgruppe und Technologievergleich](docs/CONCEPT.md)
 - [Architektur und Modulgrenzen](docs/ARCHITECTURE.md)
 - [KI-Modell, Herkunft und Grenzen](docs/MODELS.md)
+- [Geführte Bildbearbeitung: Licht, Looks, Ausschnitt und Hintergrund](docs/EDITING_TOOLS.md)
 - [Lokale Bearbeitungsprojekte (.laip)](docs/PROJECT_FORMAT.md)
 - [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md)
 - [Prüfergebnisse und offene Nachweise](docs/VERIFICATION.md)
