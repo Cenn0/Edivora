@@ -198,7 +198,7 @@ def ui_smoke_test(output_directory: Path) -> int:
     message_handler_errors = []
     qt_details = {}
     image_io = {}
-    scope = "ui_startup_image_io_and_capture_only"
+    scope = "ui_startup_image_io_project_and_capture"
     runtime = {
         "sys_executable": sys.executable,
         "process_exe": None,
@@ -405,6 +405,46 @@ def ui_smoke_test(output_directory: Path) -> int:
                         "mode": exported.mode,
                         "validation": validation,
                     }
+                # The native application must also round-trip an editable
+                # project. This catches omitted standard-library/modules in
+                # a frozen binary that normal image export would not exercise.
+                checkpoint("edit_and_save_project")
+                window.rotate_clockwise()
+                rotated = window.document.current
+                if rotated.size != (picture.height, picture.width) or not window.document.can_undo:
+                    raise ValueError("The editor did not apply the project test edit.")
+                project_path = output_directory / "ui-session.laip"
+                window._write_project(project_path)
+                if not project_path.is_file():
+                    raise OSError("The editor failed to save a local project.")
+                checkpoint("reload_project")
+                window.open_project_path(project_path)
+                project = window.document
+                if (
+                    window._project_path != project_path
+                    or project.source_path is not None
+                    or project.original.tobytes() != picture.tobytes()
+                    or project.current.tobytes() != rotated.tobytes()
+                    or not project.can_undo
+                    or window._has_unexported_changes()
+                ):
+                    raise ValueError("The editor did not restore the editable project exactly.")
+                checkpoint("project_undo_redo")
+                window.undo()
+                if project.current.tobytes() != picture.tobytes():
+                    raise ValueError("Project Undo did not restore the imported pixels.")
+                window.redo()
+                if project.current.tobytes() != rotated.tobytes():
+                    raise ValueError("Project Redo did not restore the edited pixels.")
+                window.save_project()
+                if window._has_unexported_changes() or source_path.read_bytes() != source_path.read_bytes():
+                    raise ValueError("The project did not save cleanly.")
+                image_io["project"] = {
+                    "file": project_path.name,
+                    "original_preserved": True,
+                    "accepted_pixels_preserved": True,
+                    "undo_redo_restored": True,
+                }
                 report = {
                     "status": "ok",
                     "scope": scope,
