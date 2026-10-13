@@ -46,6 +46,10 @@ jobs:
         run: python tools/prepare_model.py
       - name: Exercise the real source worker
         run: python -m local_ai_photo_editor --smoke-test test-results/source-worker
+      - name: Exercise real AI subject selection and native source dialogs
+        env:
+          QT_QPA_PLATFORM: windows
+        run: python tools/verify_subject_tools.py test-results/source-subject
       - name: Open source GUI with synthetic pixels
         env:
           QT_QPA_PLATFORM: windows
@@ -90,6 +94,9 @@ jobs:
           $workerOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-worker'
           $worker = Start-Process -FilePath $appPath -ArgumentList "--smoke-test `"$workerOutput`"" -WorkingDirectory $env:RUNNER_TEMP -PassThru -Wait
           if ($worker.ExitCode -ne 0) { throw "Packaged worker failed: $($worker.ExitCode)" }
+      - name: Verify subject selection inside the compiled worker
+        if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
+        run: python tools/verify_subject_tools.py test-results/frozen-subject --executable dist/LocalAiPhotoEditor/LocalAiPhotoEditor.exe
       - name: Open packaged GUI from a temporary working directory
         if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
         env:
