@@ -63,6 +63,8 @@ jobs:
       - name: Check Python compilation
         run: python -m compileall -q src tests tools
       - name: Capture German and English editing workspaces
+        env:
+          QT_QPA_PLATFORM: ${{ runner.os == 'Windows' && 'windows' || 'offscreen' }}
         run: python tools/capture_editing_ui.py test-results/editing-ui
       - name: Retain test results and source UI captures
         if: always()
