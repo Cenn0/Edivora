@@ -1,5 +1,4 @@
 """U2NETP saliency inference and alpha compositing, entirely on the CPU."""
-
 from __future__ import annotations
 
 import os
@@ -11,6 +10,10 @@ from PIL import Image
 from .models import verified_model_bytes
 
 INPUT_SIZE = 320
+
+
+class NoSubjectError(ValueError):
+    """The model produced no usable foreground/background separation."""
 
 
 def prepare_input(image: Image.Image) -> np.ndarray:
@@ -36,9 +39,7 @@ def output_mask(prediction: np.ndarray, size: tuple[int, int]) -> Image.Image:
         raise ValueError("The model produced a non-finite mask.")
     low, high = float(plane.min()), float(plane.max())
     if high - low <= np.finfo(np.float32).eps:
-        # Uniform predictions contain no reliable foreground information.
-        # Do not silently erase the photo or report a successful empty mask.
-        raise ValueError("The model could not identify a foreground in this image.")
+        raise NoSubjectError("The model could not identify a foreground in this image.")
     values = np.rint((plane - low) / (high - low) * 255.0).clip(0, 255).astype(np.uint8)
     return Image.fromarray(values).resize(size, Image.Resampling.LANCZOS)
 
@@ -54,8 +55,12 @@ def apply_mask(image: Image.Image, mask: Image.Image) -> Image.Image:
     return result
 
 
-def remove_background(image: Image.Image, path: Path | None = None) -> Image.Image:
-    # Validate the bytes before importing/initializing the native inference engine.
+def predict_subject(image: Image.Image, path: Path | None = None) -> Image.Image:
+    """Infer an independent L-mode selection, not source alpha or new RGB pixels.
+
+    Call only from the local worker process. The saliency map is not an object
+    identity, a depth map or a calibrated confidence probability.
+    """
     data = verified_model_bytes(path)
     import onnxruntime as ort
 
@@ -69,5 +74,8 @@ def remove_background(image: Image.Image, path: Path | None = None) -> Image.Ima
     if len(inputs) != 1 or inputs[0].shape != [1, 3, INPUT_SIZE, INPUT_SIZE]:
         raise ValueError("The bundled model has an unsupported input contract.")
     predictions = session.run([session.get_outputs()[0].name], {inputs[0].name: prepare_input(image)})
-    return apply_mask(image, output_mask(predictions[0], image.size))
+    return output_mask(predictions[0], image.size)
 
+
+def remove_background(image: Image.Image, path: Path | None = None) -> Image.Image:
+    return apply_mask(image, predict_subject(image, path))
