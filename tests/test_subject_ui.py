@@ -244,13 +244,15 @@ class SubjectProcessTests(unittest.TestCase):
     def run_job(self, script, *, cancel=False, timeout=5000, missing=False):
         from local_ai_photo_editor.ui.subject_job import SubjectSelectionJob
         job = SubjectSelectionJob(timeout_ms=timeout)
-        outcomes = []
+        outcomes, directories = [], []
         job.finished.connect(lambda mask, error, cleanup: outcomes.append((mask, error, cleanup)))
         def command(directory):
+            # Windows can emit FailedToStart synchronously from start(). Capture
+            # the owned directory before that callback performs its cleanup.
+            directories.append(Path(directory))
             return (str(Path(directory) / "does-not-exist.exe"), []) if missing else (sys.executable, ["-c", script, str(directory)])
         with patch("local_ai_photo_editor.__main__.worker_command", side_effect=command):
             job.start(Image.new("RGB", (48, 32), "blue"))
-            directory = job._directory
             if cancel:
                 job.cancel()
             deadline = time.monotonic() + 10
@@ -261,7 +263,8 @@ class SubjectProcessTests(unittest.TestCase):
                 self.qtest.qWait(1000)
             self.assertFalse(job.is_running)
         self.assertEqual(len(outcomes), 1)
-        self.assertFalse(directory.exists())
+        self.assertEqual(len(directories), 1)
+        self.assertFalse(directories[0].exists())
         job.deleteLater()
         self.app.processEvents()
         return outcomes[0]
