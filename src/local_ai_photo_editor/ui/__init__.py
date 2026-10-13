@@ -3,14 +3,14 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .window import EditorWindow
+    from .guided_window import EditorWindow
 
 __all__ = ["EditorWindow"]
 
 
 def __getattr__(name: str) -> object:
     if name == "EditorWindow":
-        from .window import EditorWindow
+        from .guided_window import EditorWindow
 
         return EditorWindow
     raise AttributeError(name)
