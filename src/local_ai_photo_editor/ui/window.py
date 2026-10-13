@@ -416,7 +416,7 @@ class EditorWindow(QMainWindow):
         self.mask_mode_combo.setAccessibleName(self._t("mask_mode"))
         self.mask_size_slider.setAccessibleName(self._t("mask_size"))
         self.mask_feather_slider.setAccessibleName(self._t("mask_feather"))
-        self.mask_button.setToolTip(self._t("mask_requires_alpha"))
+        self.mask_button.setToolTip(self._t("mask_instruction" if self.mask_button.isChecked() else "mask_requires_alpha"))
         for key, slider in self.sliders.items():
             slider.setAccessibleName(self._t(key))
         self.canvas.set_language(language)
@@ -518,7 +518,7 @@ class EditorWindow(QMainWindow):
             control.setEnabled(editable and not cropping)
         self.crop_button.setEnabled(editable)
         self.crop_button.setText(self._t("crop_cancel" if cropping else "crop"))
-        can_mask = bool(has_document and idle and not pending and not original and not cropping and self.document.current.mode == "RGBA")
+        can_mask = bool(has_document and idle and not pending and not original and not cropping and self._preview_base is not None and self._preview_base.mode == "RGBA")
         self.mask_button.setEnabled(can_mask)
         self.mask_button.setText(self._t("mask_cancel_mode" if masking else "mask_open"))
         self.mask_settings.setVisible(masking)
@@ -645,7 +645,7 @@ class EditorWindow(QMainWindow):
             if (
                 self.document is None or self.is_busy or self.has_pending_adjustments
                 or self.original_button.isChecked() or self.crop_button.isChecked()
-                or self.document.current.mode != "RGBA"
+                or self._preview_base is None or self._preview_base.mode != "RGBA"
             ):
                 self.mask_button.setChecked(False)
                 return
