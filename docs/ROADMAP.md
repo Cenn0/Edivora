@@ -15,7 +15,7 @@ Acceptance: actual packaged model inference works without developer tools; the f
 
 Progress after the published v0.1.0-alpha.1: a first version of durable project archives has been implemented in source. It stores the original, accepted result and retained Undo/Redo snapshots with versioning, checksums, size bounds and atomic writes. Source paths are intentionally not persisted. See [PROJECT_FORMAT.md](PROJECT_FORMAT.md). Native package acceptance for this newer implementation remains outstanding.
 
-- User-correctable foreground mask, edge refinement and background colour/blur.
+- User-correctable foreground mask: **manual alpha-only restore/erase brush with size, feather, stroke preview and Undo/Redo implemented in source**; automatic hair matting, background-colour replacement and blur remain planned. The current tool does not reconstruct missing RGB pixels or clean contaminated edge colors. See [MASK_REFINEMENT.md](MASK_REFINEMENT.md).
 - Evaluate BiRefNet lite against U2NETP on an appropriately licensed image set, including hair, glass, fur and low-contrast boundaries.
 - Save/reopen a versioned project containing original, accepted results, masks and operations; local recovery and cache management.
 - Keyboard navigation, high-DPI checks and tested light/dark themes.

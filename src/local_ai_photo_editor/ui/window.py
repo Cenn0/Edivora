@@ -18,8 +18,9 @@ from PySide6.QtWidgets import (
 )
 
 from ..core import (
-    MAX_IMAGE_PIXELS, ImageDocument, adjust_image, crop_image, export_image,
-    load_image, load_project, resize_image, rotate_image, save_project as save_project_archive,
+    MAX_IMAGE_PIXELS, MAX_MASK_STROKES, ImageDocument, MaskStroke, adjust_image,
+    crop_image, export_image, load_image, load_project, paint_alpha_strokes,
+    resize_image, rotate_image, save_project as save_project_archive,
 )
 from .canvas import PhotoCanvas
 from .strings import STRINGS, translate
@@ -87,6 +88,9 @@ class EditorWindow(QMainWindow):
         self._original_size = (0, 0)
         self._preview_base: Image.Image | None = None
         self._original_preview: Image.Image | None = None
+        self._mask_preview: Image.Image | None = None
+        self._mask_strokes: list[MaskStroke] = []
+        self._mask_redo: list[MaskStroke] = []
         self._translated_widgets: list[tuple[object, str]] = []
         self._status_key = "ready"
         self._status_values: dict[str, object] = {}
@@ -233,6 +237,7 @@ class EditorWindow(QMainWindow):
         photo_layout.addLayout(photo_info)
         self.canvas = PhotoCanvas()
         self.canvas.selection_changed.connect(self._on_crop_selection)
+        self.canvas.brush_stroke_finished.connect(self._mask_stroke_finished)
         photo_layout.addWidget(self.canvas, 1)
         self.crop_hint = QLabel()
         self.crop_hint.setTextFormat(Qt.TextFormat.PlainText)
@@ -256,6 +261,66 @@ class EditorWindow(QMainWindow):
         ai_layout.addWidget(self.ai_button)
         ai_layout.addWidget(self._label("ai_note", "muted", wrap=True))
         panel_layout.addWidget(ai_card)
+
+        mask_card, mask_layout = self._card("mask_title", "mask_hint")
+        self.mask_button = self._button("mask_open", self._toggle_mask)
+        self.mask_button.setCheckable(True)
+        mask_layout.addWidget(self.mask_button)
+        self.mask_settings = QWidget()
+        mask_settings_layout = QVBoxLayout(self.mask_settings)
+        mask_settings_layout.setContentsMargins(0, 0, 0, 0)
+        mask_settings_layout.setSpacing(10)
+        mask_settings_layout.addWidget(self._label("mask_instruction", "muted", wrap=True))
+
+        mode_row = QFormLayout()
+        self.mask_mode_combo = QComboBox()
+        self.mask_mode_combo.addItem(self._t("mask_restore"), "restore")
+        self.mask_mode_combo.addItem(self._t("mask_erase"), "erase")
+        self.mask_mode_combo.currentIndexChanged.connect(self._on_mask_settings_changed)
+        mode_label = self._label("mask_mode")
+        mode_label.setBuddy(self.mask_mode_combo)
+        mode_row.addRow(mode_label, self.mask_mode_combo)
+        mask_settings_layout.addLayout(mode_row)
+
+        self.mask_size_slider = QSlider(Qt.Orientation.Horizontal)
+        self.mask_size_slider.setRange(1, 20)
+        self.mask_size_slider.setValue(4)
+        self.mask_size_slider.valueChanged.connect(self._on_mask_settings_changed)
+        size_header = QHBoxLayout()
+        size_label = self._label("mask_size")
+        size_label.setBuddy(self.mask_size_slider)
+        size_header.addWidget(size_label)
+        size_header.addStretch()
+        self.mask_size_value = QLabel("4 %")
+        self.mask_size_value.setObjectName("sliderValue")
+        size_header.addWidget(self.mask_size_value)
+        mask_settings_layout.addLayout(size_header)
+        mask_settings_layout.addWidget(self.mask_size_slider)
+
+        self.mask_feather_slider = QSlider(Qt.Orientation.Horizontal)
+        self.mask_feather_slider.setRange(0, 100)
+        self.mask_feather_slider.setValue(30)
+        self.mask_feather_slider.valueChanged.connect(self._on_mask_settings_changed)
+        feather_header = QHBoxLayout()
+        feather_label = self._label("mask_feather")
+        feather_label.setBuddy(self.mask_feather_slider)
+        feather_header.addWidget(feather_label)
+        feather_header.addStretch()
+        self.mask_feather_value = QLabel("30 %")
+        self.mask_feather_value.setObjectName("sliderValue")
+        feather_header.addWidget(self.mask_feather_value)
+        mask_settings_layout.addLayout(feather_header)
+        mask_settings_layout.addWidget(self.mask_feather_slider)
+
+        mask_actions = QHBoxLayout()
+        self.mask_apply_button = self._button("mask_apply", self.apply_mask_refinement, "primary")
+        self.mask_cancel_button = self._button("mask_cancel_mode", self.discard_mask_refinement, "quiet")
+        mask_actions.addWidget(self.mask_apply_button)
+        mask_actions.addWidget(self.mask_cancel_button)
+        mask_settings_layout.addLayout(mask_actions)
+        mask_layout.addWidget(self.mask_settings)
+        self.mask_settings.setVisible(False)
+        panel_layout.addWidget(mask_card)
 
         adjust_card, adjustments = self._card("adjust_title", "adjust_hint")
         self.sliders: dict[str, QSlider] = {}
@@ -345,7 +410,13 @@ class EditorWindow(QMainWindow):
         self.language_combo.setToolTip(self._t("language"))
         self.export_button.setToolTip(self._t("export_hint"))
         for control in (self.undo_button, self.redo_button):
-            control.setToolTip(self._t("history_hint"))
+            control.setToolTip(self._t("mask_instruction" if self.mask_button.isChecked() else "history_hint"))
+        self.mask_mode_combo.setItemText(0, self._t("mask_restore"))
+        self.mask_mode_combo.setItemText(1, self._t("mask_erase"))
+        self.mask_mode_combo.setAccessibleName(self._t("mask_mode"))
+        self.mask_size_slider.setAccessibleName(self._t("mask_size"))
+        self.mask_feather_slider.setAccessibleName(self._t("mask_feather"))
+        self.mask_button.setToolTip(self._t("mask_instruction" if self.mask_button.isChecked() else "mask_requires_alpha"))
         for key, slider in self.sliders.items():
             slider.setAccessibleName(self._t(key))
         self.canvas.set_language(language)
@@ -367,6 +438,7 @@ class EditorWindow(QMainWindow):
         self.original_button.setChecked(False)
         self.crop_button.setChecked(False)
         self.canvas.set_crop_enabled(False)
+        self._leave_mask()
         self._reset_sliders()
         original = document.original
         self._original_size = original.size
@@ -394,7 +466,7 @@ class EditorWindow(QMainWindow):
             if self.original_button.isChecked():
                 self.canvas.set_image(self._original_preview, self._original_size)
             else:
-                preview = self._preview_base
+                preview = self._mask_preview if self.mask_button.isChecked() and self._mask_preview is not None else self._preview_base
                 if self.has_pending_adjustments:
                     preview = adjust_image(preview, **self._adjustment_values())
                 self.canvas.set_image(preview, self._current_size)
@@ -410,6 +482,8 @@ class EditorWindow(QMainWindow):
             text = self._t("viewing_original")
         elif self.has_pending_adjustments:
             text = self._t("preview")
+        elif self.mask_button.isChecked():
+            text = self._t("mask_preview")
         else:
             text = self._t(self._status_key, **self._status_values)
         self.status_label.setText(text)
@@ -420,29 +494,39 @@ class EditorWindow(QMainWindow):
         pending = self.has_pending_adjustments
         original = self.original_button.isChecked()
         cropping = self.crop_button.isChecked()
-        editable = has_document and idle and not pending and not original
+        masking = self.mask_button.isChecked()
+        editable = has_document and idle and not pending and not original and not masking
         self.open_button.setEnabled(idle)
         self.open_action.setEnabled(idle)
         self.open_project_action.setEnabled(idle)
         for control in (self.save_project_button, self.save_project_action, self.save_project_as_action):
             control.setEnabled(editable and not cropping)
-        self.original_button.setEnabled(has_document and idle and not cropping)
+        self.original_button.setEnabled(has_document and idle and not cropping and not masking)
         self.original_button.setText(self._t("original_active" if original else "original"))
         for control in (self.export_button, self.export_action):
             control.setEnabled(editable and not cropping)
         for control in (self.undo_button, self.undo_action):
-            control.setEnabled(bool(editable and self.document.can_undo and not cropping))
+            control.setEnabled(bool((masking and self._mask_strokes) or (editable and self.document.can_undo and not cropping)))
         for control in (self.redo_button, self.redo_action):
-            control.setEnabled(bool(editable and self.document.can_redo and not cropping))
+            control.setEnabled(bool((masking and self._mask_redo) or (editable and self.document.can_redo and not cropping)))
         self.reset_action.setEnabled(bool(editable and self.document.history and not cropping))
         for slider in self.sliders.values():
-            slider.setEnabled(has_document and idle and not original and not cropping)
-        self.apply_button.setEnabled(has_document and idle and pending and not original)
-        self.discard_button.setEnabled(has_document and idle and pending)
+            slider.setEnabled(has_document and idle and not original and not cropping and not masking)
+        self.apply_button.setEnabled(has_document and idle and pending and not original and not masking)
+        self.discard_button.setEnabled(has_document and idle and pending and not masking)
         for control in (self.rotate_button, self.resize_button, self.ai_button):
             control.setEnabled(editable and not cropping)
         self.crop_button.setEnabled(editable)
         self.crop_button.setText(self._t("crop_cancel" if cropping else "crop"))
+        can_mask = bool(has_document and idle and not pending and not original and not cropping and self._preview_base is not None and self._preview_base.mode == "RGBA")
+        self.mask_button.setEnabled(can_mask)
+        self.mask_button.setText(self._t("mask_cancel_mode" if masking else "mask_open"))
+        self.mask_settings.setVisible(masking)
+        self.mask_apply_button.setEnabled(bool(masking and self._mask_strokes))
+        for control in (self.mask_mode_combo, self.mask_size_slider, self.mask_feather_slider, self.mask_cancel_button):
+            control.setEnabled(masking)
+        for control in (self.undo_button, self.redo_button):
+            control.setToolTip(self._t("mask_instruction" if masking else "history_hint"))
         self.crop_apply_button.setVisible(cropping)
         self.crop_apply_button.setEnabled(editable and self.canvas.crop_box is not None)
         self.crop_hint.setVisible(cropping)
@@ -463,7 +547,7 @@ class EditorWindow(QMainWindow):
         self._update_status()
 
     def _editable(self) -> bool:
-        return self.document is not None and not self.is_busy and not self.has_pending_adjustments and not self.original_button.isChecked()
+        return self.document is not None and not self.is_busy and not self.has_pending_adjustments and not self.original_button.isChecked() and not self.mask_button.isChecked()
 
     def _adjustment_values(self) -> dict[str, float]:
         return {key: slider.value() / 100 for key, slider in self.sliders.items()}
@@ -496,6 +580,7 @@ class EditorWindow(QMainWindow):
         self._revision += 1
         self._reset_sliders()
         self._leave_crop()
+        self._leave_mask()
         self._refresh_document()
         self._set_status("applied")
 
@@ -520,12 +605,22 @@ class EditorWindow(QMainWindow):
         self._apply_operation(rotate_image, "operation_rotate")
 
     def undo(self) -> None:
+        if self.mask_button.isChecked():
+            if self._mask_strokes:
+                self._mask_redo.append(self._mask_strokes.pop())
+                self._update_mask_preview()
+            return
         if self._editable() and not self.crop_button.isChecked() and self.document.undo():
             self._revision += 1
             self._refresh_document()
             self._set_status("undo_done")
 
     def redo(self) -> None:
+        if self.mask_button.isChecked():
+            if self._mask_redo:
+                self._mask_strokes.append(self._mask_redo.pop())
+                self._update_mask_preview()
+            return
         if self._editable() and not self.crop_button.isChecked() and self.document.redo():
             self._revision += 1
             self._refresh_document()
@@ -542,6 +637,83 @@ class EditorWindow(QMainWindow):
                 self._show_error("edit_error", exc)
 
     def _toggle_original(self) -> None:
+        self._show_preview()
+        self._update_state()
+
+    def _toggle_mask(self) -> None:
+        if self.mask_button.isChecked():
+            if (
+                self.document is None or self.is_busy or self.has_pending_adjustments
+                or self.original_button.isChecked() or self.crop_button.isChecked()
+                or self._preview_base is None or self._preview_base.mode != "RGBA"
+            ):
+                self.mask_button.setChecked(False)
+                return
+            self._mask_strokes.clear()
+            self._mask_redo.clear()
+            self._mask_preview = None
+            self.canvas.set_brush_enabled(True)
+            self._on_mask_settings_changed()
+        else:
+            self._leave_mask()
+        self._show_preview()
+        self._update_state()
+
+    def _leave_mask(self) -> None:
+        self.mask_button.setChecked(False)
+        self._mask_strokes.clear()
+        self._mask_redo.clear()
+        self._mask_preview = None
+        self.canvas.set_brush_enabled(False)
+
+    def _on_mask_settings_changed(self) -> None:
+        mode = str(self.mask_mode_combo.currentData())
+        self.canvas.set_brush(mode, self.mask_size_slider.value() / 100)
+        self.mask_size_value.setText(f"{self.mask_size_slider.value()} %")
+        self.mask_feather_value.setText(f"{self.mask_feather_slider.value()} %")
+
+    def _update_mask_preview(self) -> None:
+        try:
+            self._mask_preview = (
+                paint_alpha_strokes(self._preview_base, self._mask_strokes)
+                if self._mask_strokes else None
+            )
+            self._show_preview()
+            self._update_state()
+        except (ValueError, OSError, MemoryError) as exc:
+            self._show_error("edit_error", exc)
+
+    def _mask_stroke_finished(self, points: object) -> None:
+        if not self.mask_button.isChecked() or self.document is None or self.is_busy:
+            return
+        if len(self._mask_strokes) >= MAX_MASK_STROKES:
+            self._set_status("mask_limit")
+            QMessageBox.warning(self, self._t("error_title"), self._t("mask_limit"))
+            return
+        stroke = MaskStroke(
+            points=tuple(points),
+            mode=str(self.mask_mode_combo.currentData()),
+            diameter=self.mask_size_slider.value() / 100,
+            feather=self.mask_feather_slider.value() / 100,
+        )
+        self._mask_strokes.append(stroke)
+        self._mask_redo.clear()
+        self._update_mask_preview()
+
+    def apply_mask_refinement(self) -> None:
+        if not self.mask_button.isChecked() or self.document is None or self.is_busy or not self._mask_strokes:
+            return
+        try:
+            result = paint_alpha_strokes(self.document.current, self._mask_strokes)
+            self._accept_result(result, "operation_mask")
+            self._set_status("mask_applied")
+        except (ValueError, OSError, MemoryError) as exc:
+            self._show_error("edit_error", exc)
+
+    def discard_mask_refinement(self) -> None:
+        if not self.mask_button.isChecked() or self.is_busy:
+            return
+        self._leave_mask()
         self._show_preview()
         self._update_state()
 
@@ -627,7 +799,7 @@ class EditorWindow(QMainWindow):
         # A saved editable project takes precedence over a flattened image
         # export, since exporting does not update that project's edit history.
         saved_revision = self._saved_revision if self._project_path else self._exported_revision
-        return self._revision != saved_revision
+        return self._revision != saved_revision or bool(self.mask_button.isChecked() and self._mask_strokes)
 
     def _confirm(self, title: str, body: str) -> bool:
         message = QMessageBox(self)

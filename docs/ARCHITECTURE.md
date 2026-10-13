@@ -43,6 +43,14 @@ A separate pure-Python core module, `core/project.py`, serializes the accepted d
 
 Save writes to a temporary file, flushes and atomically replaces the chosen project file. Failure must not corrupt the previous project or mutate the imported photo. The original path cannot be recovered when reopening a project; the UI therefore prohibits replacing pre-existing image exports on a restored project, except exports made during that same editor session. Project saves currently run synchronously and can block the UI for large images; that is a documented limitation, not a performance guarantee. The existing released v0.1.0-alpha.1 package does not yet contain this feature.
 
+## Manual foreground mask refinement (development source)
+
+The new `core/mask.py` is a Qt-free, inference-free Pillow rasterizer. A `MaskStroke` stores normalized pointer positions, brush diameter relative to the shorter image edge, feather fraction and restore/erase mode. The editor captures pointer movements on `PhotoCanvas`, previews them on a resized image, and applies them to the full-resolution accepted document only after explicit confirmation. Undo/Redo initially manages pending brush strokes; the accepted result becomes a single reversible `ImageDocument` history entry and is persisted automatically by the existing `.laip` snapshot format without a schema change.
+
+Each stroke produces a bounded local grayscale brush region. A feathered or hard-edged raster mask composites **only** the source image's alpha toward 255 (restore) or 0 (erase); source RGB channels remain unchanged. Dimension and coordinate validation plus per-session stroke/point limits bound inputs. The existing normalizer enforces the 40 MP and 8-bit RGB/RGBA limits.
+
+This is alpha repair rather than RGB inpainting or neural hair reconstruction: color contamination is untouched, originally transparent source pixels are not tracked separately as an alpha ceiling, and full-resolution application is synchronous. The generated preview is not pixel-identical to full-resolution rasterization at every edge. See [MASK_REFINEMENT.md](MASK_REFINEMENT.md). The existing private v0.1.0-alpha.1 package predates this source-only change.
+
 ## Inference jobs
 
 The controller creates a private temporary job directory and stores a normalized PNG. It launches the same packaged executable with `--worker <job-directory>`; development uses `python -m local_ai_photo_editor` with the same arguments. A small versioned JSON request allows only predefined operations. Results and completion information are written into the job directory. Photos are not passed on a command line or sent to a local web service.
