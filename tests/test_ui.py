@@ -183,6 +183,76 @@ class EditorWindowTests(unittest.TestCase):
         self.assertEqual(self.window.document.history, ())
         self.assertTrue(self.window.ai_button.isEnabled())
 
+    def test_save_open_project_restores_undo_redo_and_clean_state(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "editing.laip"
+            source = Image.new("RGBA", (24, 16), (40, 100, 150, 99))
+            self.window.set_document(source)
+            self.window.rotate_clockwise()
+            self.window.rotate_clockwise()
+            self.window.undo()
+            self.assertTrue(self.window._has_unexported_changes())
+            with patch("local_ai_photo_editor.ui.window.QFileDialog.getSaveFileName", return_value=(str(path), "")):
+                self.window.save_project_as()
+            self.assertTrue(path.exists())
+            self.assertFalse(self.window._has_unexported_changes())
+            self.assertTrue(self.window.document.can_redo)
+            self.assertEqual(self.window.file_label.text(), "editing.laip")
+            self.window.rotate_clockwise()
+            self.assertTrue(self.window._has_unexported_changes())
+            with patch.object(self.window, "_confirm", return_value=True):
+                self.window.open_project_path(path)
+            self.assertFalse(self.window._has_unexported_changes())
+            self.assertEqual(self.window.document.original.size, (24, 16))
+            self.assertEqual(self.window.document.current.size, (16, 24))
+            self.assertTrue(self.window.document.can_redo)
+            self.window.redo()
+            self.assertEqual(self.window.document.current.size, (24, 16))
+            self.assertTrue(self.window._has_unexported_changes())
+            self.window.save_project()
+            self.assertFalse(self.window._has_unexported_changes())
+
+    def test_reopened_project_never_overwrites_existing_image(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            source_path = Path(folder) / "original.png"
+            project_path = Path(folder) / "safe.laip"
+            Image.new("RGB", (8, 6), "red").save(source_path)
+            original_bytes = source_path.read_bytes()
+            self.window.open_path(source_path)
+            from local_ai_photo_editor.core import save_project
+            save_project(self.window.document, project_path)
+            self.window.open_project_path(project_path)
+            self.assertIsNone(self.window.document.source_path)
+            with (
+                patch("local_ai_photo_editor.ui.window.QFileDialog.getSaveFileName", return_value=(str(source_path), "PNG (*.png)")),
+                patch.object(self.window, "_confirm") as confirm,
+                patch.object(self.window, "_show_error") as error,
+            ):
+                self.window.export_copy()
+            error.assert_called_once_with("project_export_existing")
+            confirm.assert_not_called()
+            self.assertEqual(source_path.read_bytes(), original_bytes)
+            fresh = Path(folder) / "fresh.png"
+            with patch("local_ai_photo_editor.ui.window.QFileDialog.getSaveFileName", return_value=(str(fresh), "PNG (*.png)")):
+                self.window.export_copy()
+            self.assertTrue(fresh.exists())
+            self.assertEqual(self.window.status_label.text(), self.window._t("export_done", name=fresh.name))
+
+    def test_invalid_project_does_not_replace_active_document(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            broken = Path(folder) / "broken.laip"
+            broken.write_text("not an archive", encoding="utf-8")
+            self.window.set_document(Image.new("RGB", (12, 8), "green"))
+            self.window.rotate_clockwise()
+            document_before = self.window.document
+            revision_before = self.window._revision
+            with patch.object(self.window, "_confirm", return_value=True), patch.object(self.window, "_show_error") as error:
+                self.window.open_project_path(broken)
+            error.assert_called_once_with("project_error", unittest.mock.ANY)
+            self.assertIs(self.window.document, document_before)
+            self.assertEqual(self.window._revision, revision_before)
+            self.assertTrue(self.window._has_unexported_changes())
+
 
 if __name__ == "__main__":
     unittest.main()
