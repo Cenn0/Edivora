@@ -409,6 +409,7 @@ def ui_smoke_test(output_directory: Path) -> int:
                 # project. This catches omitted standard-library/modules in
                 # a frozen binary that normal image export would not exercise.
                 checkpoint("edit_and_save_project")
+                source_bytes_before_project = source_path.read_bytes()
                 window.rotate_clockwise()
                 rotated = window.document.current
                 if rotated.size != (picture.height, picture.width) or not window.document.can_undo:
@@ -437,7 +438,7 @@ def ui_smoke_test(output_directory: Path) -> int:
                 if project.current.tobytes() != rotated.tobytes():
                     raise ValueError("Project Redo did not restore the edited pixels.")
                 window.save_project()
-                if window._has_unexported_changes() or source_path.read_bytes() != source_path.read_bytes():
+                if window._has_unexported_changes() or source_path.read_bytes() != source_bytes_before_project:
                     raise ValueError("The project did not save cleanly.")
                 image_io["project"] = {
                     "file": project_path.name,
