@@ -32,7 +32,7 @@ ZIP container, stored entries (not deflated), UTF-8 JSON manifest at manifest.js
 - frames/redo-N.png — each *retained* redo snapshot, oldest to newest
 - manifest.json — frame descriptors (exact names, width, height, RGB/RGBA mode, SHA-256 of encoded PNG), operation labels, pixel-history budget and version
 
-The JSON manifest is an allowlist, not an executable script. Opening a project **never extracts archive paths** into the filesystem. It rejects duplicate, missing and unknown members; encrypted or unsupported compression; version mismatches; bad SHA-256 checksums; mismatched image metadata; excessive sizes; and inconsistent undo labels. Individual frames cannot exceed the 40-megapixel product limit; encoded frame entries have an approximately 162 MiB ceiling, total uncompressed archive data a 768 MiB ceiling, and the manifest a 1 MiB ceiling. These limits are defensive and do not constitute a total RAM-use guarantee.
+The JSON manifest is an allowlist, not an executable script. Opening a project **never extracts archive paths** into the filesystem. It rejects duplicate, missing and unknown members; encrypted or unsupported compression; version mismatches; bad SHA-256 checksums; mismatched image metadata; excessive sizes; and inconsistent undo labels. Individual frames cannot exceed the 40-megapixel product limit; encoded frame entries have a 162,097,152-byte ceiling (approximately 154.6 MiB), total uncompressed archive data a 768 MiB ceiling, and the manifest a 1 MiB ceiling. These limits are defensive and do not constitute a total RAM-use guarantee.
 
 ## Failure and versioning
 
