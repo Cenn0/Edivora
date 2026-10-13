@@ -422,7 +422,7 @@ def ui_smoke_test(output_directory: Path) -> int:
                 window.open_project_path(project_path)
                 project = window.document
                 if (
-                    window._project_path != project_path
+                    window._project_path != project_path.absolute()
                     or project.source_path is not None
                     or project.original.tobytes() != picture.tobytes()
                     or project.current.tobytes() != rotated.tobytes()
