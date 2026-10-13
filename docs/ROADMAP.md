@@ -15,12 +15,13 @@ Acceptance: actual packaged model inference works without developer tools; the f
 
 Progress after the published v0.1.0-alpha.1: a first version of durable project archives has been implemented in source. It stores the original, accepted result and retained Undo/Redo snapshots with versioning, checksums, size bounds and atomic writes. Source paths are intentionally not persisted. See [PROJECT_FORMAT.md](PROJECT_FORMAT.md). Native package acceptance for this newer implementation remains outstanding.
 
-- User-correctable foreground mask: **manual alpha-only restore/erase brush with size, feather, stroke preview and Undo/Redo implemented in source**; automatic hair matting, background-colour replacement and blur remain planned. The current tool does not reconstruct missing RGB pixels or clean contaminated edge colors. See [MASK_REFINEMENT.md](MASK_REFINEMENT.md).
+- User-correctable foreground mask: **manual alpha-only restore/erase brush with size, feather, stroke preview and Undo/Redo implemented in source**. Automatic hair matting remains planned. The current tool does not reconstruct missing RGB pixels or clean contaminated edge colors. See [MASK_REFINEMENT.md](MASK_REFINEMENT.md).
+- **Guided light/color corrections, gentle automatic correction, six adjustable looks, sharpening, vignette, exact-ratio crops, mirror/rotation and background design are implemented in source.** The workspace provides DE/EN guidance, before/after previews, per-control/section/all resets and explicit Apply/Cancel. Full-resolution rendering runs in a cancellable worker thread and produces one Undo/Redo snapshot. Background colors, local background photos and background-only blur require an existing cutout. See [EDITING_TOOLS.md](EDITING_TOOLS.md).
 - Evaluate BiRefNet lite against U2NETP on an appropriately licensed image set, including hair, glass, fur and low-contrast boundaries.
-- Save/reopen a versioned project containing original, accepted results, masks and operations; local recovery and cache management.
-- Keyboard navigation, high-DPI checks and tested light/dark themes.
+- Save/reopen a versioned project containing original, accepted results, masks and operations; local recovery and cache management. Snapshot persistence is implemented; editable adjustment layers and recovery/cache management remain future work.
+- Keyboard navigation, high-DPI checks and tested light/dark themes. New guided controls expose accessible names, keyboard controls and reset actions; comprehensive high-DPI and interactive accessibility acceptance remains open.
 
-Acceptance: unwanted mask pixels can be corrected without regenerating protected foreground detail; saved projects open deterministically and exports match the accepted preview.
+Acceptance: unwanted mask pixels can be corrected without regenerating protected foreground detail; saved projects open deterministically and exports use the accepted full-resolution result. Reduced-size previews may differ slightly at filtered edges and integer crop boundaries; source UI tests do not replace packaged or interactive usability acceptance.
 
 ## 0.3 — optional instruction-based local editing
 
@@ -48,4 +49,3 @@ No signing certificate is assumed to be available during initial development. Si
 - RAW/16-bit workflows, batch editing and richer layers only after the basic editor is stable.
 
 No mobile client, SaaS backend, user accounts, collaborative editing, plug-in marketplace, or external model runtime is required for the initial goal.
-
