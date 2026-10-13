@@ -238,7 +238,7 @@ class PhotoCanvas(QWidget):
                 painter.drawPath(path)
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(colour)
-                painter.drawEllipse(path.currentPosition() if len(self._brush_points) > 1 else path.currentPosition(), radius, radius)
+                painter.drawEllipse(path.currentPosition(), radius, radius)
                 painter.setOpacity(1.0)
             if self._brush_hover is not None:
                 painter.setBrush(Qt.BrushStyle.NoBrush)
