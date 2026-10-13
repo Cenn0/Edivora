@@ -1,7 +1,10 @@
-"""Capture the actual Qt UI with a synthetic fixture, never a private photo.
+"""Capture actual Qt widgets with a synthetic fixture, never a private photo.
 
-Run with PYTHONPATH=src and QT_QPA_PLATFORM=offscreen for headless CI. This is a
-source-UI smoke check, not a packaged app or segmentation-quality benchmark.
+Run with PYTHONPATH=src. Linux CI uses QT_QPA_PLATFORM=offscreen; Windows
+captures use the native windows platform because its offscreen plugin did not
+provide usable fonts on the tested runner. Glyph availability is checked before
+captures are accepted. This is a source-UI smoke check, not a packaged app or
+segmentation-quality benchmark.
 """
 from __future__ import annotations
 
@@ -15,12 +18,22 @@ from PIL import Image, ImageDraw
 import PIL
 import PySide6
 from PySide6.QtCore import qVersion
+from PySide6.QtGui import QFontInfo, QFontMetrics
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from local_ai_photo_editor.core.recipes import EditRecipe
 from local_ai_photo_editor.ui import EditorWindow
 from local_ai_photo_editor.ui.editing_dialog import EditingDialog
+
+
+def check_text_font(widget: QWidget) -> str:
+    """Do not silently report a screenshot full of missing-glyph boxes as valid."""
+    metrics = QFontMetrics(widget.font())
+    missing = [letter for letter in "AZaz09ÄÖÜäöüß" if not metrics.inFontUcs4(ord(letter))]
+    if missing:
+        raise RuntimeError(f"The capture font cannot render these letters: {missing}")
+    return QFontInfo(widget.font()).family()
 
 
 def main() -> int:
@@ -49,7 +62,7 @@ def main() -> int:
         "shape": EditRecipe(aspect="4:5", focus_x=50),
         "background": EditRecipe(background="photo", background_blur=65),
     }
-    files = []
+    files, fonts = [], set()
     window = EditorWindow()
     try:
         for language in ("de", "en"):
@@ -58,6 +71,7 @@ def main() -> int:
             window.resize(1180, 820)
             window.show()
             QTest.qWait(60)
+            fonts.add(check_text_font(window.open_button))
             main_path = args.output / f"editor-{language}.png"
             if not window.grab().save(str(main_path)):
                 raise RuntimeError("Could not save the editor screenshot")
@@ -73,6 +87,7 @@ def main() -> int:
                         raise RuntimeError(f"Preview failed: {language}/{section}")
                     dialog.show()
                     QTest.qWait(60)
+                    fonts.add(check_text_font(dialog.apply_button))
                     path = args.output / f"editing-{section}-{language}.png"
                     if not dialog.grab().save(str(path)):
                         raise RuntimeError("Could not save an editing screenshot")
@@ -90,7 +105,8 @@ def main() -> int:
         "status": "passed", "scope": "source_ui_synthetic_fixture_only",
         "python": platform.python_version(), "os": platform.platform(),
         "pyside": PySide6.__version__, "qt": qVersion(), "pillow": PIL.__version__,
-        "screenshots": files,
+        "qt_platform": app.platformName(), "fonts": sorted(fonts),
+        "glyph_check": "ASCII and German letters present", "screenshots": files,
     }
     (args.output / "capture-result.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps(report))
