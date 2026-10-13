@@ -1,0 +1,102 @@
+name: Publish verified Windows test alpha
+
+on:
+  # Introducing this workflow through a merged PR performs the first release.
+  # Subsequent changes to application code cannot silently republish this tag.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-alpha.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: verified-test-alpha-v0.1.0-alpha.1
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'Cenn0/LocalAiPhotoEditor' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test release validation logic
+        run: python3 -m unittest discover -s tests -p test_publish_alpha.py -v
+
+      - name: Verify exact successful build and offline provenance via GitHub API
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/publish_alpha.py verify-remote
+
+      - name: Download digest-verified Windows package from the successful build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: '11775901053'
+          repository: ${{ github.repository }}
+          run-id: '38311556834'
+          github-token: ${{ github.token }}
+          path: release-input/application
+          digest-mismatch: error
+
+      - name: Download digest-verified offline test evidence
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: '11775129907'
+          repository: ${{ github.repository }}
+          run-id: '38313711747'
+          github-token: ${{ github.token }}
+          path: release-input/offline-evidence
+          digest-mismatch: error
+
+      - name: Verify the actual executable, bundled model and offline result; build release archive
+        run: |
+          python3 tools/publish_alpha.py assemble \
+            --application release-input/application \
+            --evidence release-input/offline-evidence \
+            --output release-files
+
+      - name: Publish the immutable-by-convention test tag and both assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag=v0.1.0-alpha.1
+          if gh release view "$tag" --json tagName --jq .tagName > /dev/null 2>&1; then
+            echo "Release exists: verify existing assets; do not overwrite or retarget the tag."
+          else
+            gh release create "$tag" \
+              release-files/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip \
+              release-files/SHA256SUMS.txt \
+              --title "LocalAiPhotoEditor 0.1.0 Alpha 1 (unsigned test)" \
+              --notes-file docs/RELEASE_NOTES_ALPHA.md \
+              --target "$GITHUB_SHA" \
+              --prerelease \
+              --latest=false
+          fi
+
+      - name: Download published release and verify archive SHA-256
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag=v0.1.0-alpha.1
+          test "$(gh release view "$tag" --json isPrerelease --jq .isPrerelease)" = true
+          mkdir -p release-verified
+          gh release download "$tag" --dir release-verified \
+            --pattern 'LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip' \
+            --pattern 'SHA256SUMS.txt'
+          (
+            cd release-verified
+            sha256sum --check SHA256SUMS.txt
+          )
+          cmp release-files/SHA256SUMS.txt release-verified/SHA256SUMS.txt
+          cmp release-files/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip \
+              release-verified/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip
+          gh release view "$tag" --json url --jq .url
