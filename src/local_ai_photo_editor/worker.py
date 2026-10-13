@@ -1,5 +1,4 @@
 """Single-job local worker. A subprocess provides cancellation, not sandboxing."""
-
 from __future__ import annotations
 
 import json
@@ -7,9 +6,10 @@ import os
 from pathlib import Path
 
 from .ai.models import ModelIntegrityError, ModelMissingError
+from .ai.background import NoSubjectError
 
 
-def _write_status(directory: Path, payload: dict[str, str]) -> None:
+def _write_status(directory: Path, payload: dict[str, object]) -> None:
     temporary = directory / "result.json.tmp"
     temporary.write_text(json.dumps(payload, ensure_ascii=True), encoding="utf-8")
     os.replace(temporary, directory / "result.json")
@@ -21,31 +21,45 @@ def run_job(directory: Path) -> int:
         return 2
     try:
         request_path = directory / "request.json"
-        if request_path.is_symlink() or request_path.stat().st_size > 4096:
+        if request_path.is_symlink() or not request_path.is_file() or request_path.stat().st_size > 4096:
             raise ValueError("Invalid job request.")
-        request = json.loads(request_path.read_text(encoding="utf-8"))
-        if request != {"version": 1, "operation": "remove_background"}:
+        with request_path.open("rb") as stream:
+            raw_request = stream.read(4097)
+        if len(raw_request) > 4096:
+            raise ValueError("Invalid job request.")
+        request = json.loads(raw_request)
+        if (not isinstance(request, dict) or set(request) != {"version", "operation"}
+                or type(request["version"]) is not int or request["version"] != 1
+                or request["operation"] not in ("remove_background", "select_subject")):
             raise ValueError("Unsupported job request.")
         image_path = directory / "input.png"
         if image_path.is_symlink():
             raise ValueError("Invalid input file.")
         from .core import export_image, load_image
-        from .ai.background import remove_background
+        from .ai.background import predict_subject, remove_background
+        from .core.selection_io import write_subject_result
 
         source = load_image(image_path)
-        result = remove_background(source)
-        if result.size != source.size:
-            raise ValueError("The worker returned incorrect dimensions.")
-        export_image(result, directory / "output.png", source_path=image_path)
-        _write_status(directory, {"status": "ok"})
+        if request["operation"] == "select_subject":
+            mask = predict_subject(source)
+            if mask.size != source.size:
+                raise ValueError("The worker returned incorrect dimensions.")
+            status = write_subject_result(mask, directory)
+        else:
+            result = remove_background(source)
+            if result.size != source.size:
+                raise ValueError("The worker returned incorrect dimensions.")
+            export_image(result, directory / "output.png", source_path=image_path)
+            status = {"status": "ok"}
+        _write_status(directory, status)
         return 0
     except ModelMissingError:
         payload = {"status": "error", "code": "MODEL_MISSING", "message": "The offline AI model is missing."}
     except ModelIntegrityError:
         payload = {"status": "error", "code": "MODEL_INVALID", "message": "The offline AI model is damaged or unsupported."}
+    except NoSubjectError:
+        payload = {"status": "error", "code": "NO_SUBJECT", "message": "No usable subject selection was found."}
     except Exception:
-        # Do not leak paths or image metadata into process logs or error reports.
         payload = {"status": "error", "code": "INFERENCE_ERROR", "message": "The local editing job could not be completed."}
     _write_status(directory, payload)
     return 1
-
