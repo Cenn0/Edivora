@@ -49,7 +49,19 @@ jobs:
       - name: Open source GUI with synthetic pixels
         env:
           QT_QPA_PLATFORM: windows
-        run: python -m local_ai_photo_editor --ui-smoke-test test-results/source-gui
+        shell: pwsh
+        run: |
+          python -m local_ai_photo_editor --ui-smoke-test test-results/source-gui
+          $smokeExit = $LASTEXITCODE
+          if ($smokeExit -ne 0) {
+            foreach ($file in @('test-results/source-gui/ui-smoke-result.json', 'test-results/source-gui/ui-startup.json')) {
+              if (Test-Path $file) {
+                Write-Host "Native GUI smoke diagnostic: $file"
+                Get-Content $file
+              }
+            }
+            exit $smokeExit
+          }
       - name: Restore native compiler cache
         id: compiler_cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

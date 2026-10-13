@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 
 from ..core import (
     MAX_IMAGE_PIXELS, ImageDocument, adjust_image, crop_image, export_image,
-    load_image, resize_image, rotate_image,
+    load_image, load_project, resize_image, rotate_image, save_project as save_project_archive,
 )
 from .canvas import PhotoCanvas
 from .strings import STRINGS, translate
@@ -80,6 +80,9 @@ class EditorWindow(QMainWindow):
         self.language = "de"
         self._revision = 0
         self._exported_revision = 0
+        self._saved_revision = 0
+        self._project_path: Path | None = None
+        self._project_created_exports: set[Path] = set()
         self._current_size = (0, 0)
         self._original_size = (0, 0)
         self._preview_base: Image.Image | None = None
@@ -156,13 +159,18 @@ class EditorWindow(QMainWindow):
 
     def _build_ui(self) -> None:
         self.open_action = self._action("open", self.open_photo, QKeySequence.StandardKey.Open)
+        self.open_project_action = self._action("open_project", self.open_project)
+        self.save_project_action = self._action("save_project", self.save_project, QKeySequence.StandardKey.Save)
+        self.save_project_as_action = self._action("save_project_as", self.save_project_as)
         self.export_action = self._action("export", self.export_copy, QKeySequence.StandardKey.SaveAs)
         self.undo_action = self._action("undo", self.undo, QKeySequence.StandardKey.Undo)
         self.redo_action = self._action("redo", self.redo, QKeySequence.StandardKey.Redo)
         self.reset_action = self._action("reset", self.reset_to_original)
         self.quit_action = self._action("quit", self.close, QKeySequence.StandardKey.Quit)
         self._file_menu = self.menuBar().addMenu(self._t("file_menu"))
-        self._file_menu.addActions([self.open_action, self.export_action])
+        self._file_menu.addActions([self.open_action, self.open_project_action])
+        self._file_menu.addSeparator()
+        self._file_menu.addActions([self.save_project_action, self.save_project_as_action, self.export_action])
         self._file_menu.addSeparator()
         self._file_menu.addAction(self.quit_action)
         self._edit_menu = self.menuBar().addMenu(self._t("edit_menu"))
@@ -197,12 +205,13 @@ class EditorWindow(QMainWindow):
         toolbar = QHBoxLayout()
         toolbar.setSpacing(10)
         self.open_button = self._button("open", self.open_photo)
+        self.save_project_button = self._button("save_project", self.save_project)
         self.undo_button = self._button("undo", self.undo, "quiet")
         self.redo_button = self._button("redo", self.redo, "quiet")
         self.original_button = self._button("original", self._toggle_original, "quiet")
         self.original_button.setCheckable(True)
         self.export_button = self._button("export", self.export_copy, "primary")
-        for button in (self.open_button, self.undo_button, self.redo_button, self.original_button):
+        for button in (self.open_button, self.save_project_button, self.undo_button, self.redo_button, self.original_button):
             toolbar.addWidget(button)
         toolbar.addStretch()
         toolbar.addWidget(self.export_button)
@@ -343,12 +352,18 @@ class EditorWindow(QMainWindow):
         self._update_state()
 
     def set_document(self, image: Image.Image, source_path: str | Path | None = None) -> None:
+        self._install_document(ImageDocument(image, source_path))
+        self._set_status("loaded")
+
+    def _install_document(self, document: ImageDocument) -> None:
         if self.is_busy:
             raise RuntimeError("Cannot replace the document during an active job.")
-        document = ImageDocument(image, source_path)
         self.document = document
         self._revision += 1
         self._exported_revision = self._revision
+        self._saved_revision = self._revision
+        self._project_path = None
+        self._project_created_exports.clear()
         self.original_button.setChecked(False)
         self.crop_button.setChecked(False)
         self.canvas.set_crop_enabled(False)
@@ -357,7 +372,6 @@ class EditorWindow(QMainWindow):
         self._original_size = original.size
         self._original_preview = self._thumbnail(original)
         self._refresh_document()
-        self._set_status("loaded")
 
     @staticmethod
     def _thumbnail(image: Image.Image) -> Image.Image:
@@ -409,6 +423,9 @@ class EditorWindow(QMainWindow):
         editable = has_document and idle and not pending and not original
         self.open_button.setEnabled(idle)
         self.open_action.setEnabled(idle)
+        self.open_project_action.setEnabled(idle)
+        for control in (self.save_project_button, self.save_project_action, self.save_project_as_action):
+            control.setEnabled(editable and not cropping)
         self.original_button.setEnabled(has_document and idle and not cropping)
         self.original_button.setText(self._t("original_active" if original else "original"))
         for control in (self.export_button, self.export_action):
@@ -435,7 +452,9 @@ class EditorWindow(QMainWindow):
         self.cancel_button.setEnabled(self.is_busy and not self._cancel_requested)
         self.job_label.setText(self._t("cancelling" if self._cancel_requested else "ai_busy"))
         self.file_label.setText(
-            self.document.source_path.name if has_document and self.document.source_path else self._t("untitled" if has_document else "no_photo")
+            self._project_path.name if has_document and self._project_path
+            else self.document.source_path.name if has_document and self.document.source_path
+            else self._t("untitled" if has_document else "no_photo")
         )
         self.dimensions_label.setText(
             self._t("dimensions", width=self._current_size[0], height=self._current_size[1], edits=len(self.document.history))
@@ -601,7 +620,14 @@ class EditorWindow(QMainWindow):
             self._apply_operation(lambda picture: resize_image(picture, width.value(), height.value()), "operation_resize")
 
     def _has_unexported_changes(self) -> bool:
-        return self.document is not None and (self._revision != self._exported_revision or self.has_pending_adjustments)
+        if self.document is None:
+            return False
+        if self.has_pending_adjustments:
+            return True
+        # A saved editable project takes precedence over a flattened image
+        # export, since exporting does not update that project's edit history.
+        saved_revision = self._saved_revision if self._project_path else self._exported_revision
+        return self._revision != saved_revision
 
     def _confirm(self, title: str, body: str) -> bool:
         message = QMessageBox(self)
@@ -653,12 +679,76 @@ class EditorWindow(QMainWindow):
         except (ValueError, OSError, MemoryError) as exc:
             self._show_error("open_error", exc)
 
+    def open_project(self) -> None:
+        if self.is_busy:
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self, self._t("open_project"), "", self._t("project_filter")
+        )
+        if path:
+            self.open_project_path(path)
+
+    def open_project_path(self, path: str | Path) -> None:
+        if self.is_busy:
+            return
+        if self._has_unexported_changes() and not self._confirm("replace_title", "replace_body"):
+            return
+        try:
+            restored = load_project(path)
+            self._install_document(restored)
+            self._project_path = Path(path).expanduser().absolute()
+            self._saved_revision = self._revision
+            self._update_state()
+            self._set_status("project_loaded")
+        except (ValueError, OSError, MemoryError) as exc:
+            self._show_error("project_error", exc)
+
+    def save_project(self) -> None:
+        if not self._editable() or self.crop_button.isChecked():
+            return
+        if self._project_path is not None:
+            self._write_project(self._project_path)
+        else:
+            self.save_project_as()
+
+    def save_project_as(self) -> None:
+        if not self._editable() or self.crop_button.isChecked():
+            return
+        source = self.document.source_path
+        directory = self._project_path.parent if self._project_path else source.parent if source else Path.home()
+        stem = self._project_path.stem if self._project_path else source.stem if source else "photo"
+        path, _ = QFileDialog.getSaveFileName(
+            self, self._t("save_project_as"), str(directory / f"{stem}.laip"),
+            self._t("project_filter"), options=QFileDialog.Option.DontConfirmOverwrite,
+        )
+        if not path:
+            return
+        target = Path(path)
+        if not target.suffix:
+            target = target.with_suffix(".laip")
+        if target.suffix.lower() != ".laip":
+            self._show_error("project_error")
+            return
+        if target.exists() and not self._confirm("replace_export_title", "replace_export_body"):
+            return
+        self._write_project(target)
+
+    def _write_project(self, path: Path) -> None:
+        try:
+            destination = save_project_archive(self.document, path)
+            self._project_path = destination
+            self._saved_revision = self._revision
+            self._set_status("project_saved", name=destination.name)
+            self._update_state()
+        except (ValueError, OSError, MemoryError) as exc:
+            self._show_error("project_error", exc)
+
     def export_copy(self) -> None:
         if not self._editable() or self.crop_button.isChecked():
             return
         source = self.document.source_path
-        stem = source.stem if source else self._t("untitled")
-        directory = source.parent if source else Path.home()
+        stem = self._project_path.stem if self._project_path else source.stem if source else self._t("untitled")
+        directory = self._project_path.parent if self._project_path else source.parent if source else Path.home()
         default = directory / f"{stem}-{self._t('export_suffix')}.png"
         path, selected_filter = QFileDialog.getSaveFileName(
             self, self._t("export"), str(default), self._t("export_filter"),
@@ -677,9 +767,20 @@ class EditorWindow(QMainWindow):
             ):
                 self._show_error("source_protected")
                 return
+            # A reopened project intentionally omits the source filesystem
+            # path. Never overwrite a pre-existing image in that case: it
+            # could be the original photo. This session's own exports are safe.
+            if (
+                source is None and self._project_path is not None and target.exists()
+                and target.absolute() not in self._project_created_exports
+            ):
+                self._show_error("project_export_existing")
+                return
             if target.exists() and not self._confirm("replace_export_title", "replace_export_body"):
                 return
             result = export_image(self.document.current, target, source_path=source)
+            if self._project_path is not None:
+                self._project_created_exports.add(result.absolute())
             self._exported_revision = self._revision
             self._set_status("export_done", name=result.name)
         except (ValueError, OSError, MemoryError) as exc:
@@ -691,7 +792,7 @@ class EditorWindow(QMainWindow):
         if len(urls) != 1 or not urls[0].isLocalFile():
             return None
         path = Path(urls[0].toLocalFile())
-        return path if path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"} and path.is_file() else None
+        return path if path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".laip"} and path.is_file() else None
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if not self.is_busy and self._drop_path(event) is not None:
@@ -703,7 +804,10 @@ class EditorWindow(QMainWindow):
         path = self._drop_path(event)
         if not self.is_busy and path is not None:
             event.acceptProposedAction()
-            self.open_path(path)
+            if path.suffix.lower() == ".laip":
+                self.open_project_path(path)
+            else:
+                self.open_path(path)
         else:
             event.ignore()
 

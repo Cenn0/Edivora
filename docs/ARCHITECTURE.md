@@ -37,6 +37,12 @@ The initial import limit is 40 million pixels. The default combined history budg
 
 Export writes to a temporary file beside the destination and atomically replaces the destination after success. The source file, resolved aliases, and hardlinks to it must be refused. The UI confirms replacing any other existing export. Exports remove imported EXIF/GPS/comment metadata and contain a deliberate sRGB output profile. JPEG alpha is composited onto white.
 
+## Local project files (source code after alpha.1)
+
+A separate pure-Python core module, `core/project.py`, serializes the accepted document into versioned `.laip` ZIP archives. Files contain lossless normalized original/current PNGs, the retained Undo/Redo pixel snapshots and a JSON manifest with exact entry names, dimensions, SHA-256 digests, operation labels and history budget. The project does **not** store the original absolute filesystem path or imported EXIF/GPS/comment metadata. Loading enforces an exact entry allowlist, 40 MP frame limit, archive/manifest size budgets, checksum verification, valid PNG RGB/RGBA data and history consistency. It extracts no paths and executes no embedded code.
+
+Save writes to a temporary file, flushes and atomically replaces the chosen project file. Failure must not corrupt the previous project or mutate the imported photo. The original path cannot be recovered when reopening a project; the UI therefore prohibits replacing pre-existing image exports on a restored project, except exports made during that same editor session. Project saves currently run synchronously and can block the UI for large images; that is a documented limitation, not a performance guarantee. The existing released v0.1.0-alpha.1 package does not yet contain this feature.
+
 ## Inference jobs
 
 The controller creates a private temporary job directory and stores a normalized PNG. It launches the same packaged executable with `--worker <job-directory>`; development uses `python -m local_ai_photo_editor` with the same arguments. A small versioned JSON request allows only predefined operations. Results and completion information are written into the job directory. Photos are not passed on a command line or sent to a local web service.

@@ -13,6 +13,8 @@ Acceptance: actual packaged model inference works without developer tools; the f
 
 ## 0.2 — editing precision and project persistence
 
+Progress after the published v0.1.0-alpha.1: a first version of durable project archives has been implemented in source. It stores the original, accepted result and retained Undo/Redo snapshots with versioning, checksums, size bounds and atomic writes. Source paths are intentionally not persisted. See [PROJECT_FORMAT.md](PROJECT_FORMAT.md). Native package acceptance for this newer implementation remains outstanding.
+
 - User-correctable foreground mask, edge refinement and background colour/blur.
 - Evaluate BiRefNet lite against U2NETP on an appropriately licensed image set, including hair, glass, fur and low-contrast boundaries.
 - Save/reopen a versioned project containing original, accepted results, masks and operations; local recovery and cache management.
