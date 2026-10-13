@@ -2,6 +2,7 @@
 
 from .document import DEFAULT_HISTORY_BUDGET_BYTES, ImageDocument
 from .project import load_project, save_project
+from .mask import MAX_MASK_STROKES, MaskStroke, paint_alpha_strokes
 from .editing import (
     MAX_IMAGE_PIXELS,
     adjust_image,
@@ -16,6 +17,9 @@ __all__ = [
     "DEFAULT_HISTORY_BUDGET_BYTES",
     "MAX_IMAGE_PIXELS",
     "ImageDocument",
+    "MAX_MASK_STROKES",
+    "MaskStroke",
+    "paint_alpha_strokes",
     "load_project",
     "save_project",
     "adjust_image",

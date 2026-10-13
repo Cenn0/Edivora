@@ -1,4 +1,4 @@
-"""A fitted photo preview with transparency and pixel-aligned crop selection."""
+"""A fitted photo preview with crop selection and local foreground brush."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from .strings import translate
 
 class PhotoCanvas(QWidget):
     selection_changed = Signal(object)
+    brush_stroke_finished = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -23,6 +24,11 @@ class PhotoCanvas(QWidget):
         self._crop_enabled = False
         self._anchor: QPointF | None = None
         self._selection: QRectF | None = None
+        self._brush_enabled = False
+        self._brush_diameter = 0.04
+        self._brush_mode = "restore"
+        self._brush_points: list[QPointF] | None = None
+        self._brush_hover: QPointF | None = None
         self._checker = QPixmap(24, 24)
         self._checker.fill(QColor("#343841"))
         painter = QPainter(self._checker)
@@ -75,9 +81,42 @@ class PhotoCanvas(QWidget):
 
     def set_crop_enabled(self, enabled: bool) -> None:
         self._crop_enabled = enabled
-        self.setCursor(Qt.CursorShape.CrossCursor if enabled else Qt.CursorShape.ArrowCursor)
+        self.setCursor(Qt.CursorShape.CrossCursor if enabled or self._brush_enabled else Qt.CursorShape.ArrowCursor)
         if not enabled:
             self.clear_selection()
+
+    def set_brush_enabled(self, enabled: bool) -> None:
+        self._brush_enabled = enabled
+        self._brush_points = None
+        self._brush_hover = None
+        if enabled:
+            self.clear_selection()
+            self.setMouseTracking(True)
+        else:
+            self.setMouseTracking(False)
+        self.setCursor(Qt.CursorShape.CrossCursor if enabled or self._crop_enabled else Qt.CursorShape.ArrowCursor)
+        self.update()
+
+    def set_brush(self, mode: str, diameter: float) -> None:
+        if mode not in ("restore", "erase") or not 0 < diameter <= 0.2:
+            raise ValueError("Invalid brush cursor.")
+        self._brush_mode = mode
+        self._brush_diameter = diameter
+        self.update()
+
+    def _append_brush_point(self, position: QPointF) -> None:
+        if self._brush_points is None:
+            return
+        point = self._normalized_point(position)
+        if self._brush_points:
+            before = self._brush_points[-1]
+            if abs(before.x() - point.x()) + abs(before.y() - point.y()) < 0.0003:
+                return
+        if len(self._brush_points) >= 2048:
+            # Decimate a long mouse drag rather than exceeding the validated
+            # core stroke bound, while preserving its beginning and endpoint.
+            self._brush_points = self._brush_points[::2]
+        self._brush_points.append(point)
 
     def clear_selection(self) -> None:
         self._anchor = None
@@ -93,6 +132,12 @@ class PhotoCanvas(QWidget):
         )
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        if self._brush_enabled and event.button() == Qt.MouseButton.LeftButton and self.image_rect.contains(event.position()):
+            self._brush_points = [self._normalized_point(event.position())]
+            self._brush_hover = event.position()
+            self.update()
+            event.accept()
+            return
         if self._crop_enabled and event.button() == Qt.MouseButton.LeftButton and self.image_rect.contains(event.position()):
             self._anchor = self._normalized_point(event.position())
             self._selection = None
@@ -103,6 +148,14 @@ class PhotoCanvas(QWidget):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self._brush_enabled:
+            self._brush_hover = event.position() if self.image_rect.contains(event.position()) else None
+            if self._brush_points is not None and event.buttons() & Qt.MouseButton.LeftButton:
+                self._append_brush_point(event.position())
+                self.update()
+                event.accept()
+                return
+            self.update()
         if self._anchor is not None and event.buttons() & Qt.MouseButton.LeftButton:
             self._selection = QRectF(self._anchor, self._normalized_point(event.position())).normalized()
             self.selection_changed.emit(self.crop_box)
@@ -112,6 +165,14 @@ class PhotoCanvas(QWidget):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if self._brush_points is not None and event.button() == Qt.MouseButton.LeftButton:
+            self._append_brush_point(event.position())
+            points = tuple((point.x(), point.y()) for point in self._brush_points)
+            self._brush_points = None
+            self.update()
+            self.brush_stroke_finished.emit(points)
+            event.accept()
+            return
         if self._anchor is not None and event.button() == Qt.MouseButton.LeftButton:
             self._selection = QRectF(self._anchor, self._normalized_point(event.position())).normalized()
             self._anchor = None
@@ -122,6 +183,11 @@ class PhotoCanvas(QWidget):
             event.accept()
             return
         super().mouseReleaseEvent(event)
+
+    def leaveEvent(self, event: object) -> None:
+        self._brush_hover = None
+        self.update()
+        super().leaveEvent(event)
 
     def paintEvent(self, event: object) -> None:
         painter = QPainter(self)
@@ -156,6 +222,29 @@ class PhotoCanvas(QWidget):
                 y = selection.top() + selection.height() * part
                 painter.drawLine(QPointF(x, selection.top()), QPointF(x, selection.bottom()))
                 painter.drawLine(QPointF(selection.left(), y), QPointF(selection.right(), y))
+        if self._brush_enabled:
+            painter.save()
+            painter.setClipRect(rect)
+            colour = QColor("#78e3ba" if self._brush_mode == "restore" else "#f49ea6")
+            radius = max(0.75, self._brush_diameter * min(rect.width(), rect.height()) / 2)
+            if self._brush_points:
+                path = QPainterPath()
+                first = self._brush_points[0]
+                path.moveTo(QPointF(rect.left() + first.x() * rect.width(), rect.top() + first.y() * rect.height()))
+                for point in self._brush_points[1:]:
+                    path.lineTo(QPointF(rect.left() + point.x() * rect.width(), rect.top() + point.y() * rect.height()))
+                painter.setOpacity(0.28)
+                painter.setPen(QPen(colour, max(1.5, radius * 2), Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+                painter.drawPath(path)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(colour)
+                painter.drawEllipse(path.currentPosition(), radius, radius)
+                painter.setOpacity(1.0)
+            if self._brush_hover is not None:
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.setPen(QPen(colour, 1.8))
+                painter.drawEllipse(self._brush_hover, radius, radius)
+            painter.restore()
 
     def _paint_empty(self, painter: QPainter) -> None:
         center = QPointF(self.width() / 2, self.height() / 2 - 70)

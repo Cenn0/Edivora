@@ -440,11 +440,47 @@ def ui_smoke_test(output_directory: Path) -> int:
                 window.save_project()
                 if window._has_unexported_changes() or source_path.read_bytes() != source_bytes_before_project:
                     raise ValueError("The project did not save cleanly.")
+                checkpoint("manual_mask_refinement")
+                before_mask = window.document.current
+                window.mask_button.click()
+                if not window.mask_button.isChecked():
+                    raise ValueError("The foreground brush did not become available.")
+                window.mask_mode_combo.setCurrentIndex(1)  # erase
+                window.mask_feather_slider.setValue(0)
+                window._mask_stroke_finished(((0.5, 0.5),))
+                if not window.mask_apply_button.isEnabled():
+                    raise ValueError("The foreground correction was not previewed.")
+                if window.document.current.tobytes() != before_mask.tobytes():
+                    raise ValueError("The foreground brush changed pixels before acceptance.")
+                window.apply_mask_refinement()
+                edited_mask = window.document.current
+                middle = (edited_mask.width // 2, edited_mask.height // 2)
+                if (
+                    edited_mask.getpixel(middle)[3] != 0
+                    or edited_mask.convert("RGB").tobytes() != before_mask.convert("RGB").tobytes()
+                    or not window.document.can_undo
+                ):
+                    raise ValueError("Mask correction did not change alpha exclusively.")
+                window.undo()
+                if window.document.current.tobytes() != before_mask.tobytes():
+                    raise ValueError("Mask correction Undo did not restore original alpha.")
+                window.redo()
+                if window.document.current.tobytes() != edited_mask.tobytes():
+                    raise ValueError("Mask correction Redo did not restore the corrected alpha.")
+                checkpoint("save_and_reopen_corrected_mask")
+                window.save_project()
+                window.open_project_path(project_path)
+                if window.document.current.tobytes() != edited_mask.tobytes():
+                    raise ValueError("Saved project did not restore the manually corrected mask.")
+                if window._has_unexported_changes() or source_path.read_bytes() != source_bytes_before_project:
+                    raise ValueError("Manual mask save changed the source image or left a dirty project.")
                 image_io["project"] = {
                     "file": project_path.name,
                     "original_preserved": True,
                     "accepted_pixels_preserved": True,
                     "undo_redo_restored": True,
+                    "manual_alpha_only_refinement": True,
+                    "corrected_alpha_persisted": True,
                 }
                 report = {
                     "status": "ok",
