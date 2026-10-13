@@ -35,8 +35,10 @@ def write_subject_result(mask: Image.Image, directory: Path) -> dict[str, object
     descriptor, name = tempfile.mkstemp(prefix=".selection-", suffix=".tmp", dir=directory)
     temporary = Path(name)
     try:
-        clean = Image.frombytes("L", mask.size, mask.tobytes())
         with os.fdopen(descriptor, "wb") as stream:
+            # Own the descriptor before allocating pixels so MemoryError also
+            # closes it before cleanup (important for Windows file locking).
+            clean = Image.frombytes("L", mask.size, mask.tobytes())
             clean.save(stream, format="PNG")
             stream.flush()
             os.fsync(stream.fileno())
