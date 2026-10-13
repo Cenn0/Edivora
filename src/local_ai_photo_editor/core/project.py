@@ -191,7 +191,7 @@ def load_project(path: str | Path) -> ImageDocument:
                 len(names) != len(set(names))
                 or not names
                 or len(names) > MAX_SNAPSHOTS + 3
-                or any(item.is_dir() or item.flag_bits & 1 for item in info)
+                or any(item.is_dir() or item.flag_bits & 1 or item.compress_type != ZIP_STORED for item in info)
                 or any(item.file_size > MAX_FRAME_BYTES for item in info if item.filename != "manifest.json")
                 or sum(item.file_size for item in info) > MAX_PROJECT_BYTES
             ):
