@@ -45,7 +45,7 @@ def _fraction(value: object, *, inclusive_zero: bool) -> float:
 
 
 def _validate(stroke: MaskStroke) -> tuple[tuple[tuple[float, float], ...], float, float]:
-    if not isinstance(stroke, MaskStroke) or stroke.mode not in MODES:
+    if not isinstance(stroke, MaskStroke) or not isinstance(stroke.mode, str) or stroke.mode not in MODES:
         raise ValueError("Invalid foreground brush mode.")
     if not isinstance(stroke.points, tuple) or not 1 <= len(stroke.points) <= MAX_STROKE_POINTS:
         raise ValueError("Invalid number of brush points.")
