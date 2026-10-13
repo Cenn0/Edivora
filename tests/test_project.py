@@ -214,7 +214,7 @@ class ProjectFileTests(unittest.TestCase):
         save_project(self.document, self.project)
         def tamper_size(content):
             manifest = json.loads(content["manifest.json"])
-            manifest["current"]["width"] = 40_000_001
+            manifest["original"]["width"] = 40_000_001
             content["manifest.json"] = json.dumps(manifest).encode()
         self._rewrite(tamper_size)
         with patch.object(Image.Image, "load") as load:
