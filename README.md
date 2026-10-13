@@ -27,6 +27,14 @@ Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte
 
 **Die Originaldatei bleibt geschützt.** Der Export verlangt ein anderes Ziel. PNG und WebP können Transparenz erhalten; bei JPEG werden transparente Stellen weiß. Die Ausgabe übernimmt keine EXIF-, GPS- oder Kommentardaten des Eingabebildes und enthält ein sRGB-Farbprofil.
 
+## Neu im Quellstand nach v0.1.0-alpha.1: Bearbeitungsprojekte
+
+Der neue Quellstand kann Bearbeitungen als **lokale `.laip`-Projektdatei** speichern und später wieder öffnen. Gesichert werden das unveränderte Original, der angenommene Bearbeitungsstand und die noch im Verlauf verfügbaren Undo/Redo-Bilder. Über **Datei → Projekt speichern (Strg+S)** und **Datei → Projekt öffnen** kannst du die Bearbeitung fortsetzen. Ein Projekt kann auch in das Fenster gezogen werden.
+
+Beim Speichern bleibt die ursprüngliche Fotodatei unverändert; das Projekt benötigt keinen Modellserver und legt keine ursprünglichen absoluten Bilddateipfade ab. Nach dem erneuten Öffnen wird zum Schutz des unbekannten Originalpfads nur der Export auf einen **neuen Dateinamen** erlaubt. Die genauen Formatgrenzen und Sicherheitsprüfungen stehen unter [Projektdateiformat](docs/PROJECT_FORMAT.md).
+
+**Wichtig:** Diese Entwicklung ist **noch nicht Bestandteil** des bereits veröffentlichten portablen `v0.1.0-alpha.1`-ZIPs. Bis CI- und Paketprüfungen erfolgreich abgeschlossen sind, ist sie als Quellcodefunktion zu betrachten. Die weiter unten beschriebenen Alpha-Nachweise gelten nur für den veröffentlichten Paketstand.
+
 ## Das lokale Standardmodell
 
 **U2NETP** erkennt den Vordergrund und erstellt eine Freistellmaske. Das kompakte Modell läuft über **ONNX Runtime auf der CPU** und wird im vollständigen Paket mitgeliefert. Beim Laden werden seine festgelegte Dateigröße und sein SHA-256 geprüft. Die App lädt fehlende Modelle nicht selbst nach.
@@ -54,7 +62,7 @@ Die Bildlogik ist von Oberfläche und KI getrennt. Ein eigener KI-Prozess hält 
 - Unterstützt werden passende **8-Bit-Einzelbilder bis 40 Millionen Pixel**. RAW-, 16-Bit-, animierte und mehrseitige Dateien gehören nicht zur Alpha.
 - Die EXIF-Ausrichtung wird berücksichtigt. Gültige eingebettete Farbprofile werden nach sRGB umgerechnet; ungültige oder nicht unterstützte Profile werden abgelehnt. RGB-, Graustufen- und Palettenbilder ohne Profil gelten als sRGB. CMYK und LAB benötigen ein gültiges eingebettetes Profil.
 - Der Verlauf liegt im Arbeitsspeicher und ist begrenzt. Große Fotos behalten weniger rückgängig machbare Schritte; das Original bleibt während der Bearbeitung verfügbar.
-- Es gibt noch keine dauerhaft gespeicherten Projekte, Ebenen, Bearbeitung durch Textanweisungen oder generatives Entfernen einzelner Objekte.
+- Die veröffentlichte Alpha bietet noch keine Projektdateien. Im neueren Quellstand sind lokale `.laip`-Bearbeitungsprojekte implementiert; Ebenen, Bearbeitung durch Textanweisungen und generatives Entfernen einzelner Objekte fehlen weiterhin.
 - GPU-Betrieb, Mindest-RAM, garantierte Geschwindigkeit, macOS- und Linux-Pakete sind noch nicht freigegeben. Signierung, umfassende Bedienprüfungen und die frische Windows-11-Abnahme bleiben offen.
 
 ## Am Quellcode arbeiten
@@ -75,6 +83,7 @@ Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. `prepare_model.
 - [Konzept, Zielgruppe und Technologievergleich](docs/CONCEPT.md)
 - [Architektur und Modulgrenzen](docs/ARCHITECTURE.md)
 - [KI-Modell, Herkunft und Grenzen](docs/MODELS.md)
+- [Lokale Bearbeitungsprojekte (.laip)](docs/PROJECT_FORMAT.md)
 - [Prüfergebnisse und offene Nachweise](docs/VERIFICATION.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Drittkomponenten und Lizenzhinweise](THIRD_PARTY_NOTICES.md)

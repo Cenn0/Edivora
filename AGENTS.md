@@ -3,6 +3,7 @@
 - Read `README.md`, `docs/ARCHITECTURE.md`, and `docs/ROADMAP.md` before changing the application.
 - Preserve local processing: application runtime must not upload photos, prompts, metadata, or diagnostics, and must not contact model hosts. Downloads belong in explicit build-time tooling.
 - Never overwrite the imported source image. Export to a different file and write atomically.
+- Project archives are untrusted input: retain exact ZIP member allowlists, strict size/pixel/format limits, checksums, history validation and atomic replacement. Never extract archive paths or persist original absolute source paths. Reopened projects must not overwrite pre-existing image exports where the original path is unknown.
 - Keep UI code under `ui/`, reusable image operations under `core/`, and model adapters under `ai/`. Core modules must not import Qt or initialize an inference runtime.
 - Run inference outside the UI process. Preserve cancellation, bounded input sizes, and cleanup of temporary job data.
 - Load only the bundled, checksum-pinned ONNX model. Never introduce pickle model loading, downloaded executable Python code, or `trust_remote_code=True`.
