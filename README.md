@@ -35,6 +35,14 @@ Beim Speichern bleibt die ursprüngliche Fotodatei unverändert; das Projekt ben
 
 **Wichtig:** Diese Entwicklung ist **noch nicht Bestandteil** des bereits veröffentlichten portablen `v0.1.0-alpha.1`-ZIPs. Bis CI- und Paketprüfungen erfolgreich abgeschlossen sind, ist sie als Quellcodefunktion zu betrachten. Die weiter unten beschriebenen Alpha-Nachweise gelten nur für den veröffentlichten Paketstand.
 
+## Neu im Quellstand: Manuelle Maskenkorrektur
+
+Im neueren Quellstand kannst du nach der lokalen KI-Freistellung fehlende Motivteile **wieder sichtbar machen** oder verbliebene Hintergrundreste mit einem Pinsel **transparent entfernen**. Pinselgröße und weiche Kante sind einstellbar. Die Änderungen werden zuerst nur in einer Vorschau gezeigt. Pinselzüge lassen sich dort einzeln zurücknehmen; erst „Korrektur übernehmen“ legt einen neuen Undo/Redo-Schritt an.
+
+Die Korrektur verändert **nur die Transparenz (Alpha)**, nicht die RGB-Farben. Sie generiert keine fehlenden Bilddetails und entfernt keine Hintergrundfarbsäume aus Haaren. Bei bereits vor der KI vorhandener Transparenz kann „Wiederherstellen“ Bereiche stärker sichtbar machen als ursprünglich. Details und technische Grenzen: [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md).
+
+**Bereitstellung:** Diese Funktion und die Projektdateien sind im neuesten Quellcode implementiert, **nicht** im veröffentlichten `v0.1.0-alpha.1`-ZIP. Aktuelle Testnachweise für diese Funktionen sind von denen der veröffentlichten Vorabversion zu unterscheiden.
+
 ## Das lokale Standardmodell
 
 **U2NETP** erkennt den Vordergrund und erstellt eine Freistellmaske. Das kompakte Modell läuft über **ONNX Runtime auf der CPU** und wird im vollständigen Paket mitgeliefert. Beim Laden werden seine festgelegte Dateigröße und sein SHA-256 geprüft. Die App lädt fehlende Modelle nicht selbst nach.
@@ -62,7 +70,7 @@ Die Bildlogik ist von Oberfläche und KI getrennt. Ein eigener KI-Prozess hält 
 - Unterstützt werden passende **8-Bit-Einzelbilder bis 40 Millionen Pixel**. RAW-, 16-Bit-, animierte und mehrseitige Dateien gehören nicht zur Alpha.
 - Die EXIF-Ausrichtung wird berücksichtigt. Gültige eingebettete Farbprofile werden nach sRGB umgerechnet; ungültige oder nicht unterstützte Profile werden abgelehnt. RGB-, Graustufen- und Palettenbilder ohne Profil gelten als sRGB. CMYK und LAB benötigen ein gültiges eingebettetes Profil.
 - Der Verlauf liegt im Arbeitsspeicher und ist begrenzt. Große Fotos behalten weniger rückgängig machbare Schritte; das Original bleibt während der Bearbeitung verfügbar.
-- Die veröffentlichte Alpha bietet noch keine Projektdateien. Im neueren Quellstand sind lokale `.laip`-Bearbeitungsprojekte implementiert; Ebenen, Bearbeitung durch Textanweisungen und generatives Entfernen einzelner Objekte fehlen weiterhin.
+- Die veröffentlichte Alpha bietet weder Projektdateien noch manuelle Maskenkorrektur. Beide Funktionen sind im neueren Quellstand implementiert; Ebenen, Bearbeitung durch Textanweisungen und generatives Entfernen einzelner Objekte fehlen weiterhin.
 - GPU-Betrieb, Mindest-RAM, garantierte Geschwindigkeit, macOS- und Linux-Pakete sind noch nicht freigegeben. Signierung, umfassende Bedienprüfungen und die frische Windows-11-Abnahme bleiben offen.
 
 ## Am Quellcode arbeiten
@@ -84,6 +92,7 @@ Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. `prepare_model.
 - [Architektur und Modulgrenzen](docs/ARCHITECTURE.md)
 - [KI-Modell, Herkunft und Grenzen](docs/MODELS.md)
 - [Lokale Bearbeitungsprojekte (.laip)](docs/PROJECT_FORMAT.md)
+- [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md)
 - [Prüfergebnisse und offene Nachweise](docs/VERIFICATION.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Drittkomponenten und Lizenzhinweise](THIRD_PARTY_NOTICES.md)
