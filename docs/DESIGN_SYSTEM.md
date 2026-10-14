@@ -1,9 +1,9 @@
 # Edivora — unified UI/UX design system
 
-**Status:** proposed design specification, 14 October 2026. **Not implemented by this document.**  
+**Status:** design specification from 14 October 2026. **Phase 1 is implemented in the source UI branch, with Qt/Windows verification still pending.** See [UI implementation status](UI_IMPLEMENTATION.md).  
 **Scope:** existing Photo editor and future Video/Audio workspaces.  
 **Clickable preview:** [open the standalone layout prototype](prototypes/edivora-shell.html) in a local browser after saving it as an HTML file. It is an interactive design demonstration, not a functioning editor.  
-**Dependencies under review:** [task-first Photo PR #10](https://github.com/Cenn0/LocalAiPhotoEditor/pull/10) and [Edivora branding PR #11](https://github.com/Cenn0/LocalAiPhotoEditor/pull/11). These are **open PRs**, not features already on `main`. Follow the approved brand assets when #11 is merged.
+**Related work:** [task-first Photo PR #10](https://github.com/Cenn0/LocalAiPhotoEditor/pull/10) and [Edivora branding PR #11](https://github.com/Cenn0/LocalAiPhotoEditor/pull/11) remain separately open. The implementation branch reuses the task-first Photo approach; the official SVG brand assets are not yet integrated. Do not confuse source UI changes with the published `v0.1.0-alpha.1` package.
 
 ## 1. Product experience
 
@@ -199,6 +199,8 @@ Keep matching German/English strings and test both in the smallest window, inclu
 
 **Recommended implementation:** incremental refactoring of the existing Qt Widgets app; do not rewrite the processing core. Factor the existing `ui/window.py` and `ui/guided_window.py` layout into reusable shell elements without duplicating editing logic.
 
+**Actual Phase 1 module ownership:** `ui/window.py` provides the shell and Photo stage; `ui/guided_window.py` provides beginner tasks, advanced disclosure and safe dialog lifecycles; `ui/theme.py` owns color tokens and the Qt stylesheet. Existing `ui/canvas.py`, `ui/editing_dialog.py` and `ui/subject_dialog.py` reuse the theme. The broader split below is a **future refactoring direction**, not an already-created directory tree.
+
 Proposed module ownership, to be adjusted before implementation:
 
 ~~~text
@@ -229,7 +231,7 @@ Do not implement CSS custom properties as a browser-like styling system in Qt St
 | Phase | Change | Acceptance gate |
 | --- | --- | --- |
 | 0 — Align | Review/merge PR #10 (task-first Photo) and PR #11 (branding) after their own checks; reconcile any overlapping UI changes | Product labels, assets and the four Photo tasks match this specification; no premature Video/Audio claims |
-| 1 — Foundation | Introduce theme tokens, shared shell, workspace rail, inspector scaffold and empty/start view | Existing Photo import/edit/AI/export behavior unchanged; DE/EN, shortcuts and tests pass |
+| 1 — Foundation | **Implemented in the source UI branch:** theme tokens, shared shell, workspace rail, start view and beginner inspector | Automated Qt/DE/EN and Windows packaging verification are still required before release |
 | 2 — Photo UX | Move frequent dialog workflows inline into the context inspector one at a time, preserving explicit commit/cancel | Preview and Undo/Redo behave exactly; no operation is lost when panel is collapsed |
 | 3 — Media capability | Implement Video and Audio processing, media views and export *separately*; activate their cards only when feature-complete | Verified decoding, playback/edit, codecs/licensing, cancellation, project format and package tests |
 | 4 — Usability & release | Keyboard/screen-reader tests, small-window and DPI testing, 5 novice-user tasks, packaged offline acceptance | No task dead-ends; source is protected; install/runtime claims backed by measurements |

@@ -10,11 +10,11 @@ from typing import Callable
 
 from PIL import Image
 from PySide6.QtCore import QProcess, QSignalBlocker, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QDragEnterEvent, QDropEvent, QKeySequence
+from PySide6.QtGui import QAction, QCloseEvent, QDragEnterEvent, QDropEvent, QKeySequence, QResizeEvent
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
     QFrame, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QProgressBar,
-    QPushButton, QScrollArea, QSlider, QSpinBox, QVBoxLayout, QWidget,
+    QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStackedWidget, QVBoxLayout, QWidget,
 )
 
 from ..core import (
@@ -24,52 +24,9 @@ from ..core import (
 )
 from .canvas import PhotoCanvas
 from .strings import STRINGS, translate
+from .theme import stylesheet
 
-_STYLE = """
-QMainWindow, QDialog { background: #1d2028; color: #edeef4; }
-QWidget { font-family: 'Segoe UI', 'DejaVu Sans', sans-serif; font-size: 13px; }
-QLabel { color: #edeef4; background: transparent; }
-QLabel#appName { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
-QLabel#muted, QLabel#status { color: #aeb4c4; }
-QLabel#localBadge { color: #b8e2d0; background: #253a35; border-radius: 12px; padding: 6px 12px; }
-QLabel#sectionTitle { font-size: 15px; font-weight: 600; color: #f1eefb; }
-QLabel#fileName { font-size: 14px; font-weight: 600; }
-QLabel#sliderValue { color: #c8b9f4; font-size: 12px; }
-QLabel#cropHint { color: #d8c6ff; padding: 10px; background: #342e45; border-radius: 6px; }
-QFrame#toolCard { background: #262a34; border: 1px solid #343946; border-radius: 12px; }
-QFrame#previewFrame { background: #15181e; border: 1px solid #353a47; border-radius: 12px; }
-QFrame#jobBar { background: #302940; border: 1px solid #65527f; border-radius: 8px; }
-QWidget#toolsPanel, QWidget#toolsViewport { background: #1d2028; }
-QPushButton { color: #ecebf5; background: #343949; border: 1px solid #4b5162; border-radius: 7px; padding: 9px 12px; min-height: 20px; }
-QPushButton:hover { background: #40475a; border-color: #807493; }
-QPushButton:pressed, QPushButton:checked { background: #544469; border-color: #b29ad7; }
-QPushButton:focus { border: 2px solid #c4aff2; padding: 8px 11px; }
-QPushButton:disabled { color: #808796; background: #2a2e38; border-color: #353b48; }
-QPushButton#primary { background: #b4a0e5; color: #191421; border: 1px solid #c6b5ee; font-weight: 600; }
-QPushButton#primary:hover { background: #c9b7f2; }
-QPushButton#primary:disabled { background: #514861; color: #a69bb8; border-color: #645773; }
-QPushButton#quiet { background: transparent; }
-QComboBox, QSpinBox { color: #edeef4; background: #292e3b; border: 1px solid #4b5264; border-radius: 6px; padding: 6px 10px; min-height: 20px; }
-QComboBox QAbstractItemView { color: #edeef4; background: #292e3b; selection-background-color: #645379; }
-QSlider::groove:horizontal { height: 5px; background: #494e5e; border-radius: 2px; }
-QSlider::sub-page:horizontal { background: #ad95d7; border-radius: 2px; }
-QSlider::handle:horizontal { background: #e5d7ff; width: 15px; margin: -5px 0; border-radius: 7px; }
-QSlider:disabled::handle:horizontal { background: #858491; }
-QProgressBar { border: 0; background: #51465e; border-radius: 3px; max-height: 7px; }
-QProgressBar::chunk { background: #baa0ea; border-radius: 3px; }
-QScrollArea { border: none; background: transparent; }
-QScrollBar:vertical { width: 8px; background: transparent; }
-QScrollBar::handle:vertical { background: #4a5060; border-radius: 4px; min-height: 30px; }
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-QMenuBar { color: #c6cbd7; background: #1d2028; }
-QMenuBar::item:selected { background: #373c4a; }
-QMenu { background: #292e39; color: #edeef4; border: 1px solid #4b5264; }
-QMenu::item { padding: 8px 24px; }
-QMenu::item:selected { background: #55456e; }
-QMenu::item:disabled { color: #777e8e; }
-QCheckBox { color: #edeef4; spacing: 8px; }
-QToolTip { background: #ece7f5; color: #211b2a; border: 1px solid #b5a0d8; padding: 6px; }
-"""
+_STYLE = stylesheet()
 
 
 class EditorWindow(QMainWindow):
@@ -106,9 +63,9 @@ class EditorWindow(QMainWindow):
         self._preview_timer = QTimer(self)
         self._preview_timer.setSingleShot(True)
         self._preview_timer.timeout.connect(self._show_preview)
-        self.setWindowTitle("localAiPhotoEditor")
+        self.setWindowTitle("Edivora · Foto")
         self.setMinimumSize(900, 660)
-        self.resize(1180, 820)
+        self.resize(1340, 840)
         self.setAcceptDrops(True)
         self.setStyleSheet(_STYLE)
         self._build_ui()
@@ -185,18 +142,41 @@ class EditorWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         outer = QVBoxLayout(central)
-        outer.setContentsMargins(24, 18, 24, 16)
-        outer.setSpacing(18)
-        header = QHBoxLayout()
-        identity = QVBoxLayout()
-        identity.setSpacing(4)
-        name = QLabel("localAiPhotoEditor")
-        name.setObjectName("appName")
-        identity.addWidget(name)
-        identity.addWidget(self._label("app_tagline", "muted"))
-        header.addLayout(identity)
-        header.addStretch()
-        header.addWidget(self._label("local_badge", "localBadge"))
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # Shared product chrome: brand and document, predictable history/compare,
+        # import and export in the same places for every eventual workspace.
+        top_bar = QFrame()
+        top_bar.setObjectName("topBar")
+        header = QHBoxLayout(top_bar)
+        header.setContentsMargins(14, 6, 14, 6)
+        header.setSpacing(8)
+        brand_mark = QLabel("✦")
+        brand_mark.setObjectName("brandMark")
+        brand_mark.setAccessibleName("Edivora")
+        header.addWidget(brand_mark)
+        brand = QLabel("Edivora")
+        brand.setObjectName("appName")
+        header.addWidget(brand)
+        self.workspace_heading = self._label("nav_start", "workspaceName")
+        header.addWidget(self.workspace_heading)
+        header.addStretch(1)
+
+        self.open_button = self._button("open", self.open_photo)
+        self.save_project_button = self._button("save_project", self.save_project)
+        self.save_project_button.setParent(top_bar)
+        # Editable projects stay reachable from File / Ctrl+S. Avoid a
+        # second, competing primary save action beside media export.
+        self.save_project_button.hide()
+        self.undo_button = self._button("undo", self.undo, "quiet")
+        self.redo_button = self._button("redo", self.redo, "quiet")
+        self.original_button = self._button("original", self._toggle_original, "quiet")
+        self.original_button.setCheckable(True)
+        self.export_button = self._button("export", self.export_copy, "primary")
+        for button in (self.open_button, self.undo_button, self.redo_button, self.original_button, self.export_button):
+            header.addWidget(button)
+
         self.language_combo = QComboBox()
         self.language_combo.addItem("Deutsch", "de")
         self.language_combo.addItem("English", "en")
@@ -204,27 +184,57 @@ class EditorWindow(QMainWindow):
             lambda: self.set_language(str(self.language_combo.currentData()))
         )
         header.addWidget(self.language_combo)
-        outer.addLayout(header)
+        outer.addWidget(top_bar)
 
-        toolbar = QHBoxLayout()
-        toolbar.setSpacing(10)
-        self.open_button = self._button("open", self.open_photo)
-        self.save_project_button = self._button("save_project", self.save_project)
-        self.undo_button = self._button("undo", self.undo, "quiet")
-        self.redo_button = self._button("redo", self.redo, "quiet")
-        self.original_button = self._button("original", self._toggle_original, "quiet")
-        self.original_button.setCheckable(True)
-        self.export_button = self._button("export", self.export_copy, "primary")
-        for button in (self.open_button, self.save_project_button, self.undo_button, self.redo_button, self.original_button):
-            toolbar.addWidget(button)
-        toolbar.addStretch()
-        toolbar.addWidget(self.export_button)
-        outer.addLayout(toolbar)
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
+        outer.addLayout(body, 1)
 
-        content = QHBoxLayout()
-        content.setSpacing(18)
+        rail = QFrame()
+        rail.setObjectName("navRail")
+        rail.setFixedWidth(104)
+        rail_layout = QVBoxLayout(rail)
+        rail_layout.setContentsMargins(7, 12, 7, 12)
+        rail_layout.setSpacing(5)
+        self.nav_start = self._button("nav_start", self._go_start, "railButton")
+        self.nav_photo = self._button("nav_photo", self._go_photo, "railButton")
+        self.nav_video = self._button("nav_video", lambda: None, "railButton")
+        self.nav_audio = self._button("nav_audio", lambda: None, "railButton")
+        self.nav_help = self._button("nav_help", self._show_help, "railButton")
+        self.nav_settings = self._button("nav_settings", self._show_settings, "railButton")
+        self._navigation_items = (
+            (self.nav_start, "⌂", "nav_start"),
+            (self.nav_photo, "▣", "nav_photo"),
+            (self.nav_video, "▶", "nav_video"),
+            (self.nav_audio, "♫", "nav_audio"),
+            (self.nav_help, "?", "nav_help"),
+            (self.nav_settings, "⚙", "nav_settings"),
+        )
+        for button in (self.nav_start, self.nav_photo):
+            button.setCheckable(True)
+            button.setAutoExclusive(True)
+        for button in (self.nav_video, self.nav_audio):
+            button.setEnabled(False)
+        for button in (self.nav_start, self.nav_photo, self.nav_video, self.nav_audio):
+            rail_layout.addWidget(button)
+        rail_layout.addStretch()
+        for button in (self.nav_help, self.nav_settings):
+            rail_layout.addWidget(button)
+        body.addWidget(rail)
+
+        self.shell_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.shell_splitter.setChildrenCollapsible(False)
+        self.shell_splitter.setHandleWidth(5)
+        body.addWidget(self.shell_splitter, 1)
+        self.stage_stack = QStackedWidget()
+        self.stage_stack.setObjectName("workspaceStack")
+        self.home_page = self._build_start_page()
+        self.stage_stack.addWidget(self.home_page)
+
         photo_frame = QFrame()
         photo_frame.setObjectName("previewFrame")
+        self.photo_frame = photo_frame
         photo_layout = QVBoxLayout(photo_frame)
         photo_layout.setContentsMargins(12, 12, 12, 12)
         photo_info = QHBoxLayout()
@@ -247,12 +257,12 @@ class EditorWindow(QMainWindow):
         self.dimensions_label = QLabel()
         self.dimensions_label.setObjectName("muted")
         photo_layout.addWidget(self.dimensions_label)
-        content.addWidget(photo_frame, 1)
+        self.stage_stack.addWidget(photo_frame)
+        self.shell_splitter.addWidget(self.stage_stack)
 
         panel = QWidget()
         panel.setObjectName("toolsPanel")
-        panel.setMinimumWidth(286)
-        panel.setMaximumWidth(330)
+        panel.setMinimumWidth(295)
         panel_layout = QVBoxLayout(panel)
         panel_layout.setContentsMargins(0, 0, 6, 0)
         panel_layout.setSpacing(14)
@@ -368,14 +378,19 @@ class EditorWindow(QMainWindow):
 
         panel_layout.addStretch()
         scroll = QScrollArea()
+        scroll.setObjectName("inspectorScroll")
         scroll.viewport().setObjectName("toolsViewport")
         scroll.setWidget(panel)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setMinimumWidth(300)
-        scroll.setMaximumWidth(344)
-        content.addWidget(scroll)
-        outer.addLayout(content, 1)
+        scroll.setMaximumWidth(460)
+        self.shell_splitter.addWidget(scroll)
+        self.shell_splitter.setStretchFactor(0, 1)
+        self.shell_splitter.setStretchFactor(1, 0)
+        self.shell_splitter.setSizes([900, 356])
+        self.stage_stack.setCurrentWidget(self.home_page)
+        self.nav_start.setChecked(True)
 
         self.job_bar = QFrame()
         self.job_bar.setObjectName("jobBar")
@@ -390,11 +405,122 @@ class EditorWindow(QMainWindow):
         self.cancel_button = self._button("cancel", self.cancel_background_removal)
         job_layout.addWidget(self.cancel_button)
         outer.addWidget(self.job_bar)
+        bottom_bar = QFrame()
+        bottom_bar.setObjectName("bottomBar")
+        bottom_layout = QHBoxLayout(bottom_bar)
+        bottom_layout.setContentsMargins(16, 4, 16, 4)
+        bottom_layout.setSpacing(12)
         self.status_label = QLabel()
         self.status_label.setTextFormat(Qt.TextFormat.PlainText)
         self.status_label.setObjectName("status")
         self.status_label.setWordWrap(True)
-        outer.addWidget(self.status_label)
+        bottom_layout.addWidget(self.status_label, 1)
+        self.save_state_label = QLabel()
+        self.save_state_label.setObjectName("saveState")
+        bottom_layout.addWidget(self.save_state_label)
+        bottom_layout.addWidget(self._label("local_badge", "localBadge"))
+        outer.addWidget(bottom_bar)
+
+    def _build_start_page(self) -> QWidget:
+        """Start view shared by the future media workspaces, without fake tools."""
+        home = QWidget()
+        home.setObjectName("startPage")
+        layout = QVBoxLayout(home)
+        layout.setContentsMargins(28, 28, 28, 28)
+        layout.setSpacing(18)
+        layout.addWidget(self._label("home_title", "homeTitle"))
+        layout.addWidget(self._label("home_intro", "muted", wrap=True))
+
+        import_card, import_layout = self._card("home_import_title", "home_drop_hint")
+        actions = QHBoxLayout()
+        self.home_photo_button = self._button("home_open_photo", self.open_photo, "homePrimary")
+        self.home_project_button = self._button("open_project", self.open_project)
+        actions.addWidget(self.home_photo_button)
+        actions.addWidget(self.home_project_button)
+        actions.addStretch()
+        import_layout.addLayout(actions)
+        layout.addWidget(import_card)
+        self.home_continue_button = self._button("home_continue", self._go_photo)
+        self.home_continue_button.hide()
+        layout.addWidget(self.home_continue_button)
+
+        tiles = QHBoxLayout()
+        tiles.setSpacing(12)
+        self.home_media_buttons = []
+        for title_key, desc_key, icon, planned in (
+            ("home_photo_title", "home_photo_desc", "▣", False),
+            ("home_video_title", "home_video_desc", "▶", True),
+            ("home_audio_title", "home_audio_desc", "♫", True),
+        ):
+            tile = QFrame()
+            tile.setObjectName("startCard")
+            col = QVBoxLayout(tile)
+            col.setContentsMargins(16, 16, 16, 16)
+            col.setSpacing(10)
+            symbol = QLabel(icon)
+            symbol.setObjectName("brandMark" if not planned else "aiAccent")
+            col.addWidget(symbol)
+            col.addWidget(self._label(title_key, "sectionTitle", wrap=True))
+            col.addWidget(self._label(desc_key, "homeDescription", wrap=True), 1)
+            action_key = "home_planned" if planned else "home_open_photo"
+            button = self._button(action_key, (lambda: None) if planned else self.open_photo,
+                                  "homePlanned" if planned else "homePrimary")
+            button.setEnabled(not planned)
+            col.addWidget(button)
+            self.home_media_buttons.append(button)
+            tiles.addWidget(tile, 1)
+        layout.addLayout(tiles)
+        layout.addStretch()
+        scroll = QScrollArea()
+        scroll.setObjectName("homeScroll")
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(home)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        return scroll
+
+    def _go_start(self) -> None:
+        # Never conceal controls needed to apply or cancel a pending preview.
+        if (self.is_busy or self.has_pending_adjustments
+                or self.crop_button.isChecked() or self.mask_button.isChecked()):
+            self._set_status("finish_task_first")
+            self._update_state()
+            return
+        self.stage_stack.setCurrentWidget(self.home_page)
+        self._update_state()
+
+    def _go_photo(self) -> None:
+        if self.document is None:
+            self._go_start()
+            self.open_photo()
+            return
+        self._show_photo_workspace()
+
+    def _show_photo_workspace(self) -> None:
+        self.stage_stack.setCurrentWidget(self.photo_frame)
+        self._update_state()
+
+    def _show_help(self) -> None:
+        QMessageBox.information(self, self._t("nav_help"), self._t("home_help"))
+
+    def _show_settings(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self._t("nav_settings"))
+        form = QVBoxLayout(dialog)
+        form.setContentsMargins(20, 20, 20, 20)
+        label = QLabel(self._t("settings_language"))
+        label.setTextFormat(Qt.TextFormat.PlainText)
+        form.addWidget(label)
+        choice = QComboBox(dialog)
+        choice.addItem("Deutsch", "de")
+        choice.addItem("English", "en")
+        choice.setCurrentIndex(choice.findData(self.language))
+        choice.currentIndexChanged.connect(lambda: self.set_language(str(choice.currentData())))
+        choice.setAccessibleName(self._t("settings_language"))
+        form.addWidget(choice)
+        done = QPushButton(self._t("settings_done"))
+        done.clicked.connect(dialog.accept)
+        form.addWidget(done)
+        dialog.exec()
 
     def set_language(self, language: str) -> None:
         if language not in STRINGS:
@@ -404,6 +530,11 @@ class EditorWindow(QMainWindow):
             self.language_combo.setCurrentIndex(self.language_combo.findData(language))
         for widget, key in self._translated_widgets:
             widget.setText(self._t(key))
+        for button, symbol, key in self._navigation_items:
+            button.setText(f"{symbol}\n{self._t(key)}")
+            button.setAccessibleName(self._t(key))
+        for button in (self.nav_video, self.nav_audio):
+            button.setToolTip(self._t("home_planned"))
         self._file_menu.setTitle(self._t("file_menu"))
         self._edit_menu.setTitle(self._t("edit_menu"))
         self.language_combo.setAccessibleName(self._t("language"))
@@ -444,6 +575,7 @@ class EditorWindow(QMainWindow):
         self._original_size = original.size
         self._original_preview = self._thumbnail(original)
         self._refresh_document()
+        self._show_photo_workspace()
 
     @staticmethod
     def _thumbnail(image: Image.Image) -> Image.Image:
@@ -544,7 +676,41 @@ class EditorWindow(QMainWindow):
             self._t("dimensions", width=self._current_size[0], height=self._current_size[1], edits=len(self.document.history))
             if has_document else ""
         )
+        on_photo = self.stage_stack.currentWidget() is self.photo_frame
+        self.nav_photo.setChecked(on_photo)
+        self.nav_start.setChecked(not on_photo)
+        self.workspace_heading.setText(self._t("nav_photo" if on_photo else "nav_start"))
+        self.save_state_label.setText(self._t(
+            "changes_pending" if has_document and self._has_unexported_changes()
+            else "changes_clean" if has_document else "changes_empty"
+        ))
+        self.home_continue_button.setVisible(has_document)
         self._update_status()
+        self._apply_header_size()
+
+    def _apply_header_size(self) -> None:
+        """Keep all primary actions reachable at 900 px without clipping."""
+        if not hasattr(self, "undo_button"):
+            return
+        compact = self.width() < 1180
+        self.undo_button.setText("↶" if compact else self._t("undo"))
+        self.redo_button.setText("↷" if compact else self._t("redo"))
+        original_key = "original_active" if self.original_button.isChecked() else "original"
+        self.original_button.setText(
+            (self._t("compare_compact_active") if self.original_button.isChecked()
+             else self._t("compare_compact")) if compact else self._t(original_key)
+        )
+        for button, key in (
+            (self.undo_button, "undo"), (self.redo_button, "redo"),
+            (self.original_button, original_key),
+        ):
+            button.setAccessibleName(self._t(key))
+            button.setToolTip(self._t(key))
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "original_button"):
+            self._apply_header_size()
 
     def _editable(self) -> bool:
         return self.document is not None and not self.is_busy and not self.has_pending_adjustments and not self.original_button.isChecked() and not self.mask_button.isChecked()

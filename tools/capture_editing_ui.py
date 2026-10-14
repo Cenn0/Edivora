@@ -67,11 +67,25 @@ def main() -> int:
     try:
         for language in ("de", "en"):
             window.set_language(language)
-            window.set_document(subject)
-            window.resize(1180, 820)
+            window.resize(1024, 768)
             window.show()
             QTest.qWait(60)
             fonts.add(check_text_font(window.open_button))
+            if window.document is None:
+                # Capture first-launch rather than manufacturing a user file.
+                start_path = args.output / f"edivora-start-{language}.png"
+                if not window.grab().save(str(start_path)):
+                    raise RuntimeError("Could not save the start-page screenshot")
+                files.append(start_path.name)
+            else:
+                window._go_start()
+                start_path = args.output / f"edivora-start-{language}.png"
+                if not window.grab().save(str(start_path)):
+                    raise RuntimeError("Could not save the start-page screenshot")
+                files.append(start_path.name)
+            window.set_document(subject)
+            window.resize(1180, 820)
+            QTest.qWait(60)
             main_path = args.output / f"editor-{language}.png"
             if not window.grab().save(str(main_path)):
                 raise RuntimeError("Could not save the editor screenshot")
