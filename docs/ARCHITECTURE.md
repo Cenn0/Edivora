@@ -30,7 +30,30 @@ nicht die vollständige Datei. Medien-Formate werden auf Basis von FFmpeg und
 Qt Multimedia neu kodiert. Die Datenmodell-/Dateigrenzen sind in
 [MEDIA_PROJECTS_AI.md](MEDIA_PROJECTS_AI.md) dokumentiert.
 
-## Stack
+## Weiterentwicklung: vier lokale Modellfamilien (0.4 Alpha)
+
+- ai/catalog.py kapselt RAM-/CPU-Erkennung, Modell-Tier-Auswahl,
+  Aufgaben-/Modell-Allowlist und SHA-256-Validierung.
+- ui/model_settings.py verwendet QSettings für persistente manuelle Wahl
+  oder automatische Ressourcenwahl. Die GUI lädt keine ONNX-Modelle.
+- Worker-Requests für Foto-/Video-Freistellung tragen eine **zulässige**
+  Modell-ID. Legacy-Aufträge ohne ID verwenden weiterhin das gepinnte U2NETP.
+- ai/background.py besitzt zwei bestätigungsfähige CPU-Adapter:
+  U2NETP und IS-Net (DIS) mit 1024×1024-Eingabe.
+- ai/transcribe.py verwendet das lokale sherpa-onnx Whisper-Tiny-INT8-Modell
+  im abbruchfähigen Medien-Unterprozess zur deutschen/englischen Audio- oder
+  Videoton-Transkription. Grobe 20-Sekunden-Bereiche, keine
+  wortgenau ausgerichteten Zeitstempel.
+- tools/prepare_extra_models.py lädt und verifiziert zusätzliche ONNX-Assets
+  **zur Buildzeit**, niemals im gestarteten Editor. Die Anwendung wählt
+  derzeit ausschließlich die CPU; Hardwareerkennung allein aktiviert
+  kein CUDA/DirectML.
+
+Alle neuen Modellfunktionen sind Entwicklungsstand bis zur erfolgreichen
+tatsächlichen Windows-Paket- und Modellprüfung. Siehe
+[MODEL_PROFILES.md](MODEL_PROFILES.md).
+
+
 
 Use Python 3.12, PySide6/Qt Widgets for the desktop UI, Pillow and NumPy for conventional image operations, and ONNX Runtime's CPU execution provider for the first neural network. Use Nuitka 4.2.2 to bundle the runtime into a standalone Windows application directory, delivered as a portable ZIP. An installer remains a later distribution option.
 
