@@ -199,8 +199,8 @@ class EditorWindow(QMainWindow):
         rail_layout.setSpacing(5)
         self.nav_start = self._button("nav_start", self._go_start, "railButton")
         self.nav_photo = self._button("nav_photo", self._go_photo, "railButton")
-        self.nav_video = self._button("nav_video", lambda: None, "railButton")
-        self.nav_audio = self._button("nav_audio", lambda: None, "railButton")
+        self.nav_video = self._button("nav_video", lambda: self._launch_other_tool("video"), "railButton")
+        self.nav_audio = self._button("nav_audio", lambda: self._launch_other_tool("audio"), "railButton")
         self.nav_help = self._button("nav_help", self._show_help, "railButton")
         self.nav_settings = self._button("nav_settings", self._show_settings, "railButton")
         self._navigation_items = (
@@ -214,8 +214,6 @@ class EditorWindow(QMainWindow):
         for button in (self.nav_start, self.nav_photo):
             button.setCheckable(True)
             button.setAutoExclusive(True)
-        for button in (self.nav_video, self.nav_audio):
-            button.setEnabled(False)
         for button in (self.nav_start, self.nav_photo, self.nav_video, self.nav_audio):
             rail_layout.addWidget(button)
         rail_layout.addStretch()
@@ -447,10 +445,10 @@ class EditorWindow(QMainWindow):
         tiles = QHBoxLayout()
         tiles.setSpacing(12)
         self.home_media_buttons = []
-        for title_key, desc_key, icon, planned in (
-            ("home_photo_title", "home_photo_desc", "▣", False),
-            ("home_video_title", "home_video_desc", "▶", True),
-            ("home_audio_title", "home_audio_desc", "♫", True),
+        for title_key, desc_key, icon, tool in (
+            ("home_photo_title", "home_photo_desc", "▣", "photo"),
+            ("home_video_title", "home_video_desc", "▶", "video"),
+            ("home_audio_title", "home_audio_desc", "♫", "audio"),
         ):
             tile = QFrame()
             tile.setObjectName("startCard")
@@ -458,14 +456,15 @@ class EditorWindow(QMainWindow):
             col.setContentsMargins(16, 16, 16, 16)
             col.setSpacing(10)
             symbol = QLabel(icon)
-            symbol.setObjectName("brandMark" if not planned else "aiAccent")
+            symbol.setObjectName("brandMark" if tool == "photo" else "aiAccent")
             col.addWidget(symbol)
             col.addWidget(self._label(title_key, "sectionTitle", wrap=True))
             col.addWidget(self._label(desc_key, "homeDescription", wrap=True), 1)
-            action_key = "home_planned" if planned else "home_open_photo"
-            button = self._button(action_key, (lambda: None) if planned else self.open_photo,
-                                  "homePlanned" if planned else "homePrimary")
-            button.setEnabled(not planned)
+            action_key = "home_open_photo" if tool == "photo" else "home_open_tool"
+            callback = self.open_photo if tool == "photo" else (
+                lambda checked=False, selected=tool: self._launch_other_tool(selected)
+            )
+            button = self._button(action_key, callback, "homePrimary" if tool == "photo" else "quickAction")
             col.addWidget(button)
             self.home_media_buttons.append(button)
             tiles.addWidget(tile, 1)
@@ -498,6 +497,13 @@ class EditorWindow(QMainWindow):
     def _show_photo_workspace(self) -> None:
         self.stage_stack.setCurrentWidget(self.photo_frame)
         self._update_state()
+
+    def _launch_other_tool(self, tool: str) -> None:
+        """Keep the Photo document open while another editor starts separately."""
+        from ..__main__ import launch_tool
+
+        if not launch_tool(tool):
+            QMessageBox.warning(self, self._t("error_title"), self._t("home_launch_error"))
 
     def _show_help(self) -> None:
         QMessageBox.information(self, self._t("nav_help"), self._t("home_help"))
@@ -534,7 +540,7 @@ class EditorWindow(QMainWindow):
             button.setText(f"{symbol}\n{self._t(key)}")
             button.setAccessibleName(self._t(key))
         for button in (self.nav_video, self.nav_audio):
-            button.setToolTip(self._t("home_planned"))
+            button.setToolTip(self._t("home_open_tool"))
         self._file_menu.setTitle(self._t("file_menu"))
         self._edit_menu.setTitle(self._t("edit_menu"))
         self.language_combo.setAccessibleName(self._t("language"))
