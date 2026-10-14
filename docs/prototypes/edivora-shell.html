@@ -123,7 +123,7 @@ function changeMode(next){
  show($("home"),mode==="home");show($("content"),mode!=="home");
  $("home").classList.toggle("show",mode==="home");
  $("location").textContent={home:"Start",photo:"Foto / Beispielbild",video:"Video / Konzeptansicht",audio:"Audio / Konzeptansicht"}[mode];
- $("export").disabled=mode==="home";$("compare").disabled=mode!=="photo";$("compare").classList.remove("is-on");
+ $("export").disabled=mode!=="photo";$("compare").disabled=mode!=="photo";$("compare").classList.remove("is-on");
  document.querySelectorAll(".media").forEach(function(e){e.classList.remove("show","before")});
  if(mode!=="home"){$("media-"+mode).classList.add("show")}
  $("timeline").classList.toggle("show",mode==="video"||mode==="audio");
@@ -135,7 +135,7 @@ function changeMode(next){
  $("timeline-body").innerHTML=mode==="video"
  ?'<div class="track"><span class="track-name">Video</span><div class="clip" style="width:43%">Szene 01</div><div class="clip" style="width:30%">Szene 02</div></div><div class="track"><span class="track-name">Audio</span><div class="clip purple" style="width:77%">Originalton</div></div><i class="playhead"></i>'
  :'<div class="track"><span class="track-name">Aufnahme</span><div class="clip teal" style="width:85%">Sprache · Wellenformspur</div></div><i class="playhead"></i>';
- show($("back"),false);show($("detail"),false);show($("inspector-footer"),false);
+ show($("back"),false);show($("detail"),false);show($("inspector-footer"),false);show($("tasks"),mode!=="home");$("transport").textContent="▶";
  $("more").hidden=mode==="home";$("advanced").classList.toggle("show",advanced);
  $("more").textContent=advanced?"Weniger Werkzeuge anzeigen ▴":"Weitere Werkzeuge anzeigen ▾";
  $("inspect-title").textContent="Was möchtest du tun?";
