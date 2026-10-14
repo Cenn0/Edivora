@@ -2,7 +2,7 @@
 
 # Edivora
 
-**Simple, local photo, video and audio editing with selected on-device AI features.** Edivora is a free, open-source desktop project with German and English UI. No account, cloud model server or runtime model downloads are needed.
+**Simple, local photo, video and audio editing with selected on-device AI features.** Edivora is being developed as a free, open-source desktop toolkit with German and English UI. **The GitHub repository is currently private**, and the current suite has not been published as a public end-user release. No account, cloud model server or runtime model downloads are needed.
 
 **Language:** [Deutsch](README.md) · English (this page)
 
