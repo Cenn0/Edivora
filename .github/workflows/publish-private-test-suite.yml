@@ -1,0 +1,183 @@
+name: Publish private Edivora 0.3 test alpha
+
+on:
+  workflow_run:
+    workflows: ["Windows alpha"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: edivora-0.3-private-test
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.repository == 'Cenn0/Edivora' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == 'Cenn0/Edivora'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      RELEASE_TAG: v0.3.0-alpha.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Verify repository, source SHA and successful Windows artifact
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$SOURCE_SHA" "$GITHUB_SHA"
+          if git diff --name-only "$SOURCE_SHA" "$GITHUB_SHA" | grep -Eq '^(src/|tests/|tools/|packaging/|pyproject\.toml$|THIRD_PARTY_NOTICES\.md$|AGENTS\.md$|\.github/workflows/windows-alpha\.yml$)'; then
+            echo 'A newer application revision exists; refusing a stale release.' >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, os, re
+          from urllib.request import Request, urlopen
+          repo = os.environ["GITHUB_REPOSITORY"]
+          sha = os.environ["SOURCE_SHA"]
+          run_id = int(os.environ["SOURCE_RUN_ID"])
+          def api(path):
+              req = Request("https://api.github.com/repos/" + repo + "/" + path,
+                            headers={"Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                                     "Accept": "application/vnd.github+json",
+                                     "X-GitHub-Api-Version": "2022-11-28"})
+              with urlopen(req, timeout=20) as response:
+                  return json.load(response)
+          if api("").get("private") is not True:
+              raise SystemExit("Public distribution blocked pending FFmpeg/model/Qt licence review.")
+          run = api(f"actions/runs/{run_id}")
+          if not (run.get("status") == "completed" and run.get("conclusion") == "success"
+                  and run.get("head_sha") == sha and run.get("event") == "push"
+                  and run.get("head_branch") == "main"
+                  and run.get("path", "").endswith(".github/workflows/windows-alpha.yml")
+                  and run.get("head_repository", {}).get("full_name") == repo):
+              raise SystemExit("Windows run provenance mismatch.")
+          items = api(f"actions/runs/{run_id}/artifacts?per_page=100")
+          artifacts = [a for a in items.get("artifacts", [])
+                       if a.get("name") == "LocalAiPhotoEditor-windows-x64-alpha"
+                       and not a.get("expired")]
+          if len(artifacts) != 1 or items.get("total_count", 0) > 100:
+              raise SystemExit("Missing, expired, ambiguous or incomplete checked artifact.")
+          artifact = artifacts[0]
+          digest = artifact.get("digest", "")
+          if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest) or artifact.get("size_in_bytes", 0) < 1000000:
+              raise SystemExit("Expected a checked, nonempty SHA-256 artifact.")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f'artifact_id={artifact["id"]}\n')
+              out.write(f'run_id={run_id}\n')
+              out.write(f'digest={digest}\n')
+          print("Verified trusted Windows source", sha, "run", run_id, "artifact", artifact["id"])
+          PY
+
+      - name: Download digest-verified Windows package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ steps.source.outputs.artifact_id }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: release-input/application
+          digest-mismatch: error
+
+      - name: Assemble portable ZIP and checksums
+        env:
+          ARTIFACT_DIGEST: ${{ steps.source.outputs.digest }}
+          ARTIFACT_ID: ${{ steps.source.outputs.artifact_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, zipfile
+          from pathlib import Path
+          root = Path("release-input/application")
+          output = Path("release-files")
+          output.mkdir(exist_ok=False)
+          for filename in ("LocalAiPhotoEditor.exe", "build-info.json", "LICENSE",
+                           "THIRD_PARTY_NOTICES.md", "START_HERE.txt", "media-tools/ffmpeg.exe"):
+              if not (root / filename).is_file():
+                  raise SystemExit("Missing bundled file: " + filename)
+          if not (root / "verification").is_dir() or not any((root / "verification").rglob("*.json")):
+              raise SystemExit("Missing native runtime verification artifacts")
+          build = json.loads((root / "build-info.json").read_text(encoding="utf-8"))
+          if not (build.get("version") == "0.3.0a1"
+                  and build.get("commit") == os.environ["SOURCE_SHA"]
+                  and build.get("provider") == "CPUExecutionProvider"
+                  and build.get("media_license_review") == "Required before wider redistribution"
+                  and build.get("release_channel") == "unsigned-development-alpha"):
+              raise SystemExit("Build identity/version/support/licensing mismatch")
+          files = sorted(path for path in root.rglob("*") if path.is_file())
+          if not 20 < len(files) < 30000 or any(p.is_symlink() for p in root.rglob("*")):
+              raise SystemExit("Unsafe/unexpected package file structure")
+          archive_name = "Edivora-0.3.0-alpha.1-windows-x64.zip"
+          archive = output / archive_name
+          with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6, allowZip64=True) as zipf:
+              for path in files:
+                  zipf.write(path, (Path("LocalAiPhotoEditor") / path.relative_to(root)).as_posix())
+          with zipfile.ZipFile(archive) as zipf:
+              if zipf.testzip() is not None:
+                  raise SystemExit("Corrupted release ZIP")
+          digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+          (output / "SHA256SUMS.txt").write_text(f"{digest}  {archive_name}\n", encoding="utf-8")
+          provenance = {
+              "version": "0.3.0a1", "source_commit": os.environ["SOURCE_SHA"],
+              "windows_run_id": int(os.environ["SOURCE_RUN_ID"]),
+              "windows_artifact_id": int(os.environ["ARTIFACT_ID"]),
+              "windows_artifact_digest": os.environ["ARTIFACT_DIGEST"],
+              "executable_sha256": hashlib.sha256((root / "LocalAiPhotoEditor.exe").read_bytes()).hexdigest(),
+              "release_archive_sha256": digest,
+              "status": "private-unsigned-test-alpha",
+              "public_redistribution": "blocked-pending-third-party-licence-clearance",
+          }
+          (output / "BUILD_PROVENANCE.json").write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
+          print("Release ZIP:", archive_name, "SHA-256:", digest)
+          PY
+          cp docs/RELEASE_NOTES_TEST_SUITE.md release-files/RELEASE_NOTES.md
+          printf '\n\nSource: %s\nWindows verification run: https://github.com/%s/actions/runs/%s\nWindows artifact SHA-256: %s\n' \
+            "$SOURCE_SHA" "$GITHUB_REPOSITORY" "$SOURCE_RUN_ID" "${{ steps.source.outputs.digest }}" \
+            >> release-files/RELEASE_NOTES.md
+
+      - name: Publish immutable private GitHub prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --json tagName --jq .tagName >/dev/null 2>&1; then
+            echo "Existing private prerelease; verify but never overwrite."
+          else
+            gh release create "$RELEASE_TAG" \
+              release-files/Edivora-0.3.0-alpha.1-windows-x64.zip \
+              release-files/SHA256SUMS.txt \
+              release-files/BUILD_PROVENANCE.json \
+              --title "Edivora 0.3.0 Alpha 1 - private unsigned Windows test" \
+              --notes-file release-files/RELEASE_NOTES.md \
+              --target "$SOURCE_SHA" --prerelease --latest=false
+          fi
+
+      - name: Download GitHub release and verify exact original file hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh release view "$RELEASE_TAG" --json isPrerelease --jq .isPrerelease)" = true
+          mkdir -p release-verified
+          gh release download "$RELEASE_TAG" --dir release-verified \
+            --pattern "Edivora-0.3.0-alpha.1-windows-x64.zip" \
+            --pattern "SHA256SUMS.txt" --pattern "BUILD_PROVENANCE.json"
+          (cd release-verified && sha256sum --check SHA256SUMS.txt)
+          cmp release-files/Edivora-0.3.0-alpha.1-windows-x64.zip release-verified/Edivora-0.3.0-alpha.1-windows-x64.zip
+          cmp release-files/SHA256SUMS.txt release-verified/SHA256SUMS.txt
+          cmp release-files/BUILD_PROVENANCE.json release-verified/BUILD_PROVENANCE.json
+          gh release view "$RELEASE_TAG" --json url --jq .url
