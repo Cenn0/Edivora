@@ -1,5 +1,22 @@
 # Roadmap
 
+## Vier lokale KI-Profile mit Hardwareauswahl (Entwicklung 0.4 Alpha)
+
+Im Quellcode implementiert: eine gemeinsame Task-Modell-Registry und lokale
+manuelle/automatische KI-Modellwahl für Foto/Video/Audio, mit RAM-/CPU-
+Heuristik und Integritätsprüfung. Zu den bestehenden U2NETP- und Silero-VAD-
+ONNX-Gewichten kommen IS-Net General Use und Whisper Tiny multilingual INT8
+hinzu. Die neuen Funktionen sind stärkere Freistellung (Foto/Standbild)
+und echte lokale Audio-/Videoton-Transkription nach TXT/SRT.
+
+**Release-Gate:** gepinnte Artefakte durch Buildzeit-Downloads bereitstellen;
+echte U2NETP-/IS-Net-/VAD-/Whisper-CPU-Inferenz im Windows-Standalone-Paket
+testen; Quell-/Lizenz- und unveränderte Clean-Windows-11-Prüfungen abschließen.
+Die Automatik bewertet **RAM/CPU und vorhandene Modelle**, nicht bloß
+Dateigröße oder eine vermutete GPU-Verfügbarkeit. GPU-Inferenz ist in dieser
+Stufe nicht freigegeben. Siehe [MODEL_PROFILES.md](MODEL_PROFILES.md).
+
+
 ## Nächster Entwicklungsschritt: Multi-Clip, Projekte, lokale Medien-KI
 
 Im Entwicklungsbranch umgesetzt, **noch nicht als veröffentlichter Endnutzer-
