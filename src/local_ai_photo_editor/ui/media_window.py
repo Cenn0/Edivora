@@ -136,12 +136,12 @@ class MediaWindow(QMainWindow):
         stage.setObjectName("previewFrame")
         stage_layout = QVBoxLayout(stage)
         stage_layout.setContentsMargins(18, 18, 18, 18)
-        stage_layout.setSpacing(12)
+        stage_layout.setSpacing(8)
         self.file_label = self._label(f"empty_{self.kind}", "sectionTitle", wrap=True)
         stage_layout.addWidget(self.file_label)
         if self.kind == "video":
             self.video_surface = QVideoWidget(stage)
-            self.video_surface.setMinimumHeight(240)
+            self.video_surface.setMinimumHeight(190)
             self.player.setVideoOutput(self.video_surface)
             stage_layout.addWidget(self.video_surface, 1)
             self.wave_label = None
@@ -166,20 +166,13 @@ class MediaWindow(QMainWindow):
         player_row.addStretch()
         player_row.addWidget(self.time_label)
         stage_layout.addLayout(player_row)
-        self.seek_slider = QSlider(Qt.Orientation.Horizontal)
-        self.seek_slider.setAccessibleName("Playback position")
-        self.seek_slider.sliderMoved.connect(self.player.setPosition)
-        stage_layout.addWidget(self.seek_slider)
-
-        # One editing surface for both media types: the full-length timeline
-        # shows selected in/out range and the playhead. It never edits files.
-        stage_layout.addWidget(self._label("timeline_title", "sectionTitle"))
+        # The range bar is also the seek control: no competing second slider.
+        # It shows the whole file plus current selected in/out markers.
         self.timeline = TrimTimeline(stage)
         self.timeline.rangeChanged.connect(self._timeline_changed)
         self.timeline.seekRequested.connect(self._seek_from_timeline)
         stage_layout.addWidget(self.timeline)
         stage_layout.addWidget(self._label("timeline_hint", "muted", wrap=True))
-        stage_layout.addWidget(self._label("codec_hint", "muted", wrap=True))
         content.addWidget(stage)
 
         controls = QScrollArea()
@@ -271,6 +264,7 @@ class MediaWindow(QMainWindow):
         self.export_second = self._button("export", self.export_file, "primary")
         export_layout.addWidget(self.export_second)
         form_outer.addWidget(export_card)
+        form_outer.addWidget(self._label("codec_hint", "muted", wrap=True))
         form_outer.addStretch()
         controls.setWidget(inspector)
         content.addWidget(controls)
@@ -340,7 +334,7 @@ class MediaWindow(QMainWindow):
         for button in (self.export_button, self.export_second):
             button.setEnabled(can_export)
         self.open_button.setEnabled(not self._is_busy())
-        for control in (self.play_button, self.stop_button, self.seek_slider, self.start_spin,
+        for control in (self.play_button, self.stop_button, self.start_spin,
                         self.end_spin, self.volume, self.timeline, self.mark_start_button,
                         self.mark_end_button, self.reset_range_button):
             control.setEnabled(enabled)
@@ -430,7 +424,6 @@ class MediaWindow(QMainWindow):
         self.duration_ms = 0
         self.file_label.setText(file.name)
         self.file_label.setToolTip(str(file))
-        self.seek_slider.setRange(0, 0)
         self.timeline.set_duration(0)
         for spin in (self.start_spin, self.end_spin):
             spin.blockSignals(True)
@@ -447,7 +440,6 @@ class MediaWindow(QMainWindow):
         if self.source is None:
             return
         self.duration_ms = max(0, int(duration))
-        self.seek_slider.setRange(0, self.duration_ms)
         self.timeline.set_duration(self.duration_ms)
         seconds = self.duration_ms / 1000
         for spin in (self.start_spin, self.end_spin):
@@ -461,8 +453,6 @@ class MediaWindow(QMainWindow):
         self._position_changed(self.player.position())
 
     def _position_changed(self, position: int) -> None:
-        if not self.seek_slider.isSliderDown():
-            self.seek_slider.setValue(position)
         self.timeline.set_position(position)
         self.time_label.setText(self._t("time_label", position=clock(position), duration=clock(self.duration_ms)))
         if self._valid_selection() and self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
