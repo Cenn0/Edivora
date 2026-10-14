@@ -14,6 +14,7 @@ from ..core.subject import (
     SUBJECT_MODES, SubjectEdit, effective_subject_mask, render_subject,
     selection_overlay, subject_bounds, validate_subject_mask,
 )
+from .theme import stylesheet
 from .canvas import PhotoCanvas
 from .subject_job import SubjectSelectionJob
 from .subject_strings import text
@@ -66,6 +67,7 @@ class SubjectDialog(QDialog):
         self._start_timer.setSingleShot(True)
         self._start_timer.timeout.connect(self.start_selection)
         self.setWindowTitle(self._t("title"))
+        self.setStyleSheet(stylesheet())
         self.setMinimumSize(820, 580)
         self.resize(1080, 740)
         self._build(mode)
