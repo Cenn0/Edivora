@@ -1,7 +1,7 @@
 # Edivora: Qt UI implementation status
 
 This document describes the **development-source UI**, not the already released
-\`v0.1.0-alpha.1\` portable Windows package.
+`v0.1.0-alpha.1` portable Windows package.
 
 ## Delivered UI scope
 
@@ -19,24 +19,24 @@ This document describes the **development-source UI**, not the already released
   recreating their history logic. Pending adjustments, crop and mask corrections
   force the precision panel open; navigation back to Start is blocked until
   the active transaction is completed or discarded.
-- **Consistent colors:** \`ui/theme.py\` is the single token map and Qt stylesheet.
+- **Consistent colors:** `ui/theme.py` is the single token map and Qt stylesheet.
   Photo canvas, editing dialog and subject/AI dialog use the same palette.
   Core navigation/action controls have textual accessible names and focus styles.
-- **German and English:** common text remains in \`ui/strings.py\`; specific
+- **German and English:** common text remains in `ui/strings.py`; specific
   editing and subject dialog dictionaries remain separate and localized.
 
 ## Current component boundaries
 
 | Module | Responsibility |
 | --- | --- |
-| \`ui/window.py\` | Shared shell, photo stage, importer/exporter, history and preview gating |
-| \`ui/guided_window.py\` | Simple tasks, advanced disclosure, existing dialog lifecycle |
-| \`ui/theme.py\` | One palette and stylesheet for shell, canvas, controls and dialogs |
-| \`ui/canvas.py\` | Fitted still-image preview and brush/crop interaction |
-| \`ui/editing_dialog.py\` | Separate reversible full-size preview for standard effects |
-| \`ui/subject_dialog.py\` | Separate cancellable local subject inference and preview |
+| `ui/window.py` | Shared shell, photo stage, importer/exporter, history and preview gating |
+| `ui/guided_window.py` | Simple tasks, advanced disclosure, existing dialog lifecycle |
+| `ui/theme.py` | One palette and stylesheet for shell, canvas, controls and dialogs |
+| `ui/canvas.py` | Fitted still-image preview and brush/crop interaction |
+| `ui/editing_dialog.py` | Separate reversible full-size preview for standard effects |
+| `ui/subject_dialog.py` | Separate cancellable local subject inference and preview |
 
-The old \`local_ai_photo_editor\` Python module and \`.laip\` project format are
+The old `local_ai_photo_editor` Python module and `.laip` project format are
 preserved. Edivora's full icon/window/package identity belongs to the separate
 branding work; this UI currently uses an in-app wordmark and temporary glyph.
 
@@ -53,17 +53,17 @@ branding work; this UI currently uses an in-app wordmark and temporary glyph.
   Start is a navigation view, not a project-close action.
 - No Video or Audio processing, playback, codec support, waveform or timelines
   are implemented. No cloud model hosting or runtime download is introduced.
-- This does not change the contents of the published \`alpha.1\` Windows ZIP.
+- This does not change the contents of the published `alpha.1` Windows ZIP.
 
 ## Verification
 
 From a checkout of this branch with dependencies installed:
 
-\`\`\`sh
+```sh
 PYTHONPATH=src python -m unittest discover -s tests -v
 python -m compileall -q src tests tools
 QT_QPA_PLATFORM=offscreen PYTHONPATH=src python tools/capture_editing_ui.py /tmp/edivora-captures
-\`\`\`
+```
 
 For a Windows acceptance pass, additionally exercise import/drop, language
 switching, Ctrl+Z/Y, comparison, pending crop and brush corrections, AI job
