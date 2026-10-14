@@ -543,6 +543,26 @@ def ui_smoke_test(output_directory: Path) -> int:
     return code
 
 
+def tool_command(tool: str) -> tuple[str, list[str]]:
+    """Spawn the same standalone EXE; source mode spawns the installed module."""
+    if tool not in {"photo", "video", "audio"}:
+        raise ValueError("Unknown editor type.")
+    compiled = _compiled_executable()
+    if compiled is not None:
+        return compiled, ["--tool", tool]
+    if getattr(sys, "frozen", False):
+        return sys.executable, ["--tool", tool]
+    return sys.executable, ["-m", "local_ai_photo_editor", "--tool", tool]
+
+
+def launch_tool(tool: str) -> bool:
+    """Detach each editor so closing another editor or the hub is harmless."""
+    from PySide6.QtCore import QProcess
+    program, arguments = tool_command(tool)
+    started, _pid = QProcess.startDetached(program, arguments)
+    return bool(started)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) == 2 and args[0] == "--worker":
@@ -552,16 +572,32 @@ def main(argv: list[str] | None = None) -> int:
         return smoke_test(Path(args[1]))
     if len(args) == 2 and args[0] == "--ui-smoke-test":
         return ui_smoke_test(Path(args[1]))
-    if args:
+    if len(args) == 2 and args[0] == "--media-smoke-test":
+        _configure_bundled_qt_plugins()
+        from .media_smoke import media_smoke_test
+        return media_smoke_test(Path(args[1]), _compiled_executable())
+    if args in ([], ["--launcher"]):
+        mode = "launcher"
+    elif len(args) == 2 and args[0] == "--tool" and args[1] in {"photo", "video", "audio"}:
+        mode = args[1]
+    else:
         return 2
+
     from PySide6.QtWidgets import QApplication
-    from .ui import EditorWindow
 
     _configure_bundled_qt_plugins()
     app = QApplication(sys.argv[:1])
-    app.setApplicationName("localAiPhotoEditor")
-    app.setOrganizationName("localAiPhotoEditor")
-    window = EditorWindow()
+    app.setApplicationName("Edivora")
+    app.setOrganizationName("Edivora")
+    if mode == "launcher":
+        from .ui.launcher import LauncherWindow
+        window = LauncherWindow(launch_tool)
+    elif mode == "photo":
+        from .ui import EditorWindow
+        window = EditorWindow()
+    else:
+        from .ui.media_window import MediaWindow
+        window = MediaWindow(mode, _compiled_executable())
     window.show()
     return app.exec()
 

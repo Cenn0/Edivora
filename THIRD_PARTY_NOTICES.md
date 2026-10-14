@@ -13,8 +13,32 @@ The application's own code is licensed under Apache-2.0; see `LICENSE`. That lic
 | ONNX Runtime CPU | Neural network inference | [ONNX Runtime license](https://github.com/microsoft/onnxruntime/blob/main/LICENSE); MIT and third-party notices |
 | U2NETP artifact | Foreground segmentation weights | [Original U-2-Net](https://github.com/xuebinqin/U-2-Net), [rembg adapter](https://github.com/danielgatis/rembg/blob/main/rembg/sessions/u2netp.py); see the provenance distinction below |
 | Nuitka | Build tool and compiled runtime support | [Nuitka licensing](https://nuitka.net/doc/user-manual.html); the selected version's license and runtime exception apply |
+| FFmpeg executable via `imageio-ffmpeg==0.6.0` | Local media import, trim, waveform and export | [FFmpeg licensing](https://ffmpeg.org/legal.html), [imageio-ffmpeg source](https://github.com/imageio/imageio-ffmpeg); the included Windows binary may enable GPL and third-party codecs such as LAME. Check exact binary flags and corresponding sources before distribution. |
 
 The build copies available license, copying and notice files from installed distributions into `third-party-licenses/`, alongside an inventory of exact installed versions. The inventory also includes development/build tools; inclusion in that list does not mean all of those packages are shipped as executable application dependencies. The Nuitka compilation report records what is actually included.
+
+## Additional media-binary notice: NOT YET PUBLICATION-READY
+
+The Edivora video/audio MVP copies the `imageio-ffmpeg==0.6.0` wheel's
+**standalone FFmpeg executable** to `media-tools/ffmpeg.exe` within the
+portable Windows package. Qt Multimedia provides preview playback with its
+own backend; FFmpeg handles waveform extraction and export by an explicit
+child process. The application code does not dynamically link to the
+`imageio-ffmpeg` executable.
+
+FFmpeg's effective LGPL/GPL license depends on the actual build configuration
+and enabled code. **The presence of a GPL text file in the ZIP is NOT
+sufficient on its own** for redistributing this binary. Before a public
+distribution, inspect the exact wheel binary's `ffmpeg -version`
+configuration flags, confirm the rights and notices for included third-party
+codecs, and publish or offer the corresponding source and build information
+required by the applicable license. [FFmpeg's legal guide](https://ffmpeg.org/legal.html)
+describes compliance requirements; `imageio-ffmpeg` wheel provenance alone
+is not legal signoff. Also reassess licence compatibility for the *total*
+packaging and delivery arrangement. Release remains gated on this review.
+
+The new CI job is a **private development artifact** and does not
+retroactively change the existing `v0.1.0-alpha.1` photo-only release.
 
 ## Qt and replacement of libraries
 

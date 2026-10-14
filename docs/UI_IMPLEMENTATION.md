@@ -3,6 +3,19 @@
 This document describes the **development-source UI**, not the already released
 `v0.1.0-alpha.1` portable Windows package.
 
+**Update 2026-10-14 — three-tool MVP:** The default application entrypoint
+now opens a separate `ui/launcher.py` start screen. It can spawn any subset of
+Photo, Video and Audio as independent instances of the same application
+executable using `--tool photo|video|audio`; the Photo shell can also start
+Video or Audio directly. The Video and Audio MVPs are implemented in
+`ui/media_window.py` with `QMediaPlayer` playback, region selection,
+volume/fade controls where applicable, and safe local FFmpeg exports in
+`core/media.py`. They are not full multitrack/project editors.
+See [MEDIA_MVP.md](MEDIA_MVP.md). The older descriptive bullets below
+document the preceding Photo-only UI milestone; phrases such as "planned" or
+"disabled" in those historical milestones no longer describe the new
+development branch.
+
 ## Delivered UI scope
 
 - **One desktop shell:** Edivora identity and consistent top actions; labelled
@@ -51,8 +64,10 @@ branding work; this UI currently uses an in-app wordmark and temporary glyph.
   and 200%. Color tokens are not proof of WCAG compliance.
 - A hidden/resized editor stage does not discard the image, history or project.
   Start is a navigation view, not a project-close action.
-- No Video or Audio processing, playback, codec support, waveform or timelines
-  are implemented. No cloud model hosting or runtime download is introduced.
+- Video/Audio playback, simple trimming and new-file export are implemented in
+  the later media-MVP branch. **No** multitrack timeline, reusable project format,
+  per-operation history, audio/video AI model or cross-codec guarantee exists.
+  No cloud model hosting or runtime download is introduced.
 - This does not change the contents of the published `alpha.1` Windows ZIP.
 
 ## Verification

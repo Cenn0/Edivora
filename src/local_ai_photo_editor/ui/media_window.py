@@ -1,0 +1,629 @@
+"""Two independent, task-first offline Qt media workspaces.
+
+The player is for disposable previews only. FFmpeg performs exports into
+temporary files; a successful job atomically installs a new destination.
+"""
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Callable
+
+from PySide6.QtCore import QProcess, Qt, QTimer, QUrl
+from PySide6.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QPixmap
+from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
+from PySide6.QtMultimediaWidgets import QVideoWidget
+from PySide6.QtWidgets import (
+    QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame,
+    QHBoxLayout, QLabel, QMainWindow, QMessageBox, QProgressBar, QPushButton,
+    QScrollArea, QSlider, QSplitter, QVBoxLayout, QWidget,
+)
+
+from ..core.media import (
+    MediaExport, commit_export, ffmpeg_executable, validate_source,
+)
+from .media_strings import text
+from .theme import stylesheet
+
+
+def clock(milliseconds: int) -> str:
+    seconds = max(0, milliseconds) // 1000
+    return f"{seconds // 3600:02d}:{(seconds // 60) % 60:02d}:{seconds % 60:02d}"
+
+
+class MediaWindow(QMainWindow):
+    """Video and Audio: separate windows, one straightforward editing contract."""
+
+    def __init__(self, kind: str, compiled_executable: str | None = None) -> None:
+        if kind not in ("video", "audio"):
+            raise ValueError("Editor must be video or audio.")
+        super().__init__()
+        self.kind = kind
+        self.language = "de"
+        self._compiled_executable = compiled_executable
+        self.source: Path | None = None
+        self.duration_ms = 0
+        self._labels: list[tuple[object, str]] = []
+        self._export_process: QProcess | None = None
+        self._active_export: MediaExport | None = None
+        self._temporary_export: Path | None = None
+        self._export_error = bytearray()
+        self._cancel_requested = False
+        self._wave_process: QProcess | None = None
+        self._wave_data = bytearray()
+        self._status_key = "ready"
+        self._status_values: dict[str, object] = {}
+        self.setMinimumSize(850, 620)
+        self.resize(1270, 800)
+        self.setAcceptDrops(True)
+        self.setStyleSheet(stylesheet())
+
+        self.player = QMediaPlayer(self)
+        self.audio_output = QAudioOutput(self)
+        self.player.setAudioOutput(self.audio_output)
+
+        self._build_ui()
+        self.player.durationChanged.connect(self._duration_changed)
+        self.player.positionChanged.connect(self._position_changed)
+        self.player.playbackStateChanged.connect(self._playback_changed)
+        self.player.errorOccurred.connect(self._playback_error)
+        self._translate()
+        self._update_enabled()
+
+    def _t(self, key: str, **kwargs: object) -> str:
+        return text(self.language, key, **kwargs)
+
+    def _label(self, key: str, style: str = "", wrap: bool = False) -> QLabel:
+        label = QLabel()
+        label.setTextFormat(Qt.TextFormat.PlainText)
+        label.setWordWrap(wrap)
+        if style:
+            label.setObjectName(style)
+        self._labels.append((label, key))
+        return label
+
+    def _button(self, key: str, callback: Callable, style: str = "") -> QPushButton:
+        button = QPushButton()
+        if style:
+            button.setObjectName(style)
+        button.clicked.connect(callback)
+        self._labels.append((button, key))
+        return button
+
+    def _check(self, key: str, callback: Callable) -> QCheckBox:
+        check = QCheckBox()
+        check.toggled.connect(callback)
+        self._labels.append((check, key))
+        return check
+
+    def _build_ui(self) -> None:
+        central = QWidget(self)
+        self.setCentralWidget(central)
+        root = QVBoxLayout(central)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        header = QFrame()
+        header.setObjectName("topBar")
+        top = QHBoxLayout(header)
+        top.setContentsMargins(18, 9, 18, 9)
+        mark = QLabel("✦")
+        mark.setObjectName("brandMark")
+        top.addWidget(mark)
+        brand = self._label("suite", "appName")
+        top.addWidget(brand)
+        title = self._label(self.kind, "workspaceName")
+        top.addWidget(title)
+        top.addStretch()
+        badge = self._label("local", "localBadge")
+        top.addWidget(badge)
+        self.open_button = self._button("open", self.open_file)
+        top.addWidget(self.open_button)
+        self.export_button = self._button("export", self.export_file, "primary")
+        top.addWidget(self.export_button)
+        self.language_combo = QComboBox()
+        self.language_combo.addItem("Deutsch", "de")
+        self.language_combo.addItem("English", "en")
+        self.language_combo.currentIndexChanged.connect(self._switch_language)
+        top.addWidget(self.language_combo)
+        root.addWidget(header)
+
+        content = QSplitter(Qt.Orientation.Horizontal)
+        content.setChildrenCollapsible(False)
+        root.addWidget(content, 1)
+
+        stage = QFrame()
+        stage.setObjectName("previewFrame")
+        stage_layout = QVBoxLayout(stage)
+        stage_layout.setContentsMargins(18, 18, 18, 18)
+        stage_layout.setSpacing(12)
+        self.file_label = self._label(f"empty_{self.kind}", "sectionTitle", wrap=True)
+        stage_layout.addWidget(self.file_label)
+        if self.kind == "video":
+            self.video_surface = QVideoWidget(stage)
+            self.video_surface.setMinimumHeight(240)
+            self.player.setVideoOutput(self.video_surface)
+            stage_layout.addWidget(self.video_surface, 1)
+            self.wave_label = None
+        else:
+            waveform_frame = QFrame()
+            waveform_frame.setObjectName("previewFrame")
+            waveform_layout = QVBoxLayout(waveform_frame)
+            waveform_layout.setContentsMargins(12, 12, 12, 12)
+            self.wave_label = self._label("preview", "sectionTitle")
+            self.wave_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.wave_label.setMinimumHeight(190)
+            waveform_layout.addWidget(self.wave_label)
+            stage_layout.addWidget(waveform_frame, 1)
+
+        player_row = QHBoxLayout()
+        self.play_button = self._button("play", self.toggle_play)
+        self.stop_button = self._button("stop", self.stop_playback)
+        player_row.addWidget(self.play_button)
+        player_row.addWidget(self.stop_button)
+        self.time_label = QLabel(clock(0) + " / " + clock(0))
+        self.time_label.setObjectName("muted")
+        player_row.addStretch()
+        player_row.addWidget(self.time_label)
+        stage_layout.addLayout(player_row)
+        self.seek_slider = QSlider(Qt.Orientation.Horizontal)
+        self.seek_slider.setAccessibleName("Playback position")
+        self.seek_slider.sliderMoved.connect(self.player.setPosition)
+        stage_layout.addWidget(self.seek_slider)
+        stage_layout.addWidget(self._label("codec_hint", "muted", wrap=True))
+        content.addWidget(stage)
+
+        controls = QScrollArea()
+        controls.setObjectName("inspectorScroll")
+        controls.setWidgetResizable(True)
+        controls.setMinimumWidth(315)
+        controls.setMaximumWidth(470)
+        inspector = QWidget()
+        inspector.setObjectName("toolsPanel")
+        form_outer = QVBoxLayout(inspector)
+        form_outer.setContentsMargins(14, 18, 18, 18)
+        form_outer.setSpacing(14)
+        form_outer.addWidget(self._label("steps", "sectionTitle"))
+
+        range_card = QFrame()
+        range_card.setObjectName("toolCard")
+        range_layout = QVBoxLayout(range_card)
+        range_layout.setContentsMargins(14, 14, 14, 14)
+        range_layout.addWidget(self._label("trim", "sectionTitle"))
+        range_layout.addWidget(self._label("trim_hint", "muted", wrap=True))
+        range_form = QFormLayout()
+        self.start_spin = QDoubleSpinBox()
+        self.end_spin = QDoubleSpinBox()
+        for spin in (self.start_spin, self.end_spin):
+            spin.setDecimals(3)
+            spin.setSingleStep(0.25)
+            spin.setSuffix(" s")
+            spin.valueChanged.connect(self._selection_changed)
+        range_form.addRow(self._label("start_time"), self.start_spin)
+        range_form.addRow(self._label("end_time"), self.end_spin)
+        range_layout.addLayout(range_form)
+        form_outer.addWidget(range_card)
+
+        audio_card = QFrame()
+        audio_card.setObjectName("toolCard")
+        audio_layout = QVBoxLayout(audio_card)
+        audio_layout.setContentsMargins(14, 14, 14, 14)
+        audio_layout.addWidget(self._label("audio", "sectionTitle"))
+        self.volume_title = self._label("volume")
+        audio_layout.addWidget(self.volume_title)
+        volume_row = QHBoxLayout()
+        self.volume = QSlider(Qt.Orientation.Horizontal)
+        self.volume.setRange(0, 200)
+        self.volume.setValue(100)
+        self.volume.valueChanged.connect(self._volume_changed)
+        volume_row.addWidget(self.volume)
+        self.volume_label = QLabel("100 %")
+        self.volume_label.setObjectName("sliderValue")
+        volume_row.addWidget(self.volume_label)
+        audio_layout.addLayout(volume_row)
+
+        if self.kind == "video":
+            self.mute = self._check("mute", self._mute_changed)
+            audio_layout.addWidget(self.mute)
+            self.normalize = None
+            self.fade_in = None
+            self.fade_out = None
+        else:
+            self.mute = None
+            self.normalize = self._check("normalize", lambda _: self._update_enabled())
+            audio_layout.addWidget(self.normalize)
+            fade_form = QFormLayout()
+            self.fade_in = QDoubleSpinBox()
+            self.fade_out = QDoubleSpinBox()
+            for spin in (self.fade_in, self.fade_out):
+                spin.setDecimals(1)
+                spin.setRange(0, 60)
+                spin.setSingleStep(0.5)
+                spin.setSuffix(" s")
+                spin.valueChanged.connect(self._selection_changed)
+            fade_form.addRow(self._label("fade_in"), self.fade_in)
+            fade_form.addRow(self._label("fade_out"), self.fade_out)
+            audio_layout.addLayout(fade_form)
+        form_outer.addWidget(audio_card)
+
+        export_card = QFrame()
+        export_card.setObjectName("toolCard")
+        export_layout = QVBoxLayout(export_card)
+        export_layout.setContentsMargins(14, 14, 14, 14)
+        export_layout.addWidget(self._label(f"export_hint_{self.kind}", "muted", wrap=True))
+        self.export_second = self._button("export", self.export_file, "primary")
+        export_layout.addWidget(self.export_second)
+        form_outer.addWidget(export_card)
+        form_outer.addStretch()
+        controls.setWidget(inspector)
+        content.addWidget(controls)
+        content.setSizes([900, 370])
+
+        footer = QFrame()
+        footer.setObjectName("bottomBar")
+        bottom = QHBoxLayout(footer)
+        bottom.setContentsMargins(14, 8, 14, 8)
+        self.status = QLabel()
+        self.status.setTextFormat(Qt.TextFormat.PlainText)
+        self.status.setObjectName("status")
+        self.status.setWordWrap(True)
+        bottom.addWidget(self.status, 1)
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
+        self.progress.setMaximumWidth(100)
+        self.progress.hide()
+        bottom.addWidget(self.progress)
+        self.cancel_button = self._button("cancel", self.cancel_export)
+        self.cancel_button.hide()
+        bottom.addWidget(self.cancel_button)
+        root.addWidget(footer)
+        self._set_status("ready")
+
+    def _switch_language(self) -> None:
+        self.language = str(self.language_combo.currentData() or "de")
+        self._translate()
+
+    def _translate(self) -> None:
+        self.setWindowTitle(f"Edivora · {self._t(self.kind)}")
+        for widget, key in self._labels:
+            # QLabel and QAbstractButton expose the same setText interface.
+            widget.setText(self._t(key))
+        if self.source is not None:
+            self.file_label.setText(self.source.name)
+        self._set_status(self._status_key, **self._status_values)
+        self._playback_changed(self.player.playbackState())
+
+    def _set_status(self, key: str, **values: object) -> None:
+        self._status_key = key
+        self._status_values = values
+        self.status.setText(self._t(key, **values))
+
+    def _is_busy(self) -> bool:
+        return self._export_process is not None
+
+    def _valid_selection(self) -> bool:
+        if self.source is None or self.duration_ms <= 0:
+            return False
+        start = round(self.start_spin.value() * 1000)
+        end = round(self.end_spin.value() * 1000)
+        if start < 0 or end > self.duration_ms + 1 or end - start < 100:
+            return False
+        if self.kind == "audio":
+            fades = round((self.fade_in.value() + self.fade_out.value()) * 1000)
+            if fades > end - start:
+                return False
+        return True
+
+    def _update_enabled(self) -> None:
+        enabled = self.source is not None and self.duration_ms > 0 and not self._is_busy()
+        can_export = enabled and self._valid_selection()
+        for button in (self.export_button, self.export_second):
+            button.setEnabled(can_export)
+        self.open_button.setEnabled(not self._is_busy())
+        for control in (self.play_button, self.stop_button, self.seek_slider, self.start_spin,
+                        self.end_spin, self.volume):
+            control.setEnabled(enabled)
+        for control in (self.mute, self.normalize, self.fade_in, self.fade_out):
+            if control is not None:
+                control.setEnabled(enabled)
+
+    def _selection_changed(self, *_args: object) -> None:
+        self._update_enabled()
+
+    def _volume_changed(self, value: int) -> None:
+        self.volume_label.setText(f"{value} %")
+        self.audio_output.setVolume(min(value / 100, 1.0))
+
+    def _mute_changed(self, muted: bool) -> None:
+        self.audio_output.setMuted(muted)
+
+    def open_file(self) -> None:
+        if self._is_busy():
+            return
+        if self.kind == "video":
+            filter_spec = "Video (*.mp4 *.mov *.mkv *.webm *.avi *.m4v)"
+        else:
+            filter_spec = "Audio (*.wav *.mp3 *.m4a *.aac *.flac *.ogg *.opus)"
+        path, _ = QFileDialog.getOpenFileName(self, self._t("open"), "", filter_spec)
+        if path:
+            self.open_path(path)
+
+    def open_path(self, path: str | Path) -> None:
+        if self._is_busy():
+            return
+        try:
+            file = validate_source(path, self.kind)
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, self._t("error"), f"{self._t('file_error')}\n{exc}")
+            return
+        self._cancel_waveform()
+        self.player.stop()
+        self.source = file
+        self.duration_ms = 0
+        self.file_label.setText(file.name)
+        self.file_label.setToolTip(str(file))
+        self.seek_slider.setRange(0, 0)
+        for spin in (self.start_spin, self.end_spin):
+            spin.blockSignals(True)
+            spin.setRange(0, 0)
+            spin.setValue(0)
+            spin.blockSignals(False)
+        self._set_status("duration_wait")
+        self.player.setSource(QUrl.fromLocalFile(str(file)))
+        if self.kind == "audio":
+            self._render_waveform(file)
+        self._update_enabled()
+
+    def _duration_changed(self, duration: int) -> None:
+        if self.source is None:
+            return
+        self.duration_ms = max(0, int(duration))
+        self.seek_slider.setRange(0, self.duration_ms)
+        seconds = self.duration_ms / 1000
+        for spin in (self.start_spin, self.end_spin):
+            spin.blockSignals(True)
+            spin.setRange(0.0, seconds)
+            spin.blockSignals(False)
+        self.start_spin.setValue(0)
+        self.end_spin.setValue(seconds)
+        self._set_status("loaded" if duration > 0 else "no_duration")
+        self._update_enabled()
+        self._position_changed(self.player.position())
+
+    def _position_changed(self, position: int) -> None:
+        if not self.seek_slider.isSliderDown():
+            self.seek_slider.setValue(position)
+        self.time_label.setText(self._t("time_label", position=clock(position), duration=clock(self.duration_ms)))
+        if self._valid_selection() and self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            if position >= round(self.end_spin.value() * 1000):
+                self.player.pause()
+
+    def _playback_changed(self, state: QMediaPlayer.PlaybackState) -> None:
+        self.play_button.setText(self._t(
+            "pause" if state == QMediaPlayer.PlaybackState.PlayingState else "play"
+        ))
+
+    def _playback_error(self, error: QMediaPlayer.Error, _message: str) -> None:
+        if error != QMediaPlayer.Error.NoError and self.source is not None:
+            self._set_status("preview_error")
+
+    def toggle_play(self) -> None:
+        if not self._valid_selection():
+            return
+        if self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            self.player.pause()
+        else:
+            start, end = round(self.start_spin.value() * 1000), round(self.end_spin.value() * 1000)
+            if self.player.position() < start or self.player.position() >= end:
+                self.player.setPosition(start)
+            self.player.play()
+
+    def stop_playback(self) -> None:
+        self.player.pause()
+        if self._valid_selection():
+            self.player.setPosition(round(self.start_spin.value() * 1000))
+
+    def _build_export(self, destination: Path) -> MediaExport:
+        return MediaExport(
+            kind=self.kind, source=self.source, destination=destination,
+            duration_ms=self.duration_ms,
+            start_ms=round(self.start_spin.value() * 1000),
+            end_ms=round(self.end_spin.value() * 1000),
+            volume_percent=self.volume.value(),
+            mute=self.mute.isChecked() if self.mute is not None else False,
+            normalize=self.normalize.isChecked() if self.normalize is not None else False,
+            fade_in_ms=round(self.fade_in.value() * 1000) if self.fade_in is not None else 0,
+            fade_out_ms=round(self.fade_out.value() * 1000) if self.fade_out is not None else 0,
+        ).validated()
+
+    def export_file(self) -> None:
+        if not self._valid_selection() or self._is_busy() or self.source is None:
+            return
+        default_extension = ".mp4" if self.kind == "video" else ".wav"
+        proposed = self.source.with_name(self.source.stem + "-edivora" + default_extension)
+        filter_spec = "MP4 (*.mp4)" if self.kind == "video" else "WAV (*.wav);;MP3 (*.mp3)"
+        chosen, filter_name = QFileDialog.getSaveFileName(
+            self, self._t("export_title"), str(proposed), filter_spec
+        )
+        if not chosen:
+            return
+        target = Path(chosen)
+        if not target.suffix:
+            target = target.with_suffix(".mp3" if "MP3" in filter_name else default_extension)
+        try:
+            export = self._build_export(target)
+            engine = ffmpeg_executable(self._compiled_executable)
+            if target.exists() and QMessageBox.question(
+                self, self._t("export_title"), self._t("overwrite"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            ) != QMessageBox.StandardButton.Yes:
+                return
+            temporary = export.temp_output()
+            args = export.ffmpeg_arguments(temporary)
+        except (ValueError, OSError, RuntimeError) as exc:
+            QMessageBox.warning(self, self._t("error"), str(exc))
+            return
+        self.stop_playback()
+        self._active_export = export
+        self._temporary_export = temporary
+        self._export_error.clear()
+        self._cancel_requested = False
+        process = QProcess(self)
+        self._export_process = process
+        process.readyReadStandardError.connect(self._collect_error)
+        process.finished.connect(self._export_finished)
+        process.errorOccurred.connect(self._export_start_error)
+        process.setProgram(engine)
+        process.setArguments(args)
+        self.progress.show()
+        self.cancel_button.show()
+        self._set_status("processing")
+        self._update_enabled()
+        process.start()
+
+    def _collect_error(self) -> None:
+        if self._export_process is not None:
+            data = bytes(self._export_process.readAllStandardError())
+            self._export_error.extend(data)
+            if len(self._export_error) > 8192:
+                del self._export_error[:-8192]
+
+    def _export_start_error(self, error: QProcess.ProcessError) -> None:
+        if error == QProcess.ProcessError.FailedToStart:
+            self._export_finished(-1, QProcess.ExitStatus.CrashExit)
+
+    def _export_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
+        process = self._export_process
+        if process is None:
+            return
+        self._collect_error()
+        export, temporary = self._active_export, self._temporary_export
+        self._export_process = None
+        self._active_export = None
+        self._temporary_export = None
+        process.deleteLater()
+        self.progress.hide()
+        self.cancel_button.hide()
+        try:
+            if self._cancel_requested:
+                self._set_status("cancelled")
+                return
+            if exit_code != 0 or export is None or temporary is None:
+                error = self._export_error.decode("utf-8", "replace").strip()[-500:]
+                raise RuntimeError(error or self._t("failed"))
+            commit_export(export, temporary)
+            self._set_status("done", name=export.destination.name)
+        except (ValueError, OSError, RuntimeError) as exc:
+            self._set_status("failed")
+            QMessageBox.warning(self, self._t("error"), f"{self._t('failed')}\n{exc}")
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+            self._update_enabled()
+
+    def cancel_export(self) -> None:
+        process = self._export_process
+        if process is None:
+            return
+        # Detached from playback; killing the encoder cannot change source.
+        self._cancel_requested = True
+        process.kill()
+        process.waitForFinished(2000)
+        # finished() normally invokes cleanup; cover a failed signal delivery.
+        if self._export_process is process:
+            self._export_finished(-1, QProcess.ExitStatus.CrashExit)
+
+
+    def _cancel_waveform(self) -> None:
+        process = self._wave_process
+        if process is not None:
+            self._wave_process = None
+            process.kill()
+            process.waitForFinished(1000)
+            process.deleteLater()
+        self._wave_data.clear()
+
+    def _render_waveform(self, source: Path) -> None:
+        if self.wave_label is None:
+            return
+        self.wave_label.setText(self._t("waveform"))
+        try:
+            engine = ffmpeg_executable(self._compiled_executable)
+        except (OSError, RuntimeError):
+            self.wave_label.setText(self._t("waveform_unavailable"))
+            return
+        process = QProcess(self)
+        self._wave_process = process
+        self._wave_data = bytearray()
+        process.setProgram(engine)
+        process.setArguments([
+            "-nostdin", "-hide_banner", "-loglevel", "error",
+            "-protocol_whitelist", "file,pipe,data",
+            "-t", "900", "-i", str(source),
+            "-filter_complex", "aformat=channel_layouts=mono,showwavespic=s=1000x180:colors=0x4FF3D3",
+            "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1",
+        ])
+        process.readyReadStandardOutput.connect(self._collect_waveform)
+        process.finished.connect(self._waveform_finished)
+        process.errorOccurred.connect(self._waveform_error)
+        QTimer.singleShot(30000, lambda p=process: self._waveform_timeout(p))
+        process.start()
+
+    def _collect_waveform(self) -> None:
+        if self._wave_process is None:
+            return
+        self._wave_data.extend(bytes(self._wave_process.readAllStandardOutput()))
+        if len(self._wave_data) > 5 * 1024 * 1024:
+            self._wave_process.kill()
+
+    def _waveform_finished(self, code: int, _status: QProcess.ExitStatus) -> None:
+        process = self._wave_process
+        if process is None:
+            return
+        self._collect_waveform()
+        self._wave_process = None
+        process.deleteLater()
+        if self.wave_label is None:
+            return
+        picture = QPixmap()
+        if code == 0 and picture.loadFromData(bytes(self._wave_data), "PNG"):
+            self.wave_label.setPixmap(picture)
+            self.wave_label.setScaledContents(True)
+            if self.duration_ms > 900000:
+                self.wave_label.setToolTip(self._t("waveform_partial"))
+        else:
+            self.wave_label.setText(self._t("waveform_unavailable"))
+        self._wave_data.clear()
+
+    def _waveform_error(self, error: QProcess.ProcessError) -> None:
+        if error == QProcess.ProcessError.FailedToStart:
+            self._waveform_finished(-1, QProcess.ExitStatus.CrashExit)
+
+    def _waveform_timeout(self, process: QProcess) -> None:
+        if self._wave_process is process and process.state() != QProcess.ProcessState.NotRunning:
+            process.kill()
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        urls = event.mimeData().urls()
+        if len(urls) == 1 and urls[0].isLocalFile() and not self._is_busy():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        urls = event.mimeData().urls()
+        if len(urls) == 1 and urls[0].isLocalFile() and not self._is_busy():
+            self.open_path(urls[0].toLocalFile())
+            event.acceptProposedAction()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        if self._is_busy() and QMessageBox.question(
+            self, self._t("error"), self._t("close_processing"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        ) != QMessageBox.StandardButton.Yes:
+            event.ignore()
+            return
+        if self._is_busy():
+            self.cancel_export()
+        self._cancel_waveform()
+        self.player.stop()
+        event.accept()
