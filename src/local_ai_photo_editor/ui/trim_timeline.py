@@ -110,7 +110,9 @@ class TrimTimeline(QWidget):
         return "start" if distance_start <= distance_end else "end"
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if not self.isEnabled() or event.button() != Qt.MouseButton.LeftButton:
+        if (not self.isEnabled() or event.button() != Qt.MouseButton.LeftButton
+                or not (self.TRACK_TOP - 12 <= event.position().y()
+                        <= self.TRACK_TOP + self.TRACK_HEIGHT + 12)):
             event.ignore()
             return
         self.setFocus(Qt.FocusReason.MouseFocusReason)
@@ -141,6 +143,9 @@ class TrimTimeline(QWidget):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton and self._dragging:
+            # Commit the release coordinate even if the platform skipped
+            # the last move event during a fast drag.
+            self._edit_boundary(self.active_handle, self._ms_at(event.position().x()))
             self._dragging = False
             self.update()
             event.accept()
