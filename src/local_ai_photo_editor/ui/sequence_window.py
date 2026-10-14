@@ -799,3 +799,10 @@ class SequenceWindow(MediaWindow):
                 return
             self.cancel_export()
         super().closeEvent(event)
+        if event.isAccepted():
+            # Qt Multimedia's Windows backend may otherwise retain an open
+            # handle to the last clip during immediate project/test cleanup.
+            self.player.setSource(QUrl())
+            self.player.setAudioOutput(None)
+            if self.kind == "video":
+                self.player.setVideoOutput(None)
