@@ -12,6 +12,7 @@ import subprocess
 import sys
 
 from collect_licenses import collect
+from brand_assets import build_windows_icon
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -42,15 +43,22 @@ def main() -> int:
     build.mkdir(exist_ok=True)
     notices = build / "third-party-licenses"
     collect(notices)
+    icon_file = build_windows_icon(
+        ROOT / "src" / "local_ai_photo_editor" / "assets" / "edivora-mark.svg",
+        build / "branding",
+    )
     environment = dict(os.environ)
     environment["PYTHONPATH"] = str(ROOT / "src")
     command = [
         sys.executable, "-m", "nuitka", "--mode=standalone",
         "--enable-plugin=pyside6", "--include-qt-plugins=platforms,imageformats,multimedia",
+        "--include-module=PySide6.QtSvg",
         "--include-package=local_ai_photo_editor", "--include-package=onnxruntime.capi",
         "--include-package-data=onnxruntime", "--assume-yes-for-downloads",
         "--msvc=latest", "--lto=no", "--windows-console-mode=disable",
         "--output-filename=LocalAiPhotoEditor.exe", f"--output-dir={build}",
+        f"--windows-icon-from-ico={icon_file}",
+        f"--include-data-dir={ROOT / 'src' / 'local_ai_photo_editor' / 'assets'}=local_ai_photo_editor/assets",
         f"--include-data-dir={model_path().parent}=local_ai_photo_editor/models",
         f"--report={build / 'nuitka-report.xml'}", "--jobs=2", str(ROOT / "main.py"),
     ]
