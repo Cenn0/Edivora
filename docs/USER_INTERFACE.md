@@ -10,7 +10,7 @@ published `v0.1.0-alpha.1` Windows ZIP.
 2. Pick a clearly named task in **What would you like to do?**:
    **Enhance photo**, **Crop & rotate**, **Blur background (AI)** or
    **Remove background (AI)**.
-3. Inspect the preview and choose **Apply**. Then select **Export a copy**.
+3. Inspect the preview and choose **Apply**. Then select **Save a photo copy**.
    The imported original file is never overwritten. Undo/Redo and **View
    original** remain at the top.
 
