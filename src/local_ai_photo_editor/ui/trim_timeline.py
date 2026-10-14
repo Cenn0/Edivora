@@ -9,9 +9,8 @@ from PySide6.QtCore import QPoint, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPaintEvent, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from ..core.media import MIN_SELECTION_MS
 from .theme import COLORS
-
-MIN_TRIM_MS = 100
 
 
 def _time_label(ms: int) -> str:
@@ -72,7 +71,7 @@ class TrimTimeline(QWidget):
         self.end_ms = self.duration_ms
         self.position_ms = 0
         self._dragging = False
-        self.setEnabled(self.duration_ms >= MIN_TRIM_MS)
+        self.setEnabled(self.duration_ms >= MIN_SELECTION_MS)
         self.update()
 
     def set_range(self, start_ms: int, end_ms: int) -> None:
@@ -87,14 +86,14 @@ class TrimTimeline(QWidget):
         self.update()
 
     def _edit_boundary(self, handle: str, proposed_ms: int) -> None:
-        if not self.isEnabled() or self.duration_ms < MIN_TRIM_MS:
+        if not self.isEnabled() or self.duration_ms < MIN_SELECTION_MS:
             return
         value = max(0, min(self.duration_ms, int(proposed_ms)))
         if handle == "start":
-            value = min(value, self.end_ms - MIN_TRIM_MS)
+            value = min(value, self.end_ms - MIN_SELECTION_MS)
             new_start, new_end = max(0, value), self.end_ms
         else:
-            value = max(value, self.start_ms + MIN_TRIM_MS)
+            value = max(value, self.start_ms + MIN_SELECTION_MS)
             new_start, new_end = self.start_ms, min(self.duration_ms, value)
         if (new_start, new_end) != (self.start_ms, self.end_ms):
             self.start_ms, self.end_ms = new_start, new_end
@@ -174,7 +173,7 @@ class TrimTimeline(QWidget):
             painter.setBrush(QColor(COLORS["elevated"]))
             painter.drawRoundedRect(bounds, 9, 9)
 
-            if self.duration_ms < MIN_TRIM_MS:
+            if self.duration_ms < MIN_SELECTION_MS:
                 painter.setPen(QColor(COLORS["muted"]))
                 painter.drawText(
                     QRect(0, 0, self.width(), 28),
