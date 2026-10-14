@@ -108,7 +108,7 @@ def build_media_shell(w):
 
     w.inspector_tabs = QTabWidget()
     w.inspector_tabs.setObjectName("inspectorTabs")
-    w.inspector_tabs.setMinimumWidth(260)
+    w.inspector_tabs.setMinimumWidth(300)
     w.inspector_tabs.setMaximumWidth(450)
     w.inspector_tabs.setUsesScrollButtons(True)
     w._inspector_tab_keys = []
@@ -117,7 +117,7 @@ def build_media_shell(w):
     range_layout.addWidget(w._label("trim", "sectionTitle"))
     range_layout.addWidget(w._label("trim_hint", "muted", wrap=True))
     form = QFormLayout()
-    form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+    form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
     w.start_spin, w.end_spin = QDoubleSpinBox(), QDoubleSpinBox()
     for spin, key in ((w.start_spin, "start_time"), (w.end_spin, "end_time")):
         spin.setDecimals(3)
@@ -125,7 +125,7 @@ def build_media_shell(w):
         spin.setSuffix(" s")
         spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         spin.valueChanged.connect(w._selection_changed)
-        label = w._label(key)
+        label = w._label(key, wrap=True)
         label.setBuddy(spin)
         form.addRow(label, spin)
     range_layout.addLayout(form)
@@ -168,7 +168,7 @@ def build_media_shell(w):
         w.normalize = w._check("normalize", lambda _: w._update_enabled())
         audio_layout.addWidget(w.normalize)
         fades = QFormLayout()
-        fades.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        fades.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
         w.fade_in, w.fade_out = QDoubleSpinBox(), QDoubleSpinBox()
         for spin, key in ((w.fade_in, "fade_in"), (w.fade_out, "fade_out")):
             spin.setDecimals(1)
@@ -176,7 +176,7 @@ def build_media_shell(w):
             spin.setSingleStep(.5)
             spin.setSuffix(" s")
             spin.valueChanged.connect(w._selection_changed)
-            label = w._label(key)
+            label = w._label(key, wrap=True)
             label.setBuddy(spin)
             fades.addRow(label, spin)
         audio_layout.addLayout(fades)
@@ -186,6 +186,8 @@ def build_media_shell(w):
     project_layout.addWidget(w._label(f"export_hint_{w.kind}", "muted", wrap=True))
     w.export_second = w._button("export", w.export_file, "primary")
     project_layout.addWidget(w.export_second)
+    for button in (w.export_second, w.reset_range_button, w.mark_start_button, w.mark_end_button):
+        button.setFitToWidth()
     project_layout.addWidget(w._label("codec_hint", "muted", wrap=True))
     project_layout.addStretch()
     content.setStretchFactor(0, 1)

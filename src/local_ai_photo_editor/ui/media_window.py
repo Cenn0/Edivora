@@ -97,7 +97,8 @@ class MediaWindow(QMainWindow):
         return button
 
     def _check(self, key: str, callback: Callable) -> QCheckBox:
-        check = QCheckBox()
+        from .responsive import WrappedCheckBox
+        check = WrappedCheckBox()
         check.toggled.connect(callback)
         self._labels.append((check, key))
         return check

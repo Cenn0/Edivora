@@ -16,7 +16,7 @@ from PySide6.QtCore import QProcess, QSignalBlocker, Qt, QUrl
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView, QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel,
-    QListWidget, QListWidgetItem, QMessageBox, QPushButton, QVBoxLayout,
+    QListWidget, QListWidgetItem, QMessageBox, QPushButton, QSizePolicy, QVBoxLayout,
     QWidget,
 )
 
@@ -161,6 +161,9 @@ class SequenceWindow(MediaWindow):
             self.enhance_button.clicked.connect(self.enhance_video)
             self.picture_tools_layout.insertWidget(0, self.enhance_button)
             self.video_size = QComboBox()
+            self.video_size.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            self.video_size.setMinimumContentsLength(10)
+            self.video_size.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             self.video_size.addItem("", "hd")
             self.video_size.addItem("", "full_hd")
             project_layout.insertWidget(3, self.video_size)
@@ -169,6 +172,9 @@ class SequenceWindow(MediaWindow):
             self.source_preview_hint.setWordWrap(True)
             self.source_preview_hint.setObjectName("muted")
             self.picture_tools_layout.insertWidget(1, self.source_preview_hint)
+        for button in (self.open_project_button, self.save_as_button, self.ai_button, self.enhance_button):
+            if button is not None:
+                button.setFitToWidth()
         self.language_combo.currentIndexChanged.connect(self._translate_sequence)
         self._translate_sequence()
         self._refresh_clips()

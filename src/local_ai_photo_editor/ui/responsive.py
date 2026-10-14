@@ -1,8 +1,8 @@
 """Shared layout helpers. Logical pixels are scaled by Qt, never by manual DPI math."""
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, QSize, Qt
-from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
+from PySide6.QtCore import QPoint, QRect, QSize, Qt
+from PySide6.QtWidgets import QCheckBox, QLabel, QSizePolicy, QWidget
 
 
 class ElideLabel(QLabel):
@@ -45,3 +45,44 @@ def in_viewport(widget: QWidget, ancestor: QWidget) -> bool:
     origin = widget.mapTo(ancestor, QPoint(0, 0))
     from PySide6.QtCore import QRect
     return ancestor.rect().contains(QRect(origin, widget.size()))
+
+
+class WrappedCheckBox(QCheckBox):
+    """Native, keyboard-accessible checkbox with an actually wrapping label."""
+    def __init__(self, text: str = "", parent=None) -> None:
+        super().__init__(parent)
+        self._caption = QLabel(self)
+        self._caption.setTextFormat(Qt.TextFormat.PlainText)
+        self._caption.setWordWrap(True)
+        self._caption.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        policy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
+        self.setText(text)
+
+    def setText(self, text: str) -> None:
+        self._caption.setText(text)
+        self.setAccessibleName(text)
+        self.setToolTip(text)
+        self.updateGeometry()
+
+    def text(self) -> str:
+        return self._caption.text()
+
+    def heightForWidth(self, width: int) -> int:
+        bounds = self._caption.fontMetrics().boundingRect(
+            QRect(0, 0, max(1, width - 30), 10000), Qt.TextFlag.TextWordWrap, self.text())
+        return max(24, bounds.height() + 6)
+
+    def sizeHint(self) -> QSize:
+        return QSize(260, self.heightForWidth(260))
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(60, 24)
+
+    def hitButton(self, position: QPoint) -> bool:
+        return self.rect().contains(position)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._caption.setGeometry(30, 0, max(0, self.width() - 30), self.height())
