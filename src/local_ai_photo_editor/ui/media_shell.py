@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtMultimediaWidgets import QVideoWidget
 
 from ..branding import app_icon
-from .responsive import ElideLabel
+from .responsive import ElideLabel, VerticalScrollArea
 from .trim_timeline import TrimTimeline
 
 
@@ -18,7 +18,7 @@ def inspector_page(window, key: str):
     layout = QVBoxLayout(page)
     layout.setContentsMargins(12, 12, 12, 12)
     layout.setSpacing(10)
-    scroll = QScrollArea()
+    scroll = VerticalScrollArea()
     scroll.setWidgetResizable(True)
     scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     scroll.setWidget(page)

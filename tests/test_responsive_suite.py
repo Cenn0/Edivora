@@ -169,3 +169,32 @@ class ResponsiveSuiteTests(unittest.TestCase):
         self.assertTrue(checkbox.isChecked())
         QTest.keyClick(checkbox, Qt.Key.Key_Space)
         self.assertFalse(checkbox.isChecked())
+
+    def test_vertical_inspector_reflows_when_native_scrollbar_appears(self):
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+        from local_ai_photo_editor.ui.icons import IconButton
+        from local_ai_photo_editor.ui.responsive import VerticalScrollArea
+        scroll = VerticalScrollArea()
+        self.addCleanup(scroll.deleteLater)
+        self.addCleanup(scroll.close)
+        scroll.setStyleSheet("QScrollBar:vertical { width: 25px; }")
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        caption = QLabel("A long inspector description with several wrapping words. " * 10)
+        caption.setWordWrap(True)
+        layout.addWidget(caption)
+        button = IconButton("Reset the entire selection", icon_name="undo")
+        button.setFitToWidth()
+        layout.addWidget(button)
+        scroll.setWidget(page)
+        scroll.show()
+        for width, height, visible in ((344, 800, False), (344, 220, True),
+                                       (300, 180, True), (450, 500, False)):
+            caption.setVisible(visible)
+            scroll.resize(width, height)
+            self.settle()
+            scroll.ensureWidgetVisible(button, 0, 0)
+            self.settle()
+            self.assertEqual(page.width(), scroll.viewport().width())
+            self.assertTrue(in_viewport(button, scroll.viewport()))
