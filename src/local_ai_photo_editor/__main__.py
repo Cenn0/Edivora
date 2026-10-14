@@ -573,6 +573,7 @@ def main(argv: list[str] | None = None) -> int:
     if len(args) == 2 and args[0] == "--ui-smoke-test":
         return ui_smoke_test(Path(args[1]))
     if len(args) == 2 and args[0] == "--media-smoke-test":
+        _configure_bundled_qt_plugins()
         from .media_smoke import media_smoke_test
         return media_smoke_test(Path(args[1]), _compiled_executable())
     if args in ([], ["--launcher"]):
