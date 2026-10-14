@@ -9,7 +9,7 @@ permissions:
 jobs:
   inspect-model:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -17,22 +17,79 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: '3.13'
-      - name: Acquire candidate bytes without deserializing
+      - name: Install build-only conversion dependencies
+        run: |
+          python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install onnx==1.23.2 numpy==2.5.4 onnxruntime==1.31.0
+      - name: Convert exact pinned weights and compare CPU inference
         shell: bash
         run: |
           mkdir -p verification
           python - <<'PY'
-          import hashlib, json, pathlib, urllib.request
+          import hashlib, io, json, pathlib, urllib.request
+          import numpy as np
+          import torch
+          import torch.nn.functional as F
+          import onnx
+          from onnx import helper, numpy_helper, TensorProto
+          import onnxruntime as ort
           url = 'https://github.com/cszn/KAIR/releases/download/v1.0/dncnn_color_blind.pth'
           with urllib.request.urlopen(url, timeout=60) as response:
               data = response.read(2678122)
           assert len(data) == 2678121
-          report = {'url': url, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(), 'deserialized': False}
-          pathlib.Path('verification/model-provenance.json').write_text(json.dumps(report, indent=2))
+          assert hashlib.sha256(data).hexdigest() == 'dfe11a6b703304df82cdf236f431fc6492766c7b9119d97e943edeb392c710a3'
+          state = torch.load(io.BytesIO(data), map_location='cpu', weights_only=True)
+          expected = {f'model.{i*2}.{part}' for i in range(20) for part in ('weight', 'bias')}
+          assert set(state) == expected
+          nodes, initializers = [], []
+          current = 'input'
+          for i in range(20):
+              wn, bn = f'model.{i*2}.weight', f'model.{i*2}.bias'
+              channels = 3 if i == 19 else 64
+              assert tuple(state[wn].shape) == (channels, 3 if i == 0 else 64, 3, 3)
+              assert tuple(state[bn].shape) == (channels,)
+              for name in (wn, bn):
+                  array = state[name].numpy()
+                  assert array.dtype == np.float32 and np.isfinite(array).all()
+                  initializers.append(numpy_helper.from_array(array.astype('<f4'), name=name))
+              conv = f'conv_{i}'
+              nodes.append(helper.make_node('Conv', [current, wn, bn], [conv], kernel_shape=[3,3], pads=[1,1,1,1], strides=[1,1]))
+              current = conv
+              if i < 19:
+                  current = f'relu_{i}'
+                  nodes.append(helper.make_node('Relu', [conv], [current]))
+          nodes.append(helper.make_node('Sub', ['input', current], ['output']))
+          graph = helper.make_graph(nodes, 'edivora_dncnn_color_blind', [helper.make_tensor_value_info('input', TensorProto.FLOAT, [1,3,'height','width'])], [helper.make_tensor_value_info('output', TensorProto.FLOAT, [1,3,'height','width'])], initializer=initializers)
+          model = helper.make_model(graph, producer_name='Edivora', producer_version='1', opset_imports=[helper.make_opsetid('',17)])
+          model.ir_version = 8
+          onnx.checker.check_model(model)
+          encoded = model.SerializeToString(deterministic=True)
+          pathlib.Path('verification/dncnn_color_blind.onnx').write_bytes(encoded)
+          opts = ort.SessionOptions()
+          opts.intra_op_num_threads = 2
+          session = ort.InferenceSession(encoded, sess_options=opts, providers=['CPUExecutionProvider'])
+          clean = np.full((1,3,64,64), .5, dtype=np.float32)
+          noisy = np.clip(clean + np.random.default_rng(7).normal(0,.08,clean.shape).astype(np.float32), 0,1)
+          actual = session.run(['output'], {'input':noisy})[0]
+          torch.set_num_threads(2)
+          original = torch.from_numpy(noisy)
+          x = original
+          for i in range(20):
+              x = F.conv2d(x, state[f'model.{i*2}.weight'], state[f'model.{i*2}.bias'], padding=1)
+              if i < 19:
+                  x = F.relu(x)
+          reference = (original-x).numpy()
+          error = float(np.max(np.abs(actual-reference)))
+          assert error < 1e-5, error
+          before = float(np.mean((noisy-clean)**2))
+          after = float(np.mean((actual-clean)**2))
+          assert after < before * .5, (before,after)
+          report = {'input_sha256':hashlib.sha256(data).hexdigest(), 'onnx_bytes':len(encoded), 'onnx_sha256':hashlib.sha256(encoded).hexdigest(), 'cpu_max_difference':error, 'synthetic_mse_before':before, 'synthetic_mse_after':after, 'torch':torch.__version__, 'onnx':onnx.__version__, 'onnxruntime':ort.__version__}
+          pathlib.Path('verification/conversion-report.json').write_text(json.dumps(report,indent=2))
           print(json.dumps(report))
           PY
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: restoration-provenance
+          name: restoration-conversion
           path: verification/
           retention-days: 7
