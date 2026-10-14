@@ -11,6 +11,10 @@ import time
 import traceback
 
 from .core.media import MediaExport, commit_export, ffmpeg_executable
+from .core.media_project import load_media_project, save_media_project
+from .core.media_sequence import SequenceExport, commit_sequence_export
+from .ai.voice import analyze_voice, verified_voice_model
+from .ai.video_frame import extract_ai_frame
 
 
 def _run(command: list[str]) -> None:
@@ -116,6 +120,80 @@ def media_smoke_test(directory: Path, compiled_executable: str | None = None) ->
             window.deleteLater()
             app.processEvents()
         report["screenshots"] = snapshots
+
+        report["phase"] = "multi_clip_project_and_export"
+        from .ui.sequence_window import SequenceWindow
+
+        sequence_captures = {}
+        for kind, file in (("video", source_video), ("audio", source_audio)):
+            window = SequenceWindow(kind, compiled_executable)
+            window.show()
+            app.processEvents()
+            try:
+                # Load one real clip, then append another instance (not a
+                # mocked list). Validate both QMediaPlayer and project model.
+                duplicate_source = directory / f"second-{kind}{file.suffix}"
+                duplicate_source.write_bytes(file.read_bytes())
+                for number, current_file in enumerate((file, duplicate_source)):
+                    window.open_path(current_file)
+                    deadline = time.monotonic() + 12
+                    while len(window.clips) <= number and time.monotonic() < deadline:
+                        app.processEvents()
+                        time.sleep(0.04)
+                    if len(window.clips) != number + 1:
+                        raise RuntimeError(f"Could not import media clip {number + 1} into {kind}.")
+                window.clips[0] = window.clips[0].__class__(
+                    **{**window.clips[0].__dict__, "start_ms": 100, "end_ms": 1000}
+                )
+                window.clips[1] = window.clips[1].__class__(
+                    **{**window.clips[1].__dict__, "start_ms": 200, "end_ms": 1100}
+                )
+                project = directory / f"multi-{kind}.{ 'edvp' if kind == 'video' else 'edap'}"
+                save_media_project(window._snapshot(), project)
+                loaded = load_media_project(project)
+                if len(loaded.clips) != 2 or loaded.length_ms != 1800:
+                    raise RuntimeError("Multi-clip project round trip changed clip order/ranges.")
+                extension = ".mp4" if kind == "video" else ".wav"
+                plan = SequenceExport(loaded, directory / f"multi-{kind}{extension}")
+                temporary = plan.temp_output()
+                _run([ffmpeg, *plan.ffmpeg_arguments(temporary)])
+                commit_sequence_export(plan, temporary)
+                if plan.destination.stat().st_size <= 1000:
+                    raise RuntimeError("Multi-clip render produced no useful output.")
+                report[f"{kind}_multi_bytes"] = plan.destination.stat().st_size
+                screenshot = directory / f"sequence-{kind}.png"
+                if not window.grab().save(str(screenshot), "PNG"):
+                    raise RuntimeError(f"Sequence {kind} capture failed.")
+                sequence_captures[kind] = screenshot.name
+            finally:
+                window._dirty = False
+                window.close()
+                window.deleteLater()
+                app.processEvents()
+        report["sequence_screenshots"] = sequence_captures
+
+        # Real local AI inference, independently of empty/mock GUI actions:
+        # one Silero voice inference and one pinned U2NETP still-frame cutout.
+        report["phase"] = "local_ai"
+        verified_voice_model()
+        voice_ranges = analyze_voice(source_audio, 100, 1600, ffmpeg=ffmpeg)
+        report["voice_segments"] = voice_ranges
+        # The existing photo smoke subject is a deterministic synthetic circle.
+        from .__main__ import _synthetic_photo
+        still = directory / "ai-source.png"
+        _synthetic_photo().save(still)
+        moving = directory / "ai-video.mp4"
+        _run([
+            ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error",
+            "-loop", "1", "-i", str(still), "-t", "1",
+            "-vf", "fps=10", "-c:v", "mpeg4", "-y", str(moving),
+        ])
+        extracted = directory / "ai-frame.png"
+        extract_ai_frame(moving, 200, extracted, ffmpeg=ffmpeg)
+        if not extracted.is_file() or extracted.stat().st_size <= 1000:
+            raise RuntimeError("Local video-frame AI did not create the PNG.")
+        report["ai_frame_bytes"] = extracted.stat().st_size
+
         report["phase"] = "complete"
         report["status"] = "ok"
         return 0
