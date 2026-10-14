@@ -1,55 +1,43 @@
 Edivora - Foto, Video und Audio (Entwicklungsstand 0.3.0 alpha)
 
-STARTEN
-1. Das gesamte ZIP in einen lokalen Ordner entpacken.
-2. LocalAiPhotoEditor.exe doppelt anklicken (der Programmname wird spaeter Edivora.exe).
-3. Im Edivora-Startfenster Foto, Video oder Audio waehlen.
-4. Fuer mehrere Programme die passenden Checkboxen ankreuzen und
-   "Ausgewaehlte Werkzeuge oeffnen" waehlen (einzeln, zu zweit oder alle drei).
-5. Jedes Programm oeffnet sich in einem eigenen, unabhaengigen Fenster.
-   Der Launcher kann fuer weitere Fenster offen bleiben.
+STARTEN (NUR NEUER ENTWICKLUNGSBUILD)
+1. Gesamten Build-Ordner entpacken, nicht nur die EXE verschieben.
+2. LocalAiPhotoEditor.exe starten; das Produkt heisst Edivora.
+3. Im Launcher Foto, Video oder Audio direkt oeffnen oder beliebige
+   Kombinationen von einem, zwei oder drei Werkzeugen auswaehlen.
+4. Jedes Werkzeug ist ein eigener Prozess. Der Launcher bleibt verfuegbar.
 
-Zum direkten Start per Kommandozeile:
+DIREKTSTART
   LocalAiPhotoEditor.exe --tool photo
   LocalAiPhotoEditor.exe --tool video
   LocalAiPhotoEditor.exe --tool audio
 
-NEU IM MEDIA-MVP
-- Bis zu 24 Clips pro Audio-/Videoprojekt in einer einfachen Spur;
-  per Drag & Drop/Schaltflaeche sortieren, teilen und duplizieren.
-- Video-Projekt speichern/oeffnen: .edvp
-- Audio-Projekt speichern/oeffnen: .edap
-  Diese Dateien verweisen auf lokale Quellmedien, statt sie einzubetten.
-  Dateien aus anderen Ordnern koennen als absolute Pfade gespeichert werden.
-- Audio: Lokale KI erkennt bei Bedarf Sprachabschnitte; erst nach
-  Bestaetigung werden daraus Schnittbereiche.
-- Video: Lokale KI kann nur das AKTUELLE STANDBILD freistellen und als
-  separate PNG-Datei speichern; keine ganze Video-KI-Bearbeitung.
-- Projekt speichern ist NICHT dasselbe wie Datei exportieren.
-- Media-Projekte sind noch kein Mehrspur-Editor und haben kein Undo/Redo.
-
-ENTHALTENE FUNKTIONEN
-- Foto: bestehender Photo-Editor, Bildbearbeitung, lokale KI-Motivauswahl.
-- Video: eine Datei oeffnen, ansehen, Bereich schneiden, Audio-Lautstaerke
-  bzw. Stummschaltung, neues MP4 exportieren.
-- Audio: eine Datei oeffnen, anhoeren, Bereich schneiden, Lautstaerke,
-  Pegelausgleich und Fades, neue WAV- oder MP3-Datei exportieren.
-
-Die Originaldateien werden nicht bearbeitet. Exportiere immer in eine
-andere Datei. Video und Audio haben noch keine Mehrspur-Timeline, keine
-Projektdateien und keine KI-Modelle. Mehr: docs/MEDIA_MVP.md.
+FUNKTIONEN DIESER QUELLCODEENTWICKLUNG
+- Foto: normale Bearbeitung, U2NETP-KI, gefuehrte Werkzeuge,
+  Maskenkorrektur und Foto-Projekte (.laip).
+- Video: bis zu 24 Clips auf EINER Spur, sortieren, schneiden, teilen,
+  duplizieren, Projekt (.edvp) und MP4-Export. Lokale KI entfernt
+  den Hintergrund NUR EINES ausgewahlten Standbilds als PNG.
+- Audio: bis zu 24 Clips auf EINER Spur, Schnitt, Lautstaerke, Fades,
+  Projekt (.edap), WAV-/MP3-Export. Lokale Silero-VAD erkennt
+  Sprachaktivitaet, aber transkribiert keine Woerter.
+- Es gibt NOCH KEINE Mehrspurmontage, durchgehende Gesamtvorschau,
+  Medien-Undo-History, Transitions oder Autosave.
+- .edvp/.edap speichern KEINE Medienkopien: verlinkte lokale Dateien
+  muessen vorhanden bleiben. Externe absolute Pfade koennen private
+  Ordnernamen offenlegen. Projekt speichern ist NICHT exportieren.
+- Originale bleiben unveraendert; neue Ausgabedatei waehlen.
 
 WICHTIG
-Das Paket ist als Ordner organisiert. Die EXE nicht einzeln verschieben:
-Qt-DLLs, das lokale FFmpeg in media-tools/ und das Foto-KI-Modell
-gehoeren dazu. Python, Docker, eine externe FFmpeg-Installation,
-ein Konto und ein API-Schluessel sind nicht erforderlich.
-Es wird nichts zur Bearbeitung in die Cloud geschickt.
+- Dies ist KEINE Installationsanweisung fuer das aeltere Release
+  v0.1.0-alpha.1; dieses enthaelt ausschliesslich den Fotoeditor.
+- Die EXE braucht die mitgelieferten DLLs, lokalen KI-Modelle und
+  media-tools/ffmpeg.exe. Kein Python/Docker/externes FFmpeg auf dem
+  Zielrechner erforderlich, sofern das Paket korrekt gebaut wurde.
+- Keine Konten, kein API-Schluessel und keine Runtime-Modelldownloads.
+- Neue Buildfunktionalitaet ist noch nicht als Windows-11-Suite freigegeben.
+  Paket-, Codec-, Offline- und Lizenzpruefungen bleiben separate Gates.
+- Fuer Lizenztexte THIRD_PARTY_NOTICES.md und third-party-licenses/
+  beachten. Anleitung: docs/GETTING_STARTED.md und docs/MEDIA_MVP.md.
 
-Dies ist eine unsignierte Entwicklungsversion fuer Windows x64. Paket-
-und Codec-Tests auf einem frischen Windows 11 sind noch erforderlich.
-Die Media- und FFmpeg-Lizenzbedingungen muessen vor breiter Weitergabe
-geprueft werden. Verbindliche Testergebnisse je Build in
-verification/ oder docs/VERIFICATION.md.
-Lizenztexte: third-party-licenses/, THIRD_PARTY_NOTICES.md.
-Quellcode: https://github.com/Cenn0/LocalAiPhotoEditor
+Quellcode: https://github.com/Cenn0/Edivora

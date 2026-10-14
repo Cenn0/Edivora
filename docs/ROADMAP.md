@@ -1,101 +1,42 @@
-# Roadmap
+# Edivora – Roadmap
 
-## Nächster Entwicklungsschritt: Multi-Clip, Projekte, lokale Medien-KI
+**Aktualisiert am 14.10.2026.** Diese Roadmap trennt **bereits im Quellcode implementiert**, **als Release nachgewiesen** und **geplante** Funktionen. Eine Entwicklungsversionsnummer ist **keine** veröffentlichte Paketfreigabe.
 
-Im Entwicklungsbranch umgesetzt, **noch nicht als veröffentlichter Endnutzer-
-Release freigegeben**:
+## Historisch veröffentlicht: v0.1.0-alpha.1 (Foto)
 
-- Ordered single-lane Video-/Audio-Arrangement für bis zu 24 Clips, Ziehen zum
-  Sortieren, Teilen, Duplizieren, Löschen und clip-spezifischer Ausschnitt
-- Reversible Datendateien `.edvp/.edap` mit strikt validiertem JSON, relativen
-  bzw. absoluten lokalen Quelldateiverweisen und atomarem Projektspeichern
-- Gemeinsamer lokaler FFmpeg-Render als MP4 oder WAV/MP3 mit harter
-  Quellschutzgrenze, abbrechbarem Unterprozess und konsistenten Streams
-- **Echte lokale KI:** Silero v6.2.1 ONNX zum Erkennen von Sprachabschnitten
-  im Audioeditor (mit Bestätigung) und vorhandenes U2NETP-Modell zum
-  Freistellen eines einzelnen Video-Standbilds als PNG
-- Sprach-/Projekt-/Render- und Sicherheitsprüfungen; realer Modell- und
-  Windows-Paket-Smoke-Test als eigenständiges, ausstehendes Akzeptanzkriterium
+Der alte, **unsignierte** Windows-x64-Testdownload enthält Import/Export von JPEG, PNG und WebP, Grundkorrekturen, Undo/Redo, DE/EN und lokale U2NETP-Hintergrundentfernung. Er wurde auf Windows Server 2022 inklusive Offline-KI-Ausführung und GUI getestet. **Kein Video-/Audioeditor, kein Launcher, keine `.laip/.edvp/.edap`-Projekte** in diesem Paket. [Verifikationsprotokoll](VERIFICATION.md).
 
-Noch offen: durchgehende Zusammenschnitt-Vorschau, Multitrack-Audio-/Video-
-Mischer, frei positionierbare Clips mit Überlappungen, Übergänge,
-Medien-Undo/Redo, Offline-Transkription, temporale Video-KI, Media-Relinking,
-vollständige FFmpeg-/Modell-Lizenzfreigabe und Clean-Windows-11-Abnahme.
-Details: [MEDIA_PROJECTS_AI.md](MEDIA_PROJECTS_AI.md).
+## Aktueller `main`-Quellcode: 0.3.0a1
 
-## Media suite MVP — new source milestone (not in the legacy photo-only alpha)
+**Implementiert, noch nicht als gleichwertiger neuer Endnutzerdownload freigegeben:**
 
-- Implemented in development source: one Edivora launcher executable that starts
-  the Photo, Video or Audio workspace separately; any two or all three
-  can run at once.
-- Video MVP: file import and Qt playback, **graphical in/out timeline with draggable handles**,
-  precise range spin boxes, current-position start/end actions, volume/mute,
-  MP4 export through local FFmpeg with original-file protection.
-- Audio MVP: file import and Qt playback, separate waveform preview,
-  **the same interactive trim range**, volume, loudness normalization and fades,
-  WAV/MP3 export.
-- Shared German/English visual language and task labels. Source and packaged
-  Windows smoke checks exercise Qt window construction and synthetic FFmpeg exports.
+- Gemeinsamer Edivora-Launcher mit einzeln, zu zweit oder zu dritt parallel geöffneten, unabhängigen Foto-/Video-/Audio-Prozessen.
+- Foto: geführte Korrekturen, Looks, Motivwahl-/Hintergrundeffekte, manuelle Alphamaskenkorrektur und `.laip`-Fotoarchive.
+- Video: geordnete **Single-Lane-Timeline bis 24 Clips**, Drag & Drop, Schnitt-/Duplizierfunktionen, `.edvp`-Projekt und lokaler FFmpeg-MP4-Export.
+- Audio: dieselbe Grund-Timeline bis 24 Clips, Pegel/Fades, `.edap`-Projekt und FFmpeg-WAV-/MP3-Export.
+- Echte lokale **U2NETP-Standbild-Freistellung** im Videoeditor und **Silero-VAD-Sprachaktivitätsvorschläge** im Audioeditor; CPU-ONNX mit fest geprüften Modellen und ohne Runtime-Downloads.
+- Zentrales Dark-Theme und zweisprachige Beschriftungen. Markendarstellung mit Edivora-Logo und dokumentierten Vektorassets befindet sich im Branding-Integrationszweig, **nicht** im zuvor veröffentlichten ZIP.
 
-**Acceptance still open:** Windows packaged source & frozen CI green on the exact
-revision, real-world import/playback/export with representative codecs,
-licence review of distributed FFmpeg/Qt components, fresh Windows 11
-usability and offline-network acceptance, and completion of the first
-new Edivora distribution. Building code is not evidence of a release.
+[Umfang und Grenzen](MEDIA_MVP.md) · [Mediendateien, Render und KI](MEDIA_PROJECTS_AI.md) · [UI-Designsystem](DESIGN_SYSTEM.md).
 
-**Later:** full clip-arrangement video timeline and draggable waveform editing, multitrack,
-reversible native media-project format, H.264-quality/performance matrix,
-and genuinely local AI for speech/subtitles/audio enhancement. Detailed MVP
-contract: [MEDIA_MVP.md](MEDIA_MVP.md).
+## Nächste mögliche Entwicklungsstufe: Modellprofile
 
+Ein **separater, noch offener PR #17** schlägt CPU-Modellprofile, ressourcenbewusste automatische oder manuelle Auswahl, ein größeres Bildsegmentierungsmodell und Offline-Transkription vor. **Diese Funktionen sind nicht Bestandteil von `main` 0.3.0a1 oder des alten Releases.** Nur nach Merge, Tests, Modell-/Lizenzprüfung und aktualisierten Produktgrenzen den Status ändern.
 
-## 0.1 alpha — local editing and bundled background removal
+## Offene Produktfunktionen
 
-- Import JPEG/PNG/WebP, honour EXIF orientation and colour profiles, protect the original.
-- Brightness, contrast, saturation, rotation, cropping and resizing.
-- Before/after view, bounded undo/redo, German and English labels.
-- One bundled U2NETP model, ONNX CPU execution, cancellable child-process inference.
-- Metadata-clean exports and readable errors.
-- Windows build pipeline and a portable ZIP containing the complete application, runtime and model. The first CI build does not promise an installer.
+- Eine **kontinuierliche Gesamtvorschau** der zusammengesetzten Video-/Audioreihenfolge.
+- Mehrere **überlagerbare Spuren**, Übergänge, präzise Audio-/Videomischung, Medien-Undo-/Redo und Autosave.
+- Media-Relinking, portable Paketprojekte, breitere Decoder-/Encoder-/Codec-Matrix und gemessene Qualitäts-/Performanceprofile.
+- Optional: verbesserte KI-Maskenqualität, Video-KI über zusammenhängende Frames, lokale Transkription/Untertitel, Rauschminderung. Nur als implementiert kennzeichnen, wenn tatsächlich gemergt und überprüft.
+- Langfristig: lokale generative Fotoänderungen **nur** nach vollständig gepinnter Modellkette, geprüfter Lizenz, RAM/GPU-Messungen, Masken-Isolation, Preview/Accept/Cancel und Crash-Recovery. Ein Modellkandidat allein ist keine unterstützte Funktion.
 
-Acceptance: actual packaged model inference works without developer tools; the first launch and edit/export succeed with networking disabled on a clean Windows 11 x64 machine. Unit tests alone do not satisfy this gate. An unsigned build artifact may be offered explicitly as a test alpha while remaining checks are recorded in [VERIFICATION.md](VERIFICATION.md). Such an artifact must not be described as a verified end-user release.
+## Release-Gates vor einer neuen öffentlichen Windows-Suite
 
-## 0.2 — editing precision, subject-aware AI tools and project persistence
+1. **Code + echte Modelle:** Testmatrix mit echten ONNX-Gewichten, Media-/Foto-Ein- und Ausgabe, DE/EN und für relevante Änderungen GPU nur mit tatsächlich geprüfter Laufzeit.
+2. **Paket:** Exakter Standalone-Windows-Build einschließlich eingebetteter Vektorlogos, KI-Gewichte, Qt- und FFmpeg-Runtime; separater Test des **heruntergeladenen** Artefakts unter nachweisbarer Netzwerksperre.
+3. **Lizenz-/Sicherheitsprüfung:** Qt-LGPL-Pflichten, tatsächliche FFmpeg-Binary-/Codec-GPL/LGPL-Bedingungen und entsprechende Quellen; Rechte an externen Modellgewichten; Schutz vor Dateiverlust, Symlink-/Hardlink-Aliassen und ungeprüften Medien/Projekten.
+4. **Windows 11 Clean Machine:** reale Import-/Preview-/Export-Workflows, Codec-Stichproben, DPI/Accessibility, RAM/CPU und Fehlerfälle auf einer frischen Windows-11-x64-Umgebung.
+5. **Veröffentlichung:** Build-Commit, Hash, Release Notes, bekannte Einschränkungen, Lizenzinventar und klare Kennzeichnung als **Testalpha** oder verifizierter Release. Für stabilen Release ist Windows-Signierung vorzusehen.
 
-Progress after the published v0.1.0-alpha.1: durable project archives, manual mask correction, guided image tools and a subject-aware AI workspace have been implemented in source. Individual development packages and their verification must be tied to their exact source revision; the old released ZIP is unchanged.
-
-- **AI subject tools:** automatically select a subject with the existing U2NETP model, then soften the existing background, keep only the subject in color, brighten the subject, dim the background, crop to the subject or preview a cutout. The selection is reused per dialog session. Selection overlay, strength/edge/margin controls, explicit acceptance, Undo/Redo, separate-process inference, timeout and cleanup are implemented. This does not add a stronger model, depth estimation, generative reconstruction or an in-dialog selection brush. See [AI_SUBJECT_TOOLS.md](AI_SUBJECT_TOOLS.md).
-- User-correctable foreground mask: **manual alpha-only restore/erase brush with size, feather, stroke preview and Undo/Redo implemented in source**. Automatic hair matting remains planned. The current tool does not reconstruct missing RGB pixels or clean contaminated edge colors. See [MASK_REFINEMENT.md](MASK_REFINEMENT.md).
-- **Guided light/color corrections, gentle automatic correction, six adjustable looks, sharpening, vignette, exact-ratio crops, mirror/rotation and background design are implemented in source.** The workspace provides DE/EN guidance, before/after previews, per-control/section/all resets and explicit Apply/Cancel. Full-resolution rendering runs in a cancellable worker thread and produces one Undo/Redo snapshot. Background colors, local background photos and background-only blur require an existing cutout. See [EDITING_TOOLS.md](EDITING_TOOLS.md).
-- Evaluate BiRefNet lite against U2NETP on an appropriately licensed image set, including hair, glass, fur and low-contrast boundaries. This evaluation and model replacement remain open; additional uses of U2NETP do not constitute a model-quality improvement.
-- Save/reopen a versioned project containing original, accepted results, masks and operations; local recovery and cache management. Snapshot persistence with checksums, size limits and atomic writes is implemented; editable adjustment layers, reusable AI selections and recovery/cache management remain future work. Source paths are intentionally not persisted. See [PROJECT_FORMAT.md](PROJECT_FORMAT.md).
-- Keyboard navigation, high-DPI checks and tested light/dark themes. Guided controls expose accessible names, keyboard controls and reset actions; comprehensive high-DPI and interactive accessibility acceptance remains open.
-
-Acceptance: unwanted mask pixels can be corrected without regenerating protected foreground detail; saved projects open deterministically and exports use the accepted full-resolution result. Reduced-size previews may differ slightly at filtered edges and integer crop boundaries; source UI tests do not replace packaged or interactive usability acceptance.
-
-## 0.3 — optional instruction-based local editing
-
-- Validate FLUX.2 klein 4B with the complete inference pipeline and all model artifacts.
-- Benchmark a published NVIDIA hardware matrix, including a separately tested 12 GB configuration if feasible.
-- Select a validated precision/quantization configuration, and define RAM, disk and driver requirements from measurements.
-- Package an optional generative component; enable it only when installed and supported.
-- Prompt plus mask, preview, accept/reject, actual-result history, cancellation and out-of-memory recovery.
-
-Acceptance: no implicit network access, no account/API key, reliable failure recovery, measured limits, and explicit disclosure that generative edits can alter unmasked content unless composited with the original.
-
-## Before the first stable end-user release
-
-- Sign the Windows package and complete the clean-machine offline acceptance checks for the exact distributed build.
-- Publish the tested platform, dependency/model versions, known limits and corresponding verification evidence.
-- Add an installer if it demonstrably simplifies delivery; the tested portable package remains a valid distribution format.
-
-No signing certificate is assumed to be available during initial development. Signing is a stable-release requirement, not a prerequisite for a clearly labelled test-alpha artifact.
-
-## Later, after measured demand
-
-- Local inpainting and super-resolution models with verified redistribution terms.
-- Linux and macOS packages, including notarized macOS delivery where required by the chosen distribution path.
-- GPU acceleration for segmentation only when its practical speed-up outweighs package and support cost.
-- RAW/16-bit workflows, batch editing and richer layers only after the basic editor is stable.
-
-No mobile client, SaaS backend, user accounts, collaborative editing, plug-in marketplace, or external model runtime is required for the initial goal.
+Bis diese Gates abgeschlossen sind, sind neue Quellcode-Features **nicht** als freigegebene Windows-Suite zu bezeichnen. [Beitragen](CONTRIBUTING.md) · [Nachweise](VERIFICATION.md).
