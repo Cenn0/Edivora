@@ -85,6 +85,29 @@ def media_smoke_test(directory: Path, compiled_executable: str | None = None) ->
                         "packaged playback backend may be missing."
                     )
                 report[f"{name}_qt_duration_ms"] = window.duration_ms
+                # The visual range must be identical to the validated
+                # duration/range used for a real FFmpeg export.
+                window.timeline._edit_boundary("start", 300)
+                window.timeline._edit_boundary("end", 1500)
+                if (round(window.start_spin.value() * 1000),
+                    round(window.end_spin.value() * 1000)) != (300, 1500):
+                    raise RuntimeError(f"Timeline-to-export sync failed for {name}")
+                extension = ".mp4" if name == "video" else ".wav"
+                timeline_plan = window._build_export(
+                    directory / f"timeline-export-{name}{extension}"
+                )
+                temp = timeline_plan.temp_output()
+                _run([ffmpeg, *timeline_plan.ffmpeg_arguments(temp)])
+                commit_export(timeline_plan, temp)
+                report[f"{name}_timeline_export_bytes"] = timeline_plan.destination.stat().st_size
+                report[f"{name}_selected_range_ms"] = [300, 1500]
+                if name == "audio":
+                    # Waveform generation is asynchronous and never blocks
+                    # media loading. Capture only after the short sample finishes.
+                    deadline = time.monotonic() + 12
+                    while window._wave_process is not None and time.monotonic() < deadline:
+                        app.processEvents()
+                        time.sleep(0.04)
             screenshot = directory / f"{name}.png"
             if not window.grab().save(str(screenshot), "PNG") or screenshot.stat().st_size < 100:
                 raise RuntimeError(f"Qt shell capture failed: {name}")
