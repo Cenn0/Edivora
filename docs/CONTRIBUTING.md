@@ -1,6 +1,6 @@
 # Edivora entwickeln und erweitern
 
-Edivora ist eine **Open-Source-Desktopanwendung** mit lokaler Foto-, Video- und Audiobearbeitung. Beiträge von Menschen und Coding-Assistenten sind willkommen, solange **Datenschutz, Dateischutz, Versionierung und nachgewiesene Funktionalität** erhalten bleiben.
+Edivora wird als **Open-Source-Desktopanwendung** mit lokaler Foto-, Video- und Audiobearbeitung entwickelt. **Das Repository ist zurzeit privat**; die unten beschriebenen Beitragswege beziehen sich auf Personen mit Repository-Zugriff, bis eine öffentliche Freigabe erfolgt. Beiträge von Menschen und Coding-Assistenten sind willkommen, solange **Datenschutz, Dateischutz, Versionierung und nachgewiesene Funktionalität** erhalten bleiben.
 
 **Verbindlich:** [AGENTS.md](../AGENTS.md). Der produktive Entwicklungsstand ist nicht mit dem alten veröffentlichten Foto-Testpaket `v0.1.0-alpha.1` gleichzusetzen. Vor einer Änderung [README](../README.md), [Architektur](ARCHITECTURE.md), [Medienprojekte](MEDIA_PROJECTS_AI.md) und [Roadmap](ROADMAP.md) lesen.
 
