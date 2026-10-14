@@ -27,6 +27,14 @@ Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte
 
 **Die Originaldatei bleibt geschützt.** Der Export verlangt ein anderes Ziel. PNG und WebP können Transparenz erhalten; bei JPEG werden transparente Stellen weiß. Die Ausgabe übernimmt keine EXIF-, GPS- oder Kommentardaten des Eingabebildes und enthält ein sRGB-Farbprofil.
 
+## Edivora: neue Oberfläche im Entwicklungsstand
+
+Die neue, **noch nicht veröffentlichte Qt-Oberfläche** folgt dem [gemeinsamen Edivora-Designsystem](docs/DESIGN_SYSTEM.md). Ein Startbereich bietet den Fotoimport und das Öffnen vorhandener Bearbeitungsprojekte. In der gemeinsamen Navigationsleiste sind **Foto** (funktional) sowie **Video** und **Audio** (ausdrücklich *geplant*, nicht bedienbar) aufgeführt. Das Foto erhält eine große Arbeitsfläche und rechts vier einfache Einstiegsaktionen: Foto verbessern, Zuschneiden/Drehen, Hintergrund weichzeichnen (lokale KI) und Hintergrund entfernen (lokale KI). Weitere Werkzeuge sind einklappbar.
+
+Die KI-Aufgaben öffnen weiterhin ihre bestehenden **Vorschau-Dialoge mit Übernehmen/Abbrechen**. Regler-, Zuschneide- und Maskenkorrekturen bleiben so lange erreichbar, wie eine Vorschau offen ist. Oben stehen Datei öffnen, Rückgängig, Wiederholen, Originalvergleich und **Exportieren**; „Projekt speichern“ bleibt im Datei-Menü und unter \`Strg+S\`. Ein abgeschlossener Bildexport erzeugt eine **neue Datei** und verändert das Original nicht. Die Oberfläche unterstützt Deutsch und Englisch; die Farben und Steuerelemente werden gemeinsam verwaltet.
+
+**Abgrenzung:** Dies ist eine Aktualisierung der aktuellen *Quellcode-Oberfläche*, nicht der bereits veröffentlichten Windows-Testalpha \`v0.1.0-alpha.1\`. Video-/Audio-Verarbeitung, eine vollständig eingebettete Bearbeitung aller Fotoeffekte ohne Dialoge, reale Usability-/Screenreader-Tests und DPI-/Windows-Abnahme sind noch ausstehend. Details: [Implementierungsstand der Oberfläche](docs/UI_IMPLEMENTATION.md).
+
 ## Neu im Quellstand: KI-Motivwerkzeuge
 
 Unter **KI-Motivwerkzeuge** oder mit **Strg+Umschalt+E** erkennt die lokale KI zunächst das Motiv. Danach kannst du den **vorhandenen Hintergrund unscharf machen**, das **Motiv aufhellen**, den **Hintergrund abdunkeln** oder **nur das Motiv farbig lassen**. Auch **auf das erkannte Motiv zuschneiden** und **mit Vorschau freistellen** stehen im selben Dialog bereit.
