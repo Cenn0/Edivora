@@ -557,7 +557,7 @@ def tool_command(tool: str) -> tuple[str, list[str]]:
 
 def media_job_command(operation: str, directory: str | Path) -> tuple[str, list[str]]:
     """Run built-in, local AI workers in the same packaged application."""
-    if operation not in ("voice", "frame"):
+    if operation not in ("voice", "frame", "transcribe"):
         raise ValueError("Unsupported media AI operation.")
     executable = _compiled_executable()
     command = ["--media-ai-job", operation, str(directory)]
@@ -588,6 +588,9 @@ def main(argv: list[str] | None = None) -> int:
         if args[1] == "frame":
             from .ai.video_frame import frame_worker
             return frame_worker(Path(args[2]), _compiled_executable())
+        if args[1] == "transcribe":
+            from .ai.transcribe import transcription_worker
+            return transcription_worker(Path(args[2]), _compiled_executable())
         return 2
     if len(args) == 2 and args[0] == "--smoke-test":
         return smoke_test(Path(args[1]))
