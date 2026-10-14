@@ -51,6 +51,7 @@ class MediaWindow(QMainWindow):
         self._cancel_requested = False
         self._wave_process: QProcess | None = None
         self._wave_data = bytearray()
+        self._wave_pixmap: QPixmap | None = None
         self._status_key = "ready"
         self._status_values: dict[str, object] = {}
         self.setMinimumSize(850, 620)
@@ -297,8 +298,14 @@ class MediaWindow(QMainWindow):
     def _translate(self) -> None:
         self.setWindowTitle(f"Edivora · {self._t(self.kind)}")
         for widget, key in self._labels:
-            # QLabel and QAbstractButton expose the same setText interface.
+            # A language switch must not erase a decoded waveform pixmap.
+            if widget is self.wave_label and self._wave_pixmap is not None:
+                continue
             widget.setText(self._t(key))
+        if self.wave_label is not None and self._wave_pixmap is not None:
+            self.wave_label.setToolTip(
+                self._t("waveform_partial") if self.duration_ms > 900_000 else ""
+            )
         if self.source is not None:
             self.file_label.setText(self.source.name)
         self._set_status(self._status_key, **self._status_values)
@@ -604,11 +611,14 @@ class MediaWindow(QMainWindow):
             process.waitForFinished(1000)
             process.deleteLater()
         self._wave_data.clear()
+        self._wave_pixmap = None
 
     def _render_waveform(self, source: Path) -> None:
         if self.wave_label is None:
             return
         self.wave_label.setText(self._t("waveform"))
+        self.wave_label.setToolTip("")
+        self._wave_pixmap = None
         try:
             engine = ffmpeg_executable(self._compiled_executable)
         except (OSError, RuntimeError):
@@ -626,8 +636,12 @@ class MediaWindow(QMainWindow):
             "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1",
         ])
         process.readyReadStandardOutput.connect(self._collect_waveform)
-        process.finished.connect(self._waveform_finished)
-        process.errorOccurred.connect(self._waveform_error)
+        process.finished.connect(
+            lambda code, status, p=process: self._waveform_finished(p, code, status)
+        )
+        process.errorOccurred.connect(
+            lambda error, p=process: self._waveform_error(p, error)
+        )
         QTimer.singleShot(30000, lambda p=process: self._waveform_timeout(p))
         process.start()
 
@@ -638,9 +652,11 @@ class MediaWindow(QMainWindow):
         if len(self._wave_data) > 5 * 1024 * 1024:
             self._wave_process.kill()
 
-    def _waveform_finished(self, code: int, _status: QProcess.ExitStatus) -> None:
-        process = self._wave_process
-        if process is None:
+    def _waveform_finished(
+        self, process: QProcess, code: int, _status: QProcess.ExitStatus
+    ) -> None:
+        # Ignore completion of a canceled job after another file was opened.
+        if self._wave_process is not process:
             return
         self._collect_waveform()
         self._wave_process = None
@@ -649,6 +665,7 @@ class MediaWindow(QMainWindow):
             return
         picture = QPixmap()
         if code == 0 and picture.loadFromData(bytes(self._wave_data), "PNG"):
+            self._wave_pixmap = picture
             self.wave_label.setPixmap(picture)
             self.wave_label.setScaledContents(True)
             if self.duration_ms > 900000:
@@ -657,9 +674,9 @@ class MediaWindow(QMainWindow):
             self.wave_label.setText(self._t("waveform_unavailable"))
         self._wave_data.clear()
 
-    def _waveform_error(self, error: QProcess.ProcessError) -> None:
-        if error == QProcess.ProcessError.FailedToStart:
-            self._waveform_finished(-1, QProcess.ExitStatus.CrashExit)
+    def _waveform_error(self, process: QProcess, error: QProcess.ProcessError) -> None:
+        if process is self._wave_process and error == QProcess.ProcessError.FailedToStart:
+            self._waveform_finished(process, -1, QProcess.ExitStatus.CrashExit)
 
     def _waveform_timeout(self, process: QProcess) -> None:
         if self._wave_process is process and process.state() != QProcess.ProcessState.NotRunning:
