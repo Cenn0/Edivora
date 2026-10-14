@@ -1,6 +1,8 @@
-# Verifikationsprotokoll
+# Verifikationsprotokoll – historische Foto-Testalpha
 
-**Der Windows-Build einschließlich aller Paketprüfungen ist erfolgreich abgeschlossen.** 69 von 69 Tests bestanden ohne Skips. Tatsächliche U2NETP-Ausführung und native Oberfläche auf Deutsch und Englisch funktionieren sowohl aus dem Quellcode als auch aus der kompilierten EXE. PNG-Import sowie PNG/JPEG/WebP-Export nach Qt-Initialisierung wurden ebenfalls bestätigt. **Ergebnis des separat heruntergeladenen Pakets unter Netzwerksperre:** Erfolgreich: echter KI-Worker und native Oberfläche mit Exit-Code 0 unter einem nachgewiesen wirksamen ausgehenden Firewallblock für die Anwendung.
+**Gültigkeitsbereich: ausschließlich `v0.1.0-alpha.1` (Foto-Release, Commit `2b1682b7…`).** Dieses Protokoll belegt **keine** Ausführung oder Freigabe des späteren Edivora-Launchers, der Video-/Audio-Mehrclip-Editoren, der neuen `.laip/.edvp/.edap`-Funktionen oder der eingebundenen Markenassets. Der neue Quellstand benötigt eigene Source-/Windows-/Offline-/Lizenznachweise.
+
+**Für den genau unten identifizierten historischen Windows-Build wurden die Paketprüfungen erfolgreich abgeschlossen.** 69 von 69 Tests bestanden ohne Skips. Tatsächliche U2NETP-Ausführung und native Oberfläche auf Deutsch und Englisch funktionieren sowohl aus dem Quellcode als auch aus der kompilierten EXE. PNG-Import sowie PNG/JPEG/WebP-Export nach Qt-Initialisierung wurden ebenfalls bestätigt. **Ergebnis des separat heruntergeladenen Pakets unter Netzwerksperre:** Erfolgreich: echter KI-Worker und native Oberfläche mit Exit-Code 0 unter einem nachgewiesen wirksamen ausgehenden Firewallblock für die Anwendung.
 
 ## Geprüfter Stand und Paketidentität
 

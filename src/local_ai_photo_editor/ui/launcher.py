@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QPushButton, QVBoxLayout, QWidget,
 )
 
+from ..branding import app_icon
 from .media_strings import text
 from .theme import stylesheet
 
@@ -61,7 +62,9 @@ class LauncherWindow(QMainWindow):
         root.setSpacing(22)
 
         header = QHBoxLayout()
-        brand_symbol = QLabel("✦")
+        brand_symbol = QLabel()
+        brand_symbol.setPixmap(app_icon().pixmap(40, 40))
+        brand_symbol.setAccessibleName("Edivora")
         brand_symbol.setObjectName("brandMark")
         header.addWidget(brand_symbol)
         header.addWidget(self._label("suite", "appName"))

@@ -1,18 +1,10 @@
 # Edivora — unified UI/UX design system
 
-**Status:** design specification from 14 October 2026. **Phase 1 is implemented in the source UI branch, with Qt/Windows verification still pending.** See [UI implementation status](UI_IMPLEMENTATION.md).  
-**Scope:** the Photo editor and limited Video/Audio MVP workspaces.
+**Status:** design system dated 14 October 2026, with an implemented shared launcher, Photo workspace and **single-lane 24-clip Video/Audio source editors**. The historical photo ZIP `v0.1.0-alpha.1` does **not** contain the new UI. Source implementation and a tested Windows-11 release are different milestones.
 
-**MVP implementation update (2026-10-14):** the application now has a
-separate start launcher and independent Qt windows for Photo, Video and Audio,
-all started by the **same executable**. This document also includes design
-aspirations beyond the implemented MVP (e.g. multitrack timelines, detailed
-timeline-based trim, Undo/Redo and video/audio AI); these should **not** be
-presented as features that already exist. See
-[MEDIA_MVP.md](MEDIA_MVP.md) for the concrete current capabilities and
-[UI_IMPLEMENTATION.md](UI_IMPLEMENTATION.md) for implementation status.  
-**Clickable preview:** [open the standalone layout prototype](prototypes/edivora-shell.html) in a local browser after saving it as an HTML file. It is an interactive design demonstration, not a functioning editor.  
-**Related work:** [task-first Photo PR #10](https://github.com/Cenn0/LocalAiPhotoEditor/pull/10) and [Edivora branding PR #11](https://github.com/Cenn0/LocalAiPhotoEditor/pull/11) remain separately open. The implementation branch reuses the task-first Photo approach; the official SVG brand assets are not yet integrated. Do not confuse source UI changes with the published `v0.1.0-alpha.1` package.
+**Implementation and design scope:** Photo editing and local foreground tools, Video/Audio trim and project timelines (`.edvp/.edap`), selected-frame U2NETP and Silero speech-activity suggestions are implemented in current source. **Multitrack overlays, transitions, full-sequence playback, subtitles/transcription and GPU acceleration remain future design ideas.** See [MEDIA_MVP.md](MEDIA_MVP.md) for actual features, [UI_IMPLEMENTATION.md](UI_IMPLEMENTATION.md) for source components, and [BRAND.md](BRAND.md) for installed SVG identity.
+
+**Interactive prototype:** [Offline HTML shell mock](prototypes/edivora-shell.html) demonstrates an **earlier design concept** only; it does not execute a real media editor. The logo assets originally proposed in [branding PR #11](https://github.com/Cenn0/Edivora/pull/11) were incorporated into the current documentation/branding implementation separately; merging that old PR without reconciling its obsolete Video/Audio claims would be incorrect.
 
 ## 1. Product experience
 
@@ -33,7 +25,7 @@ The preview/accept/cancel model, status messaging, AI handling, history and expo
 - No three unrelated executables or layouts: launch distinct processes of the same bundled application.
 - No professional editing terminology on the initial screen unless essential.
 - No default chat window dominating the editor.
-- Do not infer a rich multitrack editor, speech model or GPU capability from the limited Video/Audio MVP.
+- Do not infer rich multitrack editing, speech transcription or verified GPU execution from the current Video/Audio MVP.
 - No forced cloud account, model server, telemetry, hidden network access or automatic model download.
 - No immediate rewrite to QML, a web runtime or a new framework merely to achieve this layout.
 - No assumption that a new suite name changes old `.laip` files or historical binaries.

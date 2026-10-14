@@ -1,6 +1,6 @@
 # Projektkonzept
 
-Entscheidungsstand: 12. Oktober 2026. Dieses Dokument beschreibt die Produktentscheidung und die beabsichtigte Bedienung. Welche Teile bereits tatsächlich geprüft wurden, steht separat in [VERIFICATION.md](VERIFICATION.md).
+**Historisches Ursprungskonzept:** 12.10.2026, damals mit Fokus auf einen lokalen Fotoeditor unter dem technischen Namen `localAiPhotoEditor`. Die aktuelle Produktmarke heißt **Edivora** und der `main`-Quellcode umfasst inzwischen **Foto, Video und Audio**. Aussagen weiter unten wie „keine Projektdateien“ beschreiben die **damalige Anfangsalpha**, nicht die aktuellen `.laip/.edvp/.edap`-Quellcodefunktionen. Aktuelle Funktionen: [README](../README.md), [Medien-MVP](MEDIA_MVP.md) und [Roadmap](ROADMAP.md). Die [Verifikationsnachweise](VERIFICATION.md) gelten für das historische Foto-Release.
 
 ## 1. Das gewünschte Ergebnis
 

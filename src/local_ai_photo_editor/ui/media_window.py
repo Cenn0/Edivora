@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QSlider, QSplitter, QVBoxLayout, QWidget,
 )
 
+from ..branding import app_icon
 from ..core.media import (
     MIN_SELECTION_MS, MediaExport, commit_export, ffmpeg_executable, validate_source,
 )
@@ -108,7 +109,9 @@ class MediaWindow(QMainWindow):
         header.setObjectName("topBar")
         top = QHBoxLayout(header)
         top.setContentsMargins(18, 9, 18, 9)
-        mark = QLabel("✦")
+        mark = QLabel()
+        mark.setPixmap(app_icon().pixmap(32, 32))
+        mark.setAccessibleName("Edivora")
         mark.setObjectName("brandMark")
         top.addWidget(mark)
         brand = self._label("suite", "appName")
