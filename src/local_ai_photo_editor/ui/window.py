@@ -165,6 +165,7 @@ class EditorWindow(QMainWindow):
 
         self.open_button = self._button("open", self.open_photo)
         self.save_project_button = self._button("save_project", self.save_project)
+        self.save_project_button.setParent(top_bar)
         # Editable projects stay reachable from File / Ctrl+S. Avoid a
         # second, competing primary save action beside media export.
         self.save_project_button.hide()
