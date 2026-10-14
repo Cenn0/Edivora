@@ -2,6 +2,8 @@
 
 # Edivora
 
+**Language:** Deutsch (dieses README) · [English README](README.en.md)
+
 **Foto, Video und Audio einfach bearbeiten – mit ausgewählten lokalen KI-Funktionen.** Edivora ist ein kostenloses Open-Source-Projekt für gelegentliche Bearbeitung ohne Konto, Modellserver oder Cloud-Verarbeitung. Die Oberfläche ist auf **Deutsch und Englisch** verfügbar.
 
 ![Edivora Photo, Video und Audio](src/local_ai_photo_editor/assets/edivora-banner.svg)
