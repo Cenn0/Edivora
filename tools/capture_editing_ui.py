@@ -76,6 +76,18 @@ def main() -> int:
             if not window.grab().save(str(main_path)):
                 raise RuntimeError("Could not save the editor screenshot")
             files.append(main_path.name)
+            # Capture the default calm layout and the optional advanced tools.
+            window.more_tools_button.click()
+            QTest.qWait(60)
+            if window.more_tools_panel.isHidden():
+                raise RuntimeError("Expanded precision controls are hidden")
+            advanced_path = args.output / f"editor-advanced-{language}.png"
+            if not window.grab().save(str(advanced_path)):
+                raise RuntimeError("Could not save the expanded editor screenshot")
+            files.append(advanced_path.name)
+            window.more_tools_button.click()
+            if not window.more_tools_panel.isHidden():
+                raise RuntimeError("Advanced controls did not collapse")
             for section, recipe in scenes.items():
                 dialog = EditingDialog(subject, language, section, window)
                 try:
