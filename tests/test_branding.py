@@ -42,3 +42,18 @@ class BrandIdentityTests(unittest.TestCase):
         self.assertFalse(icon.isNull())
         self.assertFalse(icon.pixmap(64, 64).isNull())
         self.assertGreater(icon.pixmap(64, 64).toImage().pixelColor(64//2, 64//2).alpha(), 0)
+
+@unittest.skipUnless(importlib.util.find_spec("PySide6"), "Qt is unavailable")
+class BrandingBuildTests(unittest.TestCase):
+    def test_windows_icon_is_derived_from_local_svg(self) -> None:
+        from tempfile import TemporaryDirectory
+        from PIL import Image
+        from tools.brand_assets import build_windows_icon
+
+        with TemporaryDirectory() as directory:
+            icon = build_windows_icon(mark_path(), Path(directory))
+            self.assertEqual(icon.name, "Edivora.ico")
+            self.assertTrue(icon.is_file())
+            with Image.open(icon) as image:
+                self.assertEqual(image.format, "ICO")
+                self.assertIn((256, 256), image.ico.sizes())
