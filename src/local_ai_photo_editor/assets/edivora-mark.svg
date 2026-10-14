@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Edivora icon">
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4FF3D3"/><stop offset="1" stop-color="#18B9C6"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7792FF"/><stop offset="1" stop-color="#4E56E9"/></linearGradient>
+    <linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#C98CFF"/><stop offset="1" stop-color="#8759E9"/></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="122" height="122" rx="30" fill="#171B2D"/>
+  <path d="M25 49C32 28 54 18 75 23c11 2 21 8 28 17" fill="none" stroke="url(#a)" stroke-width="17" stroke-linecap="round"/>
+  <path d="M103 40c13 17 15 38 3 56-4 6-9 11-16 15" fill="none" stroke="url(#b)" stroke-width="17" stroke-linecap="round"/>
+  <path d="M90 111c-18 10-43 7-58-8C14 86 14 66 25 49" fill="none" stroke="url(#c)" stroke-width="17" stroke-linecap="round"/>
+  <path d="M51 43.5c0-4.6 5.2-7.4 9.2-5L90 56c4 2.4 4 8.2 0 10.6L60.2 84C56.2 86.4 51 83.6 51 79Z" fill="#F5F4FF"/>
+  <path d="M62 53.5 76 62 62 70.5Z" fill="#7772EF"/>
+</svg>
