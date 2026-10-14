@@ -1,25 +1,41 @@
-localAiPhotoEditor - Entwicklungsversion 0.1.0 alpha
+Edivora - Foto, Video und Audio (Entwicklungsstand 0.2.0 alpha)
 
 STARTEN
-1. Das gesamte ZIP-Archiv in einen normalen lokalen Ordner entpacken.
-2. LocalAiPhotoEditor.exe doppelt anklicken.
-3. Foto oeffnen, bearbeiten und als neue Datei exportieren.
+1. Das gesamte ZIP in einen lokalen Ordner entpacken.
+2. LocalAiPhotoEditor.exe doppelt anklicken (der Programmname wird spaeter Edivora.exe).
+3. Im Edivora-Startfenster Foto, Video oder Audio waehlen.
+4. Fuer mehrere Programme die passenden Checkboxen ankreuzen und
+   "Ausgewaehlte Werkzeuge oeffnen" waehlen (einzeln, zu zweit oder alle drei).
+5. Jedes Programm oeffnet sich in einem eigenen, unabhaengigen Fenster.
+   Der Launcher kann fuer weitere Fenster offen bleiben.
 
-Alle Unterordner gehoeren zum Programm. Die EXE nicht einzeln verschieben.
-Python, Docker, CUDA, ein Konto und ein API-Schluessel sind nicht erforderlich.
-Das mitgelieferte KI-Modell entfernt Hintergruende auf dem eigenen Rechner.
-Die App laedt keine Modelle nach und sendet keine Bilder an einen Server.
+Zum direkten Start per Kommandozeile:
+  LocalAiPhotoEditor.exe --tool photo
+  LocalAiPhotoEditor.exe --tool video
+  LocalAiPhotoEditor.exe --tool audio
 
-Dies ist eine unsignierte Entwicklungsversion fuer Windows x64. Ein bestandener
-Build ist noch keine vollstaendige Freigabe fuer jeden Windows-11-Rechner.
-Die dokumentierten Tests und offenen Grenzen stehen in docs/VERIFICATION.md.
+ENTHALTENE FUNKTIONEN
+- Foto: bestehender Photo-Editor, Bildbearbeitung, lokale KI-Motivauswahl.
+- Video: eine Datei oeffnen, ansehen, Bereich schneiden, Audio-Lautstaerke
+  bzw. Stummschaltung, neues MP4 exportieren.
+- Audio: eine Datei oeffnen, anhoeren, Bereich schneiden, Lautstaerke,
+  Pegelausgleich und Fades, neue WAV- oder MP3-Datei exportieren.
 
-BEDIENUNG
-- Helligkeit, Kontrast und Saettigung erst als Vorschau einstellen, dann anwenden.
-- Vorher/Nachher vergleichen und Schritte bei Bedarf rueckgaengig machen.
-- PNG oder WebP verwenden, um Transparenz zu behalten. JPEG erhaelt Weiss.
-- Das urspruengliche Foto bleibt erhalten. Ein neues Exportziel waehlen.
+Die Originaldateien werden nicht bearbeitet. Exportiere immer in eine
+andere Datei. Video und Audio haben noch keine Mehrspur-Timeline, keine
+Projektdateien und keine KI-Modelle. Mehr: docs/MEDIA_MVP.md.
 
-Die Anwendung verwendet Qt/PySide6 und weitere quelloffene Komponenten.
-Lizenztexte: third-party-licenses/ und THIRD_PARTY_NOTICES.md.
-Projekt und Quellcode: https://github.com/Cenn0/LocalAiPhotoEditor
+WICHTIG
+Das Paket ist als Ordner organisiert. Die EXE nicht einzeln verschieben:
+Qt-DLLs, das lokale FFmpeg in media-tools/ und das Foto-KI-Modell
+gehoeren dazu. Python, Docker, eine externe FFmpeg-Installation,
+ein Konto und ein API-Schluessel sind nicht erforderlich.
+Es wird nichts zur Bearbeitung in die Cloud geschickt.
+
+Dies ist eine unsignierte Entwicklungsversion fuer Windows x64. Paket-
+und Codec-Tests auf einem frischen Windows 11 sind noch erforderlich.
+Die Media- und FFmpeg-Lizenzbedingungen muessen vor breiter Weitergabe
+geprueft werden. Verbindliche Testergebnisse je Build in
+verification/ oder docs/VERIFICATION.md.
+Lizenztexte: third-party-licenses/, THIRD_PARTY_NOTICES.md.
+Quellcode: https://github.com/Cenn0/LocalAiPhotoEditor
