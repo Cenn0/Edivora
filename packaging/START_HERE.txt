@@ -1,4 +1,4 @@
-Edivora - Foto, Video und Audio (Entwicklungsstand 0.3.0 alpha)
+Edivora - Foto, Video und Audio (Entwicklungsstand 0.4.0 alpha)
 
 STARTEN
 1. Das gesamte ZIP in einen lokalen Ordner entpacken.
@@ -13,6 +13,18 @@ Zum direkten Start per Kommandozeile:
   LocalAiPhotoEditor.exe --tool photo
   LocalAiPhotoEditor.exe --tool video
   LocalAiPhotoEditor.exe --tool audio
+
+NEU: LOKALE KI-MODELLWAHL
+- In Foto, Video und Audio oben "KI-Modelle ..." oeffnen.
+- Automatik waehlt nach RAM/CPU und dem jeweiligen Anwendungszweck.
+- Vier mitgelieferte Modellfamilien: U2NETP, IS-Net General Use,
+  Silero VAD und Whisper Tiny Multilingual.
+- Bild und Video-Standbild: U2NETP schnell / IS-Net detailorientiert.
+- Audio und Videoton: Whisper Tiny transkribiert in TXT oder SRT.
+  SRT hat nur grobe Zeitsegmente, nicht genaue Wortgrenzen.
+- Modelle laufen derzeit lokal auf der CPU, GPU ist noch nicht freigegeben.
+- Keine Modelldownloads beim Start oder Bearbeiten.
+- Vollstaendiges Paket/Version 0.4 mit neuen Modelldateien erforderlich.
 
 NEU IM MEDIA-MVP
 - Bis zu 24 Clips pro Audio-/Videoprojekt in einer einfachen Spur;
