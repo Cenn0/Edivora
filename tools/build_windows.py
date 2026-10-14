@@ -23,6 +23,17 @@ def main() -> int:
     if sys.platform != "win32" or platform.machine().upper() not in ("AMD64", "X86_64"):
         raise SystemExit("Build this package on 64-bit Windows with 64-bit Python 3.12.")
     verified_model_bytes()
+    import imageio_ffmpeg
+    ffmpeg_binary = Path(imageio_ffmpeg.get_ffmpeg_exe()).resolve()
+    if not ffmpeg_binary.is_file():
+        raise RuntimeError("The pinned FFmpeg wheel does not contain a local executable.")
+    codec_listing = subprocess.check_output(
+        [str(ffmpeg_binary), "-hide_banner", "-encoders"],
+        text=True, timeout=20,
+    )
+    for codec in ("mpeg4", "aac", "pcm_s16le", "libmp3lame"):
+        if not any(line.split()[1:2] == [codec] for line in codec_listing.splitlines()):
+            raise RuntimeError(f"Bundled FFmpeg is missing the MVP encoder: {codec}")
     build = ROOT / "build"
     build.mkdir(exist_ok=True)
     notices = build / "third-party-licenses"
@@ -31,7 +42,7 @@ def main() -> int:
     environment["PYTHONPATH"] = str(ROOT / "src")
     command = [
         sys.executable, "-m", "nuitka", "--mode=standalone",
-        "--enable-plugin=pyside6", "--include-qt-plugins=platforms,imageformats",
+        "--enable-plugin=pyside6", "--include-qt-plugins=platforms,imageformats,multimedia",
         "--include-package=local_ai_photo_editor", "--include-package=onnxruntime.capi",
         "--include-package-data=onnxruntime", "--assume-yes-for-downloads",
         "--msvc=latest", "--lto=no", "--windows-console-mode=disable",
@@ -50,16 +61,31 @@ def main() -> int:
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(compiled, destination)
     shutil.copytree(notices, destination / "third-party-licenses")
+    media_tools = destination / "media-tools"
+    media_tools.mkdir()
+    shutil.copy2(ffmpeg_binary, media_tools / "ffmpeg.exe")
+    shutil.copy2(ROOT / "docs" / "qt-licenses" / "GPL-3.0-only.txt",
+                 media_tools / "GPL-3.0-license.txt")
+    # This FFmpeg command-line binary is distinct from Qt's playback backend.
+    subprocess.run([str(media_tools / "ffmpeg.exe"), "-version"], check=True, timeout=20,
+                   stdout=subprocess.DEVNULL)
+
     for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
         shutil.copy2(ROOT / name, destination / name)
     shutil.copy2(ROOT / "packaging" / "START_HERE.txt", destination / "START_HERE.txt")
     shutil.copytree(ROOT / "docs", destination / "docs")
     (destination / "build-info.json").write_text(json.dumps({
-        "version": "0.1.0a1",
+        "version": "0.2.0a1",
         "commit": os.environ.get("GITHUB_SHA", "local-build"),
         "python": platform.python_version(),
         "platform": platform.platform(),
         "model_sha256": MODEL_SHA256,
+        "media_binary_sha256": hashlib.sha256(
+            (destination / "media-tools" / "ffmpeg.exe").read_bytes()
+        ).hexdigest(),
+        "media_engine": "imageio-ffmpeg 0.6.0 standalone binary",
+        "media_license_review": "Required before wider redistribution",
+
         "provider": "CPUExecutionProvider",
         "release_channel": "unsigned-development-alpha",
     }, indent=2), encoding="utf-8")
