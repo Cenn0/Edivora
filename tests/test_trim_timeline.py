@@ -151,6 +151,30 @@ class TrimTimelineQtTests(unittest.TestCase):
                         w.deleteLater()
                         self.app.processEvents()
 
+    def test_waveform_image_survives_language_changes(self) -> None:
+        from PySide6.QtGui import QPixmap
+        from local_ai_photo_editor.ui.media_window import MediaWindow
+
+        w = MediaWindow("audio")
+        w.show()
+        self.app.processEvents()
+        try:
+            preview = QPixmap(32, 12)
+            preview.fill(self.Qt.GlobalColor.white)
+            w._wave_pixmap = preview
+            w.wave_label.setPixmap(preview)
+            w.duration_ms = 901_000
+            w.language_combo.setCurrentIndex(1)
+            self.assertFalse(w.wave_label.pixmap().isNull())
+            self.assertIn("first 15 minutes", w.wave_label.toolTip())
+            w.language_combo.setCurrentIndex(0)
+            self.assertFalse(w.wave_label.pixmap().isNull())
+            self.assertIn("ersten 15 Minuten", w.wave_label.toolTip())
+        finally:
+            w.close()
+            w.deleteLater()
+            self.app.processEvents()
+
     def test_fade_duration_invalidates_a_short_audio_range(self) -> None:
         from local_ai_photo_editor.ui.media_window import MediaWindow
 
