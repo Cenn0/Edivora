@@ -286,7 +286,7 @@ class SequenceWindow(MediaWindow):
                 item = QListWidgetItem(title)
                 item.setData(Qt.ItemDataRole.UserRole, clip.id)
                 item.setToolTip(f"{clip.source.name} · {clock(clip.length_ms)}")
-                 self.clip_list.addItem(item)
+                self.clip_list.addItem(item)
                 if clip.id == self.active_id:
                     self.clip_list.setCurrentItem(item)
         self._update_project_heading()
