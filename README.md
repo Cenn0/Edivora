@@ -1,129 +1,148 @@
-# localAiPhotoEditor
+# LocalAiPhotoEditor
 
-Ein einfacher Fotoeditor mit lokaler KI: Foto öffnen, bearbeiten, den Hintergrund entfernen und eine neue Bilddatei speichern. Deine Fotos bleiben dabei auf deinem Computer.
+**Fotos einfach bearbeiten – mit lokaler KI, ohne Benutzerkonto oder Cloud-Dienst.** Öffne ein Bild, passe es an, entferne den Hintergrund und speichere das Ergebnis als neue Datei. Die laufende Anwendung benötigt weder einen Modellserver noch einen API-Schlüssel; Bildverarbeitung und KI-Inferenz finden lokal statt.
 
-**Geprüfte portable Testalpha für Windows x64.** Das vollständige portable ZIP enthält die Anwendung, ihre Laufzeit und das Standardmodell. Eine separate Python-, CUDA- oder Modellserver-Einrichtung gehört nicht zum vorgesehenen Start. Die Alpha ist **unsigniert** und noch keine stabile Endnutzer-Version.
+[Deutsch](README.md) · [English](README.en.md) · [Für Mitwirkende](CONTRIBUTING.md) · [Mit KI entwickeln](docs/AI_WORKFLOW.md)
 
-Bestätigt sind **69 erfolgreiche Windows-Tests** sowie echte KI-Ausführung und eine funktionierende deutsche und englische Oberfläche sowohl aus dem Quellcode als auch aus der kompilierten Anwendung. Der Pakettest umfasst außerdem Bildimport und PNG/JPEG/WebP-Export nach dem Start der Oberfläche. **Separate Offline-Prüfung:** KI-Worker und Oberfläche bestanden auch die Prüfung des heruntergeladenen Pakets mit gesperrtem ausgehendem Netzwerkzugriff der Anwendung auf Windows Server 2022. Nachweise und Grenzen stehen im [Verifikationsprotokoll](docs/VERIFICATION.md); Aufnahmen der geprüften Paketoberfläche gibt es auf [Deutsch](docs/screenshots/ui-smoke-de.png) und [Englisch](docs/screenshots/ui-smoke-en.png).
+> **Status: frühe Entwicklung.** Das portable Windows-Paket `v0.1.0-alpha.1` ist eine **unsignierte Test-Alpha**, keine stabile Freigabe. Der aktuelle Quellcode auf `main` enthält zusätzliche Funktionen, die **nicht** im veröffentlichten ZIP stecken. Die dokumentierten Prüfungen der Alpha gelten nur für deren identifizierten Build. Details: [Verifikationsprotokoll](docs/VERIFICATION.md).
 
-## Start in drei Schritten
+![Geprüfte deutsche Oberfläche der Windows-Test-Alpha](docs/screenshots/ui-smoke-de.png)
 
-1. **[Download](https://github.com/Cenn0/LocalAiPhotoEditor/releases/download/v0.1.0-alpha.1/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip)**: Lade `LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip` herunter. [Informationen zur Vorabversion](https://github.com/Cenn0/LocalAiPhotoEditor/releases/tag/v0.1.0-alpha.1).
-2. **Entpacke das gesamte ZIP** in einen lokalen Ordner. Das Archiv enthält den obersten Ordner `LocalAiPhotoEditor/` mit der Anwendung und allen benötigten Unterordnern.
-3. Öffne den entpackten Ordner `LocalAiPhotoEditor` und starte darin `LocalAiPhotoEditor.exe`. Öffne ein Foto, wähle eine Bearbeitung und exportiere das Ergebnis unter einem neuen Dateinamen.
+## Was möchtest du machen?
 
-Die Prüfsumme des Downloads steht im separaten Release-Asset `SHA256SUMS.txt` derselben Vorabveröffentlichung.
-
-Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte Testrechner verwendet Windows Server 2022. Eine vollständige Abnahme auf einer frischen Windows-11-Installation ohne Entwicklungswerkzeuge steht noch aus.
-
-## Funktionen der Alpha
-
-- JPEG-, PNG- und WebP-Fotos öffnen.
-- Helligkeit, Kontrast und Farbsättigung mit einer Vorschau einstellen und anschließend anwenden.
-- Fotos drehen, zuschneiden und ihre Größe ändern.
-- Den Hintergrund mit einem mitgelieferten lokalen KI-Modell entfernen.
-- Original und Ergebnis vergleichen; Änderungen rückgängig machen oder wiederholen.
-- PNG, JPEG oder WebP exportieren; die Oberfläche auf Deutsch oder Englisch verwenden.
-
-**Die Originaldatei bleibt geschützt.** Der Export verlangt ein anderes Ziel. PNG und WebP können Transparenz erhalten; bei JPEG werden transparente Stellen weiß. Die Ausgabe übernimmt keine EXIF-, GPS- oder Kommentardaten des Eingabebildes und enthält ein sRGB-Farbprofil.
-
-## Neu im Quellstand: KI-Motivwerkzeuge
-
-Unter **KI-Motivwerkzeuge** oder mit **Strg+Umschalt+E** erkennt die lokale KI zunächst das Motiv. Danach kannst du den **vorhandenen Hintergrund unscharf machen**, das **Motiv aufhellen**, den **Hintergrund abdunkeln** oder **nur das Motiv farbig lassen**. Auch **auf das erkannte Motiv zuschneiden** und **mit Vorschau freistellen** stehen im selben Dialog bereit.
-
-Du brauchst für die Hintergrund-Unschärfe kein zweites Hintergrundfoto. Die Erkennung läuft einmal pro geöffnetem KI-Bearbeitungsbereich; beim Wechseln der Effekte wird dieselbe Auswahl weiterverwendet. Über **KI-Auswahl anzeigen** lässt sich die Auswahl als violette Markierung kontrollieren. Stärke, weiche Kante und beim Zuschnitt der Rand sind einstellbar. Erst **Übernehmen** legt einen rückgängig machbaren Schritt an; **Abbrechen** verwirft die Vorschau.
-
-**Was daran KI ist:** Das bereits mitgelieferte U2NETP-Modell erkennt die Motivbereiche. Die anschließenden Effekte sind lokale Bildoperationen. Es gibt kein neues Modell, keine zusätzliche Einrichtung und keine generative Rekonstruktion. Die Auswahl kann weiterhin Fehler machen, insbesondere an Haaren, Glas und ähnlichen Vorder-/Hintergrundfarben. Farb- und Hintergrundeffekte erhalten die ursprüngliche Transparenz; Freistellen und Zuschneiden verändern sie beziehungsweise die Bildgröße gezielt.
-
-**Bereitstellung:** Diese Erweiterung gehört zum neueren Entwicklungsstand, **nicht zum oben verlinkten `v0.1.0-alpha.1`-ZIP**. Details, Prüfablauf und Grenzen: [Lokale KI-Motivwerkzeuge](docs/AI_SUBJECT_TOOLS.md).
-
-## Neu im Quellstand: Mehr Werkzeuge, einfach bedienbar
-
-Unter **Weitere Werkzeuge** oder mit **Strg+E** öffnet sich ein gemeinsamer Bearbeitungsbereich mit vier übersichtlichen Reitern:
-
-| Bereich | Möglichkeiten |
+| Dein Ziel | Hier starten |
 | --- | --- |
-| **Licht & Farbe** | Sanfter Verbesserungsvorschlag, heller/dunkler, dunkle Stellen aufhellen, helle Stellen abdunkeln, wärmere/kühlere Farben, Farbstärke, Kontrast und Details schärfen. |
-| **Looks** | Natürlich, Kräftig, Sanft, Warm, Schwarz-Weiß und Sepia mit einstellbarer Stärke; Bildränder weich abdunkeln. |
-| **Ausschnitt** | Feste Formate 1:1, 4:3, 3:2, 16:9, 4:5 und 9:16, Ausschnitt verschieben, horizontal/vertikal spiegeln und in 90°-Schritten drehen. |
-| **Hintergrund** | Nach dem Freistellen eine Farbe oder ein eigenes lokales Foto einsetzen; nur das gewählte Hintergrundfoto weichzeichnen. |
+| **Das Programm ausprobieren**, ohne zu programmieren | [Windows-Alpha installieren](#1-programm-ausprobieren) |
+| **Selbst eine kleine Änderung umsetzen**, auch mit wenig Programmiererfahrung | [Entwicklungsstart](#2-am-quellcode-arbeiten) und [CONTRIBUTING.md](CONTRIBUTING.md) |
+| **Mit ChatGPT, Codex oder einem anderen Coding-Agenten mitentwickeln** | [KI-Schnellstart](#3-mit-ki-weiterentwickeln) |
+| **Die Technik verstehen** | [Projektaufbau](#projektaufbau) und [Architektur](docs/ARCHITECTURE.md) |
 
-Du siehst zuerst eine **Vorschau**, kannst den vorherigen Stand vergleichen und einzelne Regler, einen Bereich oder alles zurücksetzen. Erst **Übernehmen** legt einen neuen, rückgängig machbaren Bearbeitungsschritt an. **Abbrechen** lässt den bisherigen Stand unverändert. Die Berechnung in voller Bildgröße läuft in einem abbrechbaren Hintergrund-Thread.
+## 1. Programm ausprobieren
 
-Die Regler haben verständliche Beschriftungen, kurze Erklärungen und sichtbare Werte. Es werden keine zusätzlichen Modelle, Konten oder Server benötigt. „Sanft verbessern“ ist eine klassische Bildkorrektur, keine generative KI. Ein Hintergrund lässt sich nur ersetzen, wenn das Bild bereits transparente Stellen enthält.
+Die erste Zielplattform ist **Windows 11 x64**. Die vorhandenen automatisierten Paketprüfungen liefen jedoch auf **Windows Server 2022**; eine vollständige Abnahme auf einem frischen Windows-11-Rechner steht aus.
 
-**Wichtig:** Auch diese Werkzeuge sind **Quellcodefunktionen nach `v0.1.0-alpha.1`**, nicht Bestandteil des oben verlinkten alten ZIPs. Kleine Unterschiede zwischen verkleinerter Vorschau und voller Auflösung sind möglich. Projektdateien speichern die angenommenen Bildstände, nicht nachträglich editierbare Einstellungsebenen. Anleitung, Umsetzung und Grenzen: [Geführte Bildbearbeitung](docs/EDITING_TOOLS.md).
+1. [Portables ZIP der Alpha herunterladen](https://github.com/Cenn0/LocalAiPhotoEditor/releases/download/v0.1.0-alpha.1/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip) ([Release-Informationen](https://github.com/Cenn0/LocalAiPhotoEditor/releases/tag/v0.1.0-alpha.1)).
+2. Das **gesamte Archiv** in einen lokalen Ordner entpacken. Die Unterordner müssen bei der Anwendung bleiben.
+3. `LocalAiPhotoEditor/LocalAiPhotoEditor.exe` öffnen, ein Foto auswählen und unter **einem neuen Dateinamen** exportieren.
 
-## Neu im Quellstand nach v0.1.0-alpha.1: Bearbeitungsprojekte
+Für dieses Paket sind **Python, CUDA, Docker und ein Modell-Download nicht nötig**. Das Modell ist im vollständigen Paket enthalten. Zur Integritätsprüfung steht beim Release eine separate `SHA256SUMS.txt` bereit. Das Repository ist derzeit privat; Zugriff auf Release und Quellcode erfordert eine entsprechende GitHub-Berechtigung.
 
-Der neue Quellstand kann Bearbeitungen als **lokale `.laip`-Projektdatei** speichern und später wieder öffnen. Gesichert werden das unveränderte Original, der angenommene Bearbeitungsstand und die noch im Verlauf verfügbaren Undo/Redo-Bilder. Über **Datei → Projekt speichern (Strg+S)** und **Datei → Projekt öffnen** kannst du die Bearbeitung fortsetzen. Ein Projekt kann auch in das Fenster gezogen werden.
+**Funktionsumfang des veröffentlichten ZIPs:** JPEG/PNG/WebP-Import, grundlegende Licht- und Farbanpassungen, Drehen/Zuschneiden/Skalieren, lokale KI-Hintergrundentfernung, Vorher/Nachher, Undo/Redo und Export auf Deutsch oder Englisch.
 
-Beim Speichern bleibt die ursprüngliche Fotodatei unverändert; das Projekt benötigt keinen Modellserver und legt keine ursprünglichen absoluten Bilddateipfade ab. Nach dem erneuten Öffnen wird zum Schutz des unbekannten Originalpfads nur der Export auf einen **neuen Dateinamen** erlaubt. Die genauen Formatgrenzen und Sicherheitsprüfungen stehen unter [Projektdateiformat](docs/PROJECT_FORMAT.md).
+**Schutz des Originals:** Die Anwendung verhindert den Export über die importierte Originaldatei. PNG/WebP können Transparenz erhalten; JPEG ersetzt transparente Stellen durch Weiß. Exporte übernehmen keine ursprünglichen EXIF-/GPS-/Kommentardaten.
 
-**Wichtig:** Diese Entwicklung ist **noch nicht Bestandteil** des bereits veröffentlichten portablen `v0.1.0-alpha.1`-ZIPs. Bis CI- und Paketprüfungen erfolgreich abgeschlossen sind, ist sie als Quellcodefunktion zu betrachten. Die weiter unten beschriebenen Alpha-Nachweise gelten nur für den veröffentlichten Paketstand.
+## Welcher Funktionsstand ist gemeint?
 
-## Neu im Quellstand: Manuelle Maskenkorrektur
+| Funktion | Veröffentlichtes Alpha-ZIP | Aktueller `main`-Quellcode |
+| --- | :---: | :---: |
+| Grundlegende Fotobearbeitung und Export | Ja | Ja |
+| Lokales U2NETP-Modell für Hintergrundentfernung | Ja | Ja |
+| Geführte Werkzeuge für Licht, Looks, Ausschnitt und Hintergrund | Nein | Ja |
+| KI-Motivwerkzeuge (z. B. Hintergrund unscharf, Motiv aufhellen) | Nein | Ja |
+| Manuelle Korrektur der Transparenzmaske | Nein | Ja |
+| Lokale Projekte als `.laip` speichern/öffnen | Nein | Ja |
+| Generative Bearbeitung per Texteingabe, GPU-Support | Nein | Nein |
 
-Im neueren Quellstand kannst du nach der lokalen KI-Freistellung fehlende Motivteile **wieder sichtbar machen** oder verbliebene Hintergrundreste mit einem Pinsel **transparent entfernen**. Pinselgröße und weiche Kante sind einstellbar. Die Änderungen werden zuerst nur in einer Vorschau gezeigt. Pinselzüge lassen sich dort einzeln zurücknehmen; erst „Korrektur übernehmen“ legt einen neuen Undo/Redo-Schritt an.
+**Wichtig:** Funktionen in offenen Pull Requests oder anderen Branches sind **nicht automatisch Teil von `main`**. „Im Quellcode vorhanden“ bedeutet außerdem noch nicht „in einem neu getesteten Windows-Paket veröffentlicht“. Die [Roadmap](docs/ROADMAP.md) unterscheidet implementierte Arbeiten und geplante Funktionen.
 
-Die Korrektur verändert **nur die Transparenz (Alpha)**, nicht die RGB-Farben. Sie generiert keine fehlenden Bilddetails und entfernt keine Hintergrundfarbsäume aus Haaren. Bei bereits vor der KI vorhandener Transparenz kann „Wiederherstellen“ Bereiche stärker sichtbar machen als ursprünglich. Details und technische Grenzen: [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md).
+Weitere Erklärungen: [Geführte Werkzeuge](docs/EDITING_TOOLS.md) · [KI-Motivwerkzeuge](docs/AI_SUBJECT_TOOLS.md) · [Maskenkorrektur](docs/MASK_REFINEMENT.md) · [Projektdateien](docs/PROJECT_FORMAT.md).
 
-**Bereitstellung:** Diese Funktion und die Projektdateien sind im neuesten Quellcode implementiert, **nicht** im veröffentlichten `v0.1.0-alpha.1`-ZIP. Aktuelle Testnachweise für diese Funktionen sind von denen der veröffentlichten Vorabversion zu unterscheiden.
+## 2. Am Quellcode arbeiten
 
-## Das lokale Standardmodell
+**Du brauchst:** Git, Python **3.12** und eine Internetverbindung für das einmalige Installieren der Entwicklungsabhängigkeiten. Python 3.12 ist die getestete CI-Version; die in `pyproject.toml` erlaubte Versionsspanne ist keine Zusage, dass jede Plattform und Kombination bereits geprüft wurde.
 
-**U2NETP** erkennt den Vordergrund und erstellt eine Freistellmaske. Das kompakte Modell läuft über **ONNX Runtime auf der CPU** und wird im vollständigen Paket mitgeliefert. Beim Laden werden seine festgelegte Dateigröße und sein SHA-256 geprüft. Die App lädt fehlende Modelle nicht selbst nach.
-
-Die Maske verändert die Transparenz, während die ursprünglichen RGB-Pixel erhalten bleiben. Gesicht oder Kleidung werden nicht neu gezeichnet. Gerade bei Haaren, Fell, Glas und ähnlichen Vorder- und Hintergrundfarben können fehlerhafte Ränder oder fehlende Bildbereiche entstehen. Es gibt noch keine veröffentlichte Qualitätsmessung. Herkunft, Prüfsummen, Lizenzabgrenzung und spätere Modellkandidaten stehen in [MODELS.md](docs/MODELS.md).
-
-Die Anwendung hat keine Konten, Cloud-Anbindung, Analyseberichte oder automatischen Laufzeit-Updates. KI-Aufträge laufen in einem eigenen lokalen Prozess. Das Herstellen und Herunterladen des vollständigen Pakets benötigt Internetzugriff; die Bildbearbeitung ist für den lokalen Betrieb ausgelegt.
-
-Temporäre Auftragsdateien liegen lokal. Nach einem erzwungenen Prozess- oder Systemabbruch können Reste zurückbleiben. Wählst du einen synchronisierten Ordner als Exportziel, kann dessen Synchronisierungsdienst die Datei übertragen.
-
-## Technologie und Architektur
-
-| Baustein | Aufgabe |
-| --- | --- |
-| Python 3.12 | Anwendungslogik und Verbindung der Komponenten |
-| PySide6 6.12 / Qt Widgets | Desktopoberfläche auf Deutsch und Englisch |
-| Pillow und NumPy | Bildimport, Farbverarbeitung, Anpassungen und Export |
-| ONNX Runtime CPU + U2NETP | Lokale Hintergrundentfernung und Motivauswahl |
-| Nuitka 4.2.2 | Vollständiges Windows-Paket mit eingebundener Laufzeit |
-
-Die Bildlogik ist von Oberfläche und KI getrennt. Ein eigener KI-Prozess hält die Oberfläche bedienbar und ermöglicht den Abbruch eines Auftrags. Python und Qt halten diese erste Version in einer Anwendungssprache; der Vergleich mit Tauri/Rust und C# sowie die Gründe für diese Wahl stehen im [Projektkonzept](docs/CONCEPT.md). Die konkrete Aufteilung beschreibt die [Architektur](docs/ARCHITECTURE.md).
-
-## Ehrliche Grenzen
-
-- Unterstützt werden passende **8-Bit-Einzelbilder bis 40 Millionen Pixel**. RAW-, 16-Bit-, animierte und mehrseitige Dateien gehören nicht zur Alpha.
-- Die EXIF-Ausrichtung wird berücksichtigt. Gültige eingebettete Farbprofile werden nach sRGB umgerechnet; ungültige oder nicht unterstützte Profile werden abgelehnt. RGB-, Graustufen- und Palettenbilder ohne Profil gelten als sRGB. CMYK und LAB benötigen ein gültiges eingebettetes Profil.
-- Der Verlauf liegt im Arbeitsspeicher und ist begrenzt. Große Fotos behalten weniger rückgängig machbare Schritte; das Original bleibt während der Bearbeitung verfügbar.
-- Die veröffentlichte Alpha bietet weder Projektdateien, manuelle Maskenkorrektur, die geführten Werkzeuge noch die neuen KI-Motiveffekte. Diese Funktionen sind im neueren Entwicklungsstand implementiert; Ebenen, Bearbeitung durch Textanweisungen und generatives Entfernen einzelner Objekte fehlen weiterhin.
-- GPU-Betrieb, Mindest-RAM, garantierte Geschwindigkeit, macOS- und Linux-Pakete sind noch nicht freigegeben. Signierung, umfassende Bedienprüfungen und die frische Windows-11-Abnahme bleiben offen.
-
-## Am Quellcode arbeiten
-
-Für die Entwicklung mit Python 3.12 im Repository-Hauptverzeichnis unter Windows:
+Unter **Windows/PowerShell** im Repository:
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\python -m pip install -e .
-.venv\Scripts\python tools\prepare_model.py
-.venv\Scripts\python -m local_ai_photo_editor
+git clone https://github.com/Cenn0/LocalAiPhotoEditor.git
+cd LocalAiPhotoEditor
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+.\.venv\Scripts\python.exe -m local_ai_photo_editor
 ```
 
-Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. `prepare_model.py` ist ein Werkzeug für Entwicklung und Paketvorbereitung; die Anwendung ruft es nicht auf. Direkte Abhängigkeiten sind in [pyproject.toml](pyproject.toml) festgelegt. Prüfkommandos und die unterschiedlichen Aussagen von Unit-, Modell- und Pakettests stehen in [VERIFICATION.md](docs/VERIFICATION.md).
+Damit startet die Desktopanwendung aus dem aktuellen Quellcode. Für KI-Funktionen musst du das festgelegte Modell bei der **Entwicklung** einmal ausdrücklich vorbereiten:
 
-## Dokumentation und Lizenz
+```powershell
+.\.venv\Scripts\python.exe tools\prepare_model.py
+```
 
-- [Konzept, Zielgruppe und Technologievergleich](docs/CONCEPT.md)
-- [Architektur und Modulgrenzen](docs/ARCHITECTURE.md)
-- [KI-Modell, Herkunft und Grenzen](docs/MODELS.md)
-- [Lokale KI-Motivwerkzeuge](docs/AI_SUBJECT_TOOLS.md)
-- [Geführte Bildbearbeitung: Licht, Looks, Ausschnitt und Hintergrund](docs/EDITING_TOOLS.md)
-- [Lokale Bearbeitungsprojekte (.laip)](docs/PROJECT_FORMAT.md)
-- [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md)
-- [Prüfergebnisse und offene Nachweise](docs/VERIFICATION.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Drittkomponenten und Lizenzhinweise](THIRD_PARTY_NOTICES.md)
+**Nur dieses Vorbereitungsskript** lädt das Modell bei fehlender Datei herunter und prüft Größe und Prüfsumme; die gestartete Fotoanwendung lädt keine Modelle nach. Die Modellbinärdatei darf nicht eingecheckt werden.
 
-Der Anwendungscode steht unter **Apache-2.0**. Bibliotheken und Modelle behalten ihre jeweiligen Lizenzen. Die Lizenz des U-2-Net-Quellprojekts und die Herkunft des separat bereitgestellten ONNX-Artefakts werden in den Modell- und Dritthinweisen ausdrücklich getrennt betrachtet.
+Einen ersten Test kannst du ohne Foto und ohne Änderungen an produktiven Dateien ausführen:
+
+```powershell
+$env:QT_QPA_PLATFORM = "offscreen"
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m compileall -q src tests tools
+Remove-Item Env:QT_QPA_PLATFORM
+```
+
+Die Testsuite enthält auch Qt-Fälle. **Achte auf „skipped“ und Fehlermeldungen**, nicht nur auf einen erfolgreichen Exitcode. Für Linux, einzelne Tests, eine echte lokale Modellprüfung und Fehlerbehebung: [Entwicklungsanleitung](docs/DEVELOPMENT.md).
+
+## 3. Mit KI weiterentwickeln
+
+Eine KI kann beim Verstehen, Planen, Implementieren, Testen und Erstellen eines Pull Requests helfen. **Nur ein Link allein verschafft ihr aber keinen Lese- oder Schreibzugriff auf private Repository-Inhalte.** Verwende einen Coding-Agenten mit freigegebenem GitHub-Zugriff oder gib ihm die relevanten Dateien. Änderungen im Repository erfordern zusätzlich entsprechende Schreibrechte.
+
+**So beginnst du mit einer einzigen kleinen Aufgabe:**
+
+1. Wähle ein bestehendes Issue oder beschreibe genau **ein** Problem. Beginne etwa mit einer verständlicheren Fehlermeldung, einer Übersetzung oder einem kleinen, testbaren UI-Fix.
+2. Kopiere den folgenden Prompt in deinen Coding-Agenten und ergänze die konkrete Aufgabe.
+3. Prüfe den vorgeschlagenen Diff, die tatsächlich ausgeführten Tests und den Pull Request, bevor du die Änderung übernimmst.
+
+```text
+Arbeite im GitHub-Repository Cenn0/LocalAiPhotoEditor auf Basis des aktuellen main.
+
+Lies zuerst AGENTS.md, CONTRIBUTING.md und docs/DEVELOPMENT.md.
+Prüfe danach nur die für die Aufgabe relevanten Quell- und Testdateien.
+Beachte: Die veröffentlichte Alpha und der aktuelle Quellcode
+haben unterschiedliche Funktionsstände.
+
+Meine Aufgabe: [Beschreibe hier genau eine kleine Änderung oder verlinke ein Issue.]
+
+Erkläre kurz den Ist-Zustand und deinen Umsetzungsplan.
+Implementiere die Änderung in einem eigenen Branch, ergänze passende Tests
+und aktualisiere bei Bedarf DE/EN-Texte und Dokumentation.
+Erhalte lokale/offline Bildverarbeitung und den Originalschutz.
+Führe die möglichen Prüfungen tatsächlich aus und nenne Fehlschläge,
+Skips und nicht geprüfte Punkte ausdrücklich.
+Zeige die geänderten Dateien und erstelle einen Pull Request.
+Merge nicht ohne meine Freigabe.
+Wenn dir der Repo-Zugriff fehlt, sage das und fordere nur die benötigten Dateien an.
+```
+
+Noch einfacher erklärt, mit Beispielen und einer Prüfliste: [Mit KI beitragen](docs/AI_WORKFLOW.md). Der normale Beitragsprozess steht in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Projektaufbau
+
+| Pfad | Hier findest du … |
+| --- | --- |
+| `src/local_ai_photo_editor/core/` | Bildzustand, Bearbeitungen, Masken, Rezepte, Projektdateien – **ohne Qt und Modellinferenz** |
+| `src/local_ai_photo_editor/ui/` | Desktop-Fenster, Dialoge, Vorschauen, deutsche/englische Texte |
+| `src/local_ai_photo_editor/ai/` | Prüfung und Verwendung des lokalen ONNX-Modells |
+| `src/local_ai_photo_editor/worker.py` | Abwicklung des separaten KI-Prozesses |
+| `tests/` | Reproduzierbare Unit-, Integrations- und UI-Tests |
+| `tools/` | Explizite Modellvorbereitung, Builds und Prüfwerkzeuge |
+| `.github/workflows/` | Automatische Tests, Windows-Paket- und Offline-Prüfungen |
+| `AGENTS.md` | Verbindliche Kurzregeln für Coding-Agenten |
+
+Der KI-Worker läuft getrennt von der Oberfläche, damit diese bedienbar bleibt und Aufgaben abgebrochen werden können. Das ist **keine Sicherheits-Sandbox**. Ein Architekturdiagramm mit den Datenflüssen steht in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Grenzen und Sicherheit
+
+Unterstützt werden einzelne 8-Bit-Bilder mit höchstens **40 Millionen Pixeln**. RAW, 16-Bit, animierte oder mehrseitige Dateien gehören nicht zum aktuellen Umfang. Das kompakte **U2NETP**-Modell erkennt Vordergrundbereiche, **generiert aber keine neuen Bildinhalte**. Gerade Haare, Fell und Glas können fehlerhaft freigestellt werden. Eine objektive Freistellqualitätsmessung liegt nicht vor.
+
+Der laufende Editor hat keine Cloud-, Telemetrie- oder Kontopflicht und soll keine Bilder übertragen. **Downloads während Installation/Build sind davon getrennt.** Auch können Dateien in vom Nutzer gewählten synchronisierten Ordnern durch dessen Synchronisierungssoftware hochgeladen werden. Temporäre lokale Dateien können nach einem erzwungenen Abbruch verbleiben. macOS-/Linux-Pakete, GPU-Ausführung und eine stabile Windows-Freigabe sind nicht zugesagt.
+
+Vor **öffentlicher Verteilung** müssen insbesondere die Rechte am separat bezogenen ONNX-Modellartefakt und die Qt/LGPL-Paketpflichten abschließend geprüft werden. Näheres in [MODELS.md](docs/MODELS.md), [Dritthinweisen](THIRD_PARTY_NOTICES.md) und [Verifikationsprotokoll](docs/VERIFICATION.md).
+
+## Dokumentation
+
+Der [Dokumentations-Einstieg](docs/README.md) führt nach Ziel durch alle Unterlagen:
+
+- **Mitmachen:** [CONTRIBUTING.md](CONTRIBUTING.md) · [Entwicklungsumgebung](docs/DEVELOPMENT.md) · [KI-Workflow](docs/AI_WORKFLOW.md) · [AGENTS.md](AGENTS.md)
+- **Technik:** [Architektur](docs/ARCHITECTURE.md) · [Konzept](docs/CONCEPT.md) · [Modelle & Herkunft](docs/MODELS.md) · [Projektformat](docs/PROJECT_FORMAT.md)
+- **Funktionen:** [Geführte Werkzeuge](docs/EDITING_TOOLS.md) · [KI-Motivwerkzeuge](docs/AI_SUBJECT_TOOLS.md) · [Maske](docs/MASK_REFINEMENT.md)
+- **Stand & Qualität:** [Roadmap](docs/ROADMAP.md) · [Verifikation](docs/VERIFICATION.md) · [Alpha-Release-Notes](docs/RELEASE_NOTES_ALPHA.md)
+
+**Lizenz:** Der Anwendungscode ist unter **Apache-2.0** lizenziert. Abhängigkeiten und Modellartefakte haben gesonderte Bedingungen; die Weiterverteilung ist nicht allein durch die Repository-Lizenz geklärt.

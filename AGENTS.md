@@ -1,15 +1,29 @@
-# localAiPhotoEditor contributor rules
+# LocalAiPhotoEditor — coding agent instructions
 
-- Read `README.md`, `docs/ARCHITECTURE.md`, and `docs/ROADMAP.md` before changing the application.
-- Preserve local processing: application runtime must not upload photos, prompts, metadata, or diagnostics, and must not contact model hosts. Downloads belong in explicit build-time tooling.
-- Never overwrite the imported source image. Export to a different file and write atomically.
-- Project archives are untrusted input: retain exact ZIP member allowlists, strict size/pixel/format limits, checksums, history validation and atomic replacement. Never extract archive paths or persist original absolute source paths. Reopened projects must not overwrite pre-existing image exports where the original path is unknown.
-- Keep UI code under `ui/`, reusable image operations under `core/`, and model adapters under `ai/`. Core modules must not import Qt or initialize an inference runtime.
-- Foreground brush and mask correction must only modify alpha; original RGB pixels and source files must not be changed. Keep normalized brush coordinates, validated stroke/point limits, explicit preview/accept/discard semantics, and reversible history.
-- Run inference outside the UI process. Preserve cancellation, bounded input sizes, and cleanup of temporary job data.
-- Load only the bundled, checksum-pinned ONNX model. Never introduce pickle model loading, downloaded executable Python code, or `trust_remote_code=True`.
-- A mocked test does not prove model quality, native installation, or GPU compatibility. Report exactly which checks ran and which remain blocked.
-- Keep user-facing strings in the UI's translation dictionary, with German and English available. Use plain labels describing tasks rather than model parameters.
-- Run `PYTHONPATH=src python -m unittest discover -s tests -v` and `python -m compileall -q src tests tools` after substantive changes. Run the real-model and packaged smoke checks when changing inference or packaging.
-- Do not commit private photos, generated build outputs, model binaries, credentials, or account administration instructions.
+Scope: repository root and all subdirectories. Treat **current `main`** as the baseline. Unmerged PRs, historic releases and other branches are not automatically part of the default app.
 
+## Read efficiently
+
+1. Read `README.en.md` (or `README.md`), `CONTRIBUTING.md` and `docs/DEVELOPMENT.md` to understand setup and contribution rules.
+2. Read `docs/ARCHITECTURE.md` and the **relevant** feature document when changing behavior; check `docs/ROADMAP.md` for scope/status.
+3. Inspect only files needed for the task and neighboring tests. Avoid loading all documentation/history into context without a reason. Follow `docs/AI_WORKFLOW.md` for an efficient, reviewable AI-assisted process.
+
+## Mandatory invariants
+
+- **Local runtime:** Never upload photos, prompts, metadata or diagnostics. No model-host calls, telemetry, implicit runtime downloads or new always-on services. Explicit, verified downloads belong to build-time tools only.
+- **Source protection:** Never overwrite imported originals, including aliases/hardlinks; preserve validated atomic exports.
+- **Untrusted projects:** Preserve exact ZIP member allowlists, format/pixel/size bounds, hashes, consistent history and atomic writes. Never extract archive paths, execute their contents, or persist source absolute paths. Reopened projects must not overwrite pre-existing exports when the original path is unknown.
+- **Module boundaries:** `core/` has no Qt, model runtime or network dependency; `ui/` owns widgets, preview, translations and orchestration; `ai/` owns pinned model verification/inference. Keep inference in a separate process with bounded input, cancellation, job cleanup and stale-document guards. The worker is not a security sandbox.
+- **Edit semantics:** Preserve preview/Apply/Cancel, bounded reversible history and full-resolution acceptance. Manual restore/erase mask strokes modify alpha only, not source RGB; maintain normalized coordinates and validated stroke/point limits.
+- **Model security:** Load only checksum- and size-pinned local ONNX artifacts; no pickle loading, fetched executable code or `trust_remote_code=True`. Never silently introduce a GPU provider or larger model.
+- **UX:** Keep DE/EN user-facing strings in existing UI translation modules, with novice-friendly names and accessible controls. Do not overstate what is AI versus deterministic image processing.
+- **Repository hygiene:** Never commit personal photos, model binaries, build artifacts, keys, private configuration or account administration details. Check redistribution permissions for models and new dependencies.
+
+## Implementation and evidence
+
+- First explain the baseline and a small plan; change only what the task requires. Prefer focused tests to speculative refactors.
+- After behavior changes run the installed environment's `python -m unittest discover -s tests -v` and `python -m compileall -q src tests tools`. CI uses Python 3.12 and Qt headless where appropriate. State any failures or skipped tests **explicitly**; no fabricated results.
+- For inference, use the explicit `tools/prepare_model.py` step and real-model checks; for packaging changes, verify the actual Windows package and offline path. Mocked unit tests are not proof of model quality or installability.
+- For documentation-only changes, validate internal links, examples and version/release claims; existing docs-only PRs may not trigger CI.
+- Update user docs, roadmap and both languages when relevant. Do not equate a newer `main` feature with the already published `v0.1.0-alpha.1` ZIP.
+- Work in a topic branch, present the diff and a PR. **Do not merge or publish a release without explicit authorization.**
