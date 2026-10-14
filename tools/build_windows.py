@@ -20,6 +20,9 @@ from local_ai_photo_editor.ai.models import MODEL_SHA256, model_path, verified_m
 from local_ai_photo_editor.ai.voice import (  # noqa: E402
     VOICE_MODEL_SHA256, voice_model_path, verified_voice_model,
 )
+from local_ai_photo_editor.ai.catalog import (  # noqa: E402
+    ISNET_SHA256, model_installed, model_file, SPECS,
+)
 
 
 def main() -> int:
@@ -27,6 +30,9 @@ def main() -> int:
         raise SystemExit("Build this package on 64-bit Windows with 64-bit Python 3.12.")
     verified_model_bytes()
     verified_voice_model()
+    for model_id in SPECS:
+        if not model_installed(model_id, verify=True):
+            raise RuntimeError(f"Missing/corrupt bundled AI model: {model_id}")
     import imageio_ffmpeg
     ffmpeg_binary = Path(imageio_ffmpeg.get_ffmpeg_exe()).resolve()
     if not ffmpeg_binary.is_file():
@@ -48,6 +54,7 @@ def main() -> int:
         sys.executable, "-m", "nuitka", "--mode=standalone",
         "--enable-plugin=pyside6", "--include-qt-plugins=platforms,imageformats,multimedia",
         "--include-package=local_ai_photo_editor", "--include-package=onnxruntime.capi",
+        "--include-package=sherpa_onnx",
         "--include-package-data=onnxruntime", "--assume-yes-for-downloads",
         "--msvc=latest", "--lto=no", "--windows-console-mode=disable",
         "--output-filename=LocalAiPhotoEditor.exe", f"--output-dir={build}",
@@ -60,6 +67,13 @@ def main() -> int:
         raise RuntimeError("Nuitka did not produce the expected standalone executable.")
     verified_model_bytes(compiled / "local_ai_photo_editor" / "models" / model_path().name)
     verified_voice_model(compiled / "local_ai_photo_editor" / "models" / voice_model_path().name)
+    model_location = compiled / "local_ai_photo_editor" / "models"
+    for spec in SPECS.values():
+        for name in spec.artifact_names:
+            if not (model_location / name).is_file():
+                raise RuntimeError(f"Compiled package omitted AI model artifact: {name}")
+    if not (model_location / "whisper-assets.json").is_file():
+        raise RuntimeError("Whisper tokenizer verification manifest was not bundled.")
     destination = ROOT / "dist" / "LocalAiPhotoEditor"
     if destination.exists():
         shutil.rmtree(destination)
@@ -80,12 +94,16 @@ def main() -> int:
     shutil.copy2(ROOT / "packaging" / "START_HERE.txt", destination / "START_HERE.txt")
     shutil.copytree(ROOT / "docs", destination / "docs")
     (destination / "build-info.json").write_text(json.dumps({
-        "version": "0.3.0a1",
+        "version": "0.4.0a1",
         "commit": os.environ.get("GITHUB_SHA", "local-build"),
         "python": platform.python_version(),
         "platform": platform.platform(),
         "model_sha256": MODEL_SHA256,
         "voice_model_sha256": VOICE_MODEL_SHA256,
+        "isnet_model_sha256": ISNET_SHA256,
+        "shipped_models": list(SPECS),
+        "model_execution_backend": "CPUExecutionProvider",
+        "gpu_acceleration_verified": False,
         "media_project_formats": [".edvp", ".edap"],
         "ai_features": ["single-video-frame-U2NETP", "audio-Silero-VAD-v6.2.1"],
         "media_binary_sha256": hashlib.sha256(
