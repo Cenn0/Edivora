@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 330" role="img" aria-labelledby="title subtitle">
+  <title id="title">Edivora — your local creative workspace</title>
+  <desc id="subtitle">Photo editing available in source; video and audio planned</desc>
+  <rect width="1100" height="330" rx="26" fill="#171B2D"/>
+  <path d="M0 269C219 195 248 367 456 282S808 190 1100 288" fill="none" stroke="#242D4C" stroke-width="48"/>
+  <g font-family="Segoe UI, DejaVu Sans, sans-serif">
+    <text x="54" y="92" font-size="47" font-weight="700" fill="#F5F4FF">One space. Every creative idea.</text>
+    <text x="55" y="133" font-size="24" fill="#BCC6DA">Easy-to-use tools. Thoughtful AI. Local files.</text>
+  </g>
+  <g font-family="Segoe UI, DejaVu Sans, sans-serif" font-size="22" font-weight="600">
+    <rect x="50" y="181" width="303" height="97" rx="19" fill="#253A43" stroke="#31CBB4" stroke-width="2"/>
+    <rect x="399" y="181" width="303" height="97" rx="19" fill="#252D51" stroke="#6D83F6" stroke-width="2"/>
+    <rect x="748" y="181" width="303" height="97" rx="19" fill="#362A55" stroke="#A57CF0" stroke-width="2"/>
+    <text x="80" y="218" fill="#E0FFF5">01  Photo</text><text x="80" y="251" font-size="17" font-weight="400" fill="#C4D5DC">Available in current source</text>
+    <text x="429" y="218" fill="#E8EBFF">02  Video</text><text x="429" y="251" font-size="17" font-weight="400" fill="#B4BCE2">Planned</text>
+    <text x="778" y="218" fill="#F2E8FF">03  Audio</text><text x="778" y="251" font-size="17" font-weight="400" fill="#D2BCEC">Planned</text>
+  </g>
+</svg>
