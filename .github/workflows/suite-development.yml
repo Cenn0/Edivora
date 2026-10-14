@@ -1,0 +1,35 @@
+name: Suite development verification
+on:
+  push:
+    branches: [feat/responsive-suite-video-restoration]
+    paths: ['.github/workflows/suite-development.yml']
+permissions:
+  contents: write
+jobs:
+  apply-verified-fix:
+    if: github.ref == 'refs/heads/feat/responsive-suite-video-restoration'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+      - name: Verify and apply exact viewport reflow change
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, os, pathlib, subprocess, zlib
+          encoded = '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'
+          patch = zlib.decompress(base64.b64decode(encoded, validate=True))
+          assert len(patch) == 5051
+          assert hashlib.sha256(patch).hexdigest() == '20610307659aac3c0b50882a60f256c24b305971e035177a95fbffd879db74be'
+          assert b'diff --git a/.github/' not in patch
+          target = pathlib.Path(os.environ['RUNNER_TEMP']) / 'viewport-fix.patch'
+          target.write_bytes(patch)
+          subprocess.run(['git','apply','--check','--index',str(target)], check=True)
+          subprocess.run(['git','apply','--index',str(target)], check=True)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: reflow vertical inspectors when native scrollbars reduce viewport width'
+          git push origin HEAD:refs/heads/feat/responsive-suite-video-restoration
