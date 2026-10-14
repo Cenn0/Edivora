@@ -4,7 +4,7 @@ Status: development source after the published `v0.1.0-alpha.1` portable Windows
 
 ## Starting an edit
 
-1. Open a photo. In **More editing tools**, choose **Light & colors**, **Looks**, **Crop & mirror** or **Design background**. The same workspace is available from the Edit menu or `Ctrl+E`.
+1. Open a photo. Choose **Enhance photo** or **Crop & rotate** in the task-first sidebar; other entry points (**Light & colors**, **Looks**, **Crop & mirror**, **Design background**) are under **Show more options → More editing tools**. The same workspace is available from the Edit menu or `Ctrl+E`.
 2. Change a control and inspect the preview. Tabs share one pending edit, so a crop, a look and a color correction can be combined.
 3. **Show before** compares against the accepted image at the moment the workspace opened. It does not necessarily show the original imported photo; the main window's Original button does that.
 4. Use the arrow beside a slider to reset just that value, **Reset section** for the current tab, or **Reset all** for the complete pending edit.
