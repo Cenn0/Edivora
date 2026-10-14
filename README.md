@@ -12,6 +12,10 @@
 
 ## Aktuellen Entwicklungsstand als Windows-Testversion herunterladen
 
+**[Sofort herunterladen: geprüfter Windows-x64-Testbuild (GitHub Actions)](https://github.com/Cenn0/Edivora/actions/runs/38636053924/artifacts/11928373456)** · [Erfolgreicher Pakettest](https://github.com/Cenn0/Edivora/actions/runs/38636053924)
+
+Dieser bereits erfolgreich durchgelaufene Build aus PR #18 enthält **denselben Edivora-Anwendungscode wie der Merge auf `main`** (Logo, Launcher, Foto/Video/Audio, lokale KI); nachträgliche Änderungen betreffen nur Dokumentation und den Release-Workflow. Er ist **14 Tage ab Erstellung** als Actions-Artefakt verfügbar und erfordert Zugriff auf das private Repository. Das Archiv enthält die Dateien der Anwendung; **den gesamten Inhalt gemeinsam in einen Ordner entpacken und `LocalAiPhotoEditor.exe` darin starten**. Die unten genannten dauerhaften Release-Links funktionieren erst nach erfolgreicher neuer Main-Paketprüfung.
+
 **[Windows x64: Edivora 0.3.0 Alpha 1 als ZIP herunterladen](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/Edivora-0.3.0-alpha.1-windows-x64.zip)** · [SHA-256-Prüfsumme](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/SHA256SUMS.txt) · [Testbuild und Hinweise](https://github.com/Cenn0/Edivora/releases/tag/v0.3.0-alpha.1) · [Build-Nachweise](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/BUILD_PROVENANCE.json)
 
 Dies ist ein **privates, unsigniertes Prerelease** für Personen mit Zugriff auf dieses Repository, **kein offiziell freigegebener Windows-11-Release**. Der Build wird nur aus einem **erfolgreich geprüften Windows-CI-Artefakt** erstellt; fehlen die Paketprüfungen, wird die Release-Veröffentlichung nicht durchgeführt. Die ältere Foto-Version unten ist **nicht** dieselbe Anwendung. Der neue Testbuild enthält den Launcher und alle drei Werkzeuge.
