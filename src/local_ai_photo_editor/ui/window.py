@@ -184,6 +184,8 @@ class EditorWindow(QMainWindow):
             lambda: self.set_language(str(self.language_combo.currentData()))
         )
         header.addWidget(self.language_combo)
+        self.model_config_button = self._button("models", self.show_ai_model_settings, "quiet")
+        header.addWidget(self.model_config_button)
         outer.addWidget(top_bar)
 
         body = QHBoxLayout()
@@ -504,6 +506,10 @@ class EditorWindow(QMainWindow):
 
         if not launch_tool(tool):
             QMessageBox.warning(self, self._t("error_title"), self._t("home_launch_error"))
+
+    def show_ai_model_settings(self) -> None:
+        from .model_settings import ModelSettingsDialog
+        ModelSettingsDialog(self.language, self).exec()
 
     def _show_help(self) -> None:
         QMessageBox.information(self, self._t("nav_help"), self._t("home_help"))
@@ -1165,8 +1171,11 @@ class EditorWindow(QMainWindow):
             directory = Path(tempfile.mkdtemp(prefix="localai-job-"))
             picture = self.document.current
             picture.save(directory / "input.png", format="PNG")
+            from .model_settings import get_preference
+            from ..ai.catalog import TASK_IMAGE
             (directory / "request.json").write_text(
-                json.dumps({"version": 1, "operation": "remove_background"}), encoding="utf-8",
+                json.dumps({"version": 1, "operation": "remove_background",
+                            "model": get_preference(TASK_IMAGE)}), encoding="utf-8",
             )
             program, arguments = worker_command(directory)
             process = QProcess(self)
