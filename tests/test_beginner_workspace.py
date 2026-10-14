@@ -117,7 +117,7 @@ class BeginnerWorkspaceTests(unittest.TestCase):
         self.assertEqual(self.window.quick_buttons[0].text(), "Enhance photo …")
         self.assertEqual(self.window.quick_buttons[3].text(), "Remove background (AI) …")
         self.assertEqual(self.window.more_tools_button.text(), "Show fewer options ▴")
-        self.assertIn("Export a copy", self.window.quick_hint_label.text())
+        self.assertIn("Save a photo copy", self.window.quick_hint_label.text())
         self.assertFalse(self.window.more_tools_panel.isHidden())
         self.window.more_tools_button.click()
         self.assertEqual(self.window.more_tools_button.text(), "Show more options ▾")
