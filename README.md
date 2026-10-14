@@ -19,7 +19,7 @@ Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte
 ## Einfacher Einstieg im aktuellen Quellcode
 
 Die neue Hauptansicht ist für Menschen gedacht, die nur gelegentlich ein Foto bearbeiten:
-**Foto öffnen → Aufgabe wählen → Vorschau prüfen → Kopie exportieren.**
+**Foto öffnen → Aufgabe wählen → Vorschau prüfen → Fotokopie speichern.**
 Zunächst gibt es vier große Aufgaben: **Foto verbessern**, **Zuschneiden & drehen**,
 **Hintergrund unscharf (KI)** und **Hintergrund entfernen (KI)**. Die beiden
 KI-Schnellaktionen zeigen vor dem Übernehmen eine Vorschau. Regler,
