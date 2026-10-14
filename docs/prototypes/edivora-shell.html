@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edivora – UI/UX-Konzept (interaktiver Prototyp)</title>
+<style>
+:root{--bg:#171B2D;--panel:#202638;--raised:#2A3146;--border:#3C465F;--text:#F5F4FF;--secondary:#B9C3D9;--muted:#98A4BC;--primary:#4FF3D3;--blue:#7792FF;--ai:#C98CFF}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#101321;color:var(--text);font:14px/1.45 "Segoe UI",Arial,sans-serif}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}button:disabled{cursor:not-allowed;opacity:.45}.notice{max-width:1420px;margin:16px auto 10px;padding:0 20px;color:#b8c1d7;font-size:13px}.app{max-width:1420px;min-height:660px;height:min(890px,calc(100vh - 70px));margin:0 auto 20px;display:grid;grid-template-columns:82px minmax(0,1fr);background:var(--bg);border:1px solid var(--border);border-radius:15px;overflow:hidden;box-shadow:0 24px 90px #05071299}
+.rail{background:#1c2131;border-right:1px solid var(--border);padding:15px 8px;display:flex;align-items:center;flex-direction:column;gap:7px}.brand{height:48px;min-width:50px;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:800;font-size:29px;margin-bottom:12px}.nav{width:66px;min-height:63px;border:0;background:transparent;color:var(--secondary);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px}.nav:hover{background:#2a3347}.nav.active{background:#294242;color:var(--primary);box-shadow:inset 3px 0 0 var(--primary)}.nav svg{height:22px;width:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.rail-spacer{flex:1}.shell{display:flex;flex-direction:column;min-width:0}.topbar{min-height:65px;display:flex;align-items:center;gap:12px;padding:8px 20px;border-bottom:1px solid var(--border);background:#1b2030}.suite{font-size:19px;font-weight:800;letter-spacing:-.5px}.crumb{color:var(--muted)}.project-title{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.top-spacer{flex:1}.local-status{color:#b3e5da;font-size:12px;white-space:nowrap}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--primary);margin-right:6px}.tool-btn{height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:9px;background:#2b3346;color:var(--text);padding:0 12px;white-space:nowrap}.tool-btn:hover{background:#374158}.tool-btn.is-on{border-color:var(--blue);color:#cbd6ff}.primary{background:var(--primary);color:#171b2d;border-color:var(--primary);font-weight:700}.primary:hover{background:#75ffe2}.mini{padding:0 10px}
+.content{display:flex;min-height:0;flex:1}.center{display:flex;flex-direction:column;min-width:0;flex:1}.stage{flex:1;min-height:250px;display:flex;flex-direction:column;padding:17px 20px 12px;min-width:0}.stage-heading{display:flex;justify-content:space-between;align-items:center;color:var(--secondary);font-size:13px;min-height:26px}.pill{border:1px solid #506076;border-radius:999px;padding:3px 9px;color:#c9d4e6;font-size:11px}.pill.ai{color:#f0d5ff;border-color:#776190;background:#3a2d4c}.view{flex:1;display:flex;justify-content:center;align-items:center;min-height:0;padding:12px;position:relative;background:radial-gradient(ellipse at center,#263044,#151b28 70%);border:1px solid #333b50;border-radius:12px;overflow:hidden}.media{max-width:100%;max-height:100%;display:none;position:relative}.media.show{display:block}.photo-illustration{width:min(100%,760px);aspect-ratio:16/10;border-radius:7px;box-shadow:0 18px 50px #0007;overflow:hidden}.photo-illustration svg{width:100%;height:100%;display:block}.photo-illustration.before svg{filter:saturate(.52) brightness(.84)}.view-caption{position:absolute;left:25px;bottom:25px;color:#ffffffcf;background:#101626b8;border:1px solid #ffffff30;padding:6px 10px;border-radius:8px;font-size:12px}.video-monitor{width:min(100%,725px);aspect-ratio:16/9;background:linear-gradient(155deg,#1a2944 3%,#384765 49%,#152638 100%);border-radius:8px;border:1px solid #4a5268;box-shadow:0 18px 55px #0008;position:relative;overflow:hidden}.video-monitor:before{content:"";position:absolute;width:100%;height:62%;bottom:0;left:0;background:linear-gradient(155deg,#284f5d,#142733);clip-path:polygon(0 62%,27% 21%,51% 65%,70% 38%,100% 74%,100% 100%,0 100%)}.video-monitor .play-round{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:1px solid #ffffff66;border-radius:50%;background:#121a2cbb;font-size:29px;width:68px;height:68px;display:grid;place-items:center;color:white}.video-monitor .timecode{position:absolute;left:12px;bottom:12px;background:#101322c7;padding:5px 10px;border-radius:5px;font-size:12px}
+.audio-stage{width:min(100%,820px);min-width:300px}.audio-cover{text-align:center;font-size:21px;font-weight:650;margin:3px 0 20px}.wave{height:200px;display:flex;align-items:center;gap:2px;overflow:hidden;border-radius:10px;padding:18px 14px;background:#1d2c3c;border:1px solid #3a526a;position:relative}.wave:after{content:"";position:absolute;left:42%;top:0;bottom:0;width:2px;background:var(--primary);box-shadow:0 0 12px #4ff3d399}.bar{flex:1;min-width:2px;max-width:7px;background:#65d8d0;border-radius:3px;opacity:.78}.bar:nth-child(5n){background:#8a9df7}.controls{display:flex;gap:12px;align-items:center;justify-content:center;padding:13px 0 2px;color:var(--secondary)}.round{width:36px;height:36px;border:1px solid var(--border);background:#2d3649;color:var(--text);border-radius:50%}.metadata{height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;color:var(--muted);font-size:12px}
+.timeline{height:220px;min-height:170px;border-top:1px solid var(--border);background:#192131;display:none;flex-direction:column}.timeline.show{display:flex}.timeline-head{height:39px;display:flex;align-items:center;gap:10px;padding:0 18px;color:var(--secondary);border-bottom:1px solid #343e55;font-size:12px}.timeline-body{position:relative;flex:1;overflow:hidden;padding:10px 12px}.track{height:55px;display:flex;align-items:center;gap:10px;margin-bottom:8px}.track-name{width:90px;flex-shrink:0;color:#c8d1e3;font-size:12px}.clip{min-width:0;height:46px;border-radius:7px;border:1px solid #6288a9;background:linear-gradient(100deg,#2b576a,#375a79);padding:12px;color:#e8f6ff;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.clip.purple{border-color:#836ca2;background:linear-gradient(100deg,#4c3f6d,#604c85)}.clip.teal{border-color:#418f92;background:linear-gradient(100deg,#20585c,#337779)}.playhead{position:absolute;top:0;bottom:0;left:38%;width:2px;background:var(--primary);pointer-events:none}.playhead:before{content:"";position:absolute;top:0;left:-4px;width:10px;height:11px;background:var(--primary);border-radius:2px}
+.inspector{width:344px;flex:0 0 344px;border-left:1px solid var(--border);background:var(--panel);display:flex;flex-direction:column;min-height:0}.inspector-inner{padding:21px 18px;overflow:auto;min-height:0;flex:1}.eyebrow{font-size:11px;font-weight:700;color:var(--primary);letter-spacing:1.2px;text-transform:uppercase;margin:0 0 6px}.inspect-title{font-size:19px;line-height:1.23;letter-spacing:-.4px;margin:0 0 8px}.description{color:var(--secondary);font-size:13px;margin:0 0 21px}.task{width:100%;display:flex;align-items:center;gap:11px;text-align:left;color:var(--text);background:var(--raised);border:1px solid var(--border);border-radius:11px;padding:13px;margin:0 0 10px;min-height:62px}.task:hover{border-color:#648c9d;background:#334056}.task-icon{width:33px;height:33px;border-radius:9px;display:grid;place-items:center;background:#324759;color:var(--primary);flex:0 0 auto;font-size:18px}.task-name{font-weight:650;font-size:13px}.task-sub{font-size:11px;color:var(--muted);margin-top:2px}.task .small-ai{margin-left:auto;color:var(--ai);font-weight:700;font-size:11px;flex-shrink:0}.more{margin-top:9px;background:transparent;border:0;color:#b7c3fb;padding:9px 3px;font-size:13px}.advanced{padding:10px 0;display:none}.advanced.show{display:block}.secondary-task{display:block;color:var(--secondary);margin:8px 0;padding:8px 9px;border-left:2px solid #59728b;font-size:12px}
+.field{margin-top:20px}.field label{display:flex;justify-content:space-between;color:#e6ecfa;font-weight:550;font-size:13px;margin-bottom:9px}.field output{color:var(--primary);font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:var(--primary)}.preview-note{margin-top:25px;color:#d2cced;background:#362f4c;border:1px solid #645684;border-radius:9px;padding:12px;font-size:12px}.inspector-footer{border-top:1px solid var(--border);padding:15px 18px;display:flex;align-items:center;gap:9px}.inspector-footer button{flex:1}.back{background:transparent;color:var(--secondary);border:0;padding:0 0 14px;text-align:left;font-size:13px}.statusbar{height:33px;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;padding:0 17px;border-top:1px solid var(--border)}.statusbar span:first-child{color:#b4e7d9}.start{display:none;flex:1;padding:clamp(24px,5vw,72px);overflow:auto}.start.show{display:block}.start h1{font-size:clamp(23px,3vw,34px);letter-spacing:-1px;margin:8px 0}.start p{color:var(--secondary);margin:0 0 32px}.startcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}.startcard{min-height:188px;border:1px solid var(--border);background:var(--panel);border-radius:14px;color:var(--text);text-align:left;padding:22px;transition:transform .15s,border-color .15s}.startcard:hover{transform:translateY(-2px);border-color:#679ca2}.startcard .symbol{display:inline-grid;place-items:center;width:45px;height:45px;border-radius:12px;color:var(--primary);background:#2c464b;font-size:21px}.startcard strong{display:block;font-size:17px;margin-top:19px}.startcard small{color:var(--secondary)}.drop{border:1.5px dashed #607087;border-radius:13px;margin-top:28px;padding:22px;text-align:center;color:var(--secondary)}.drop strong{color:var(--text)}.planned{color:#dbc4ff;background:#3a2f50;border-radius:7px;padding:3px 7px;font-size:11px}.modal-wrap{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#050713ba;padding:20px;z-index:5}.modal-wrap.show{display:flex}.modal{max-width:410px;border:1px solid #586078;border-radius:14px;background:var(--panel);padding:24px;box-shadow:0 30px 80px #000b}.modal h2{margin:0 0 10px}.modal p{color:var(--secondary)}
+@media(max-width:1110px){.app{border-radius:0;min-height:620px}.inspector{width:310px;flex-basis:310px}.topbar{gap:7px;padding:8px 12px}.local-status{display:none}.stage{padding:10px}.metadata{padding:0 10px}.topbar .crumb{display:none}}
+@media(max-width:770px){.app{grid-template-columns:59px minmax(0,1fr);height:auto;min-height:800px}.nav{width:49px;font-size:10px}.rail{padding:12px 4px}.content{flex-direction:column}.inspector{width:100%;flex:0 0 auto;min-height:260px;max-height:390px;border-left:0;border-top:1px solid var(--border)}.inspector-inner{padding:15px}.stage{min-height:370px}.timeline{height:170px}.topbar .tool-btn.mini{display:none}.startcards{grid-template-columns:1fr}.start{padding:25px}.local-status{display:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important}}
+</style>
+</head>
+<body>
+<p class="notice">Interaktiver Layout-Prototyp, Stand Oktober 2026. Die Oberfläche simuliert Abläufe; sie bearbeitet, exportiert und speichert keine Medien. Video/Audio sind Produktkonzepte.</p>
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10H3zM9 20v-7h6v7"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8" cy="9" r="1.5"/><path d="m3 17 6-5 4 3 3-4 5 6"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="2" y="5" width="15" height="14" rx="3"/><path d="m17 10 5-3v10l-5-3"/></symbol>
+  <symbol id="i-audio" viewBox="0 0 24 24"><path d="M3 11v2m4-6v10m4-14v18m4-15v12m4-8v4m3-3v2"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4m0 3v.5"/></symbol>
+</svg>
+<div class="app">
+  <aside class="rail" aria-label="Arbeitsbereiche">
+    <div class="brand" aria-label="Edivora, Platzhalter für Markenzeichen">◆</div>
+    <button class="nav active" data-mode="home"><svg><use href="#i-home"/></svg><span>Start</span></button>
+    <button class="nav" data-mode="photo"><svg><use href="#i-photo"/></svg><span>Foto</span></button>
+    <button class="nav" data-mode="video"><svg><use href="#i-video"/></svg><span>Video</span></button>
+    <button class="nav" data-mode="audio"><svg><use href="#i-audio"/></svg><span>Audio</span></button>
+    <div class="rail-spacer"></div>
+    <button class="nav" id="help"><svg><use href="#i-help"/></svg><span>Hilfe</span></button>
+  </aside>
+  <main class="shell">
+    <header class="topbar">
+      <span class="suite">Edivora</span><span class="crumb">/</span>
+      <span class="project-title" id="location">Start</span><span class="top-spacer"></span>
+      <span class="local-status"><i class="dot"></i> Alles lokal</span>
+      <button class="tool-btn mini" id="undo" title="Rückgängig" disabled>↶</button>
+      <button class="tool-btn mini" id="redo" title="Wiederholen" disabled>↷</button>
+      <button class="tool-btn" id="compare" disabled>Vorher / Nachher</button>
+      <button class="tool-btn primary" id="export" disabled>Exportieren ↗</button>
+    </header>
+    <section id="home" class="start show">
+      <div class="eyebrow">EINFACH KREATIV. ALLES LOKAL.</div>
+      <h1>Was möchtest du bearbeiten?</h1>
+      <p>Wähle deinen Arbeitsbereich. Alle Werkzeuge werden nach Aufgaben aufgebaut.</p>
+      <div class="startcards">
+        <button class="startcard" data-open="photo"><span class="symbol">▧</span><strong>Foto bearbeiten</strong><small>Bilder verbessern, zuschneiden und KI nutzen.</small></button>
+        <button class="startcard" data-open="video"><span class="symbol">▤</span><strong>Video bearbeiten <span class="planned">Geplant</span></strong><small>Schnitt, Vorschau, Ton und Timeline.</small></button>
+        <button class="startcard" data-open="audio"><span class="symbol">≋</span><strong>Audio bearbeiten <span class="planned">Geplant</span></strong><small>Wellenform, Schnitte und Klang.</small></button>
+      </div>
+      <div class="drop"><strong>Hier könnte eine Datei per Drag & Drop geöffnet werden.</strong><div>Im Prototyp ist der Dateiimport nicht implementiert.</div></div>
+    </section>
+    <section id="content" class="content" hidden>
+      <div class="center">
+        <section class="stage">
+          <div class="stage-heading"><span id="stage-title">Vorschau</span><span class="pill" id="stage-pill">Beispielmedien</span></div>
+          <div class="view" id="view">
+            <div id="media-photo" class="media photo-illustration show" aria-label="Illustration einer Landschaft als Platzhalter">
+              <svg viewBox="0 0 850 530" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Stilisierte Landschaft; kein importiertes Foto">
+                <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#244771"/><stop offset=".54" stop-color="#80a8b9"/><stop offset="1" stop-color="#e2b69a"/></linearGradient><linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#4d8177"/><stop offset="1" stop-color="#1b413c"/></linearGradient></defs>
+                <rect width="850" height="530" fill="url(#sky)"/><circle cx="630" cy="115" r="63" fill="#fbdec0" opacity=".8"/>
+                <path d="M0 320 140 146 251 266 386 114 541 314 650 224 850 356v174H0z" fill="#57798a"/><path d="M0 345 138 205 270 337 403 168 564 358 715 237 850 362v168H0z" fill="#2d536c"/><path d="m365 208 38-40 40 70-40-17zM113 231l25-26 20 30-26-9z" fill="#d2e8e8" opacity=".75"/>
+                <path d="M0 380q145-42 264 10t261 13q125-47 325 0v127H0z" fill="url(#ground)"/><path d="M0 432q210-63 413 28t437-29v99H0z" fill="#28514b"/><path d="M510 407q-90 17-154 123h166q16-60 115-119z" fill="#a7b6a0" opacity=".43"/>
+                <path d="M80 424v-103m0 27-30-23m30 10 25-27m-25 3-18-29m18 16 19-26" fill="none" stroke="#173b37" stroke-width="15" stroke-linecap="round"/>
+                <path d="M80 266q-39 20-63 5 20-41 58-45 37-24 81 16-13 35-76 24" fill="#1c5b4a"/>
+              </svg>
+            </div>
+            <div id="media-video" class="media video-monitor"><div class="play-round">▶</div><div class="timecode">00:12 / 01:25</div></div>
+            <div id="media-audio" class="media audio-stage"><div class="audio-cover">Aufnahme 01 · Wellenform</div><div class="wave" id="wave"></div><div class="controls"><button class="round" id="transport" title="Wiedergabe simulieren">▶</button><span id="time">00:12 / 02:36</span><span>── 100 % ──</span></div></div>
+            <div class="view-caption">Illustration / Layoutvorschau – keine Mediendatei geladen</div>
+          </div>
+        </section>
+        <div id="timeline" class="timeline"><div class="timeline-head"><strong id="timeline-name">Timeline</strong><span style="flex:1"></span><span>−</span><span>Zoom</span><span>＋</span></div>
+          <div class="timeline-body" id="timeline-body"></div>
+        </div>
+        <div class="metadata"><span id="meta-left">Vorschau</span><span id="meta-right">100 % · Ansicht anpassen</span></div>
+      </div>
+      <aside class="inspector" aria-label="Werkzeuge">
+        <div class="inspector-inner">
+          <p class="eyebrow" id="inspector-kicker">WERKZEUGE</p>
+          <button id="back" class="back" hidden>← Alle Aufgaben</button>
+          <h2 class="inspect-title" id="inspect-title">Was möchtest du tun?</h2>
+          <p class="description" id="inspect-text">Wähle eine Aufgabe, um passende Einstellungen zu sehen.</p>
+          <div id="tasks"></div>
+          <div id="detail" hidden>
+            <div class="field"><label for="strength">Stärke <output id="strength-value">45 %</output></label><input id="strength" type="range" min="0" max="100" value="45"></div>
+            <div class="field"><label for="fine">Feinabstimmung <output id="fine-value">25 %</output></label><input id="fine" type="range" min="0" max="100" value="25"></div>
+            <div class="preview-note">Vorschau: Die Werte ändern in diesem Prototyp kein echtes Medium. „Übernehmen“ simuliert nur den nächsten Bedienzustand.</div>
+          </div>
+          <button class="more" id="more">Weitere Werkzeuge anzeigen ▾</button>
+          <div class="advanced" id="advanced"><div class="secondary-task">Detailansicht / präzisere Einstellungen</div><div class="secondary-task">Bearbeitungsverlauf</div><div class="secondary-task">Eigenschaften & technische Details</div></div>
+        </div>
+        <div class="inspector-footer" id="inspector-footer" hidden><button class="tool-btn" id="cancel">Abbrechen</button><button class="tool-btn primary" id="apply">Übernehmen</button></div>
+      </aside>
+    </section>
+    <footer class="statusbar"><span>● Konzept-Prototyp</span><span id="status" aria-live="polite">Bereit. Wähle einen Arbeitsbereich.</span></footer>
+  </main>
+</div>
+<div class="modal-wrap" id="modal-wrap" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal"><h2 id="modal-title">Nur ein Prototyp</h2><p id="modal-body">Dieser Entwurf zeigt ausschließlich Bedienung und Layout. Dateien werden weder bearbeitet noch gespeichert.</p><button class="tool-btn primary" id="close-modal">Verstanden</button></div></div>
+<script>
+(function(){
+"use strict";
+var mode="home",selected=null,advanced=false,comparing=false,playing=false;
+var tasks={
+ photo:[["☀","Foto verbessern","Licht & Farbe anpassen",false],["▣","Zuschneiden & drehen","Bildaufbau ändern",false],["◌","Hintergrund unscharf","Motiv hervorheben",true],["✧","Hintergrund entfernen","Motiv freistellen",true]],
+ video:[["✂","Anfang & Ende schneiden","Länge einfach anpassen",false],["▤","Clips anordnen","Ablauf per Timeline gestalten",false],["◖","Farbe verbessern","Stimmung des Videos verändern",false],["♫","Ton anpassen","Lautstärke verbessern",false]],
+ audio:[["✂","Aufnahme zuschneiden","Unnötige Stellen entfernen",false],["◉","Lautstärke anpassen","Leiser oder lauter machen",false],["⋯","Stille kürzen","Pausen bearbeiten",false],["≋","Klang verbessern","Störgeräusche reduzieren (geplant)",false]]
+};
+var $=function(id){return document.getElementById(id)};
+function setStatus(s){$("status").textContent=s}
+function show(el,on){el.hidden=!on}
+function changeMode(next){
+ mode=next;selected=null;comparing=false;playing=false;
+ document.querySelectorAll("[data-mode]").forEach(function(b){b.classList.toggle("active",b.dataset.mode===mode)});
+ show($("home"),mode==="home");show($("content"),mode!=="home");
+ $("home").classList.toggle("show",mode==="home");
+ $("location").textContent={home:"Start",photo:"Foto / Beispielbild",video:"Video / Konzeptansicht",audio:"Audio / Konzeptansicht"}[mode];
+ $("export").disabled=mode!=="photo";$("compare").disabled=mode!=="photo";$("compare").classList.remove("is-on");
+ document.querySelectorAll(".media").forEach(function(e){e.classList.remove("show","before")});
+ if(mode!=="home"){$("media-"+mode).classList.add("show")}
+ $("timeline").classList.toggle("show",mode==="video"||mode==="audio");
+ $("stage-title").textContent={photo:"Bildvorschau",video:"Videovorschau · Konzept",audio:"Audiovorschau · Konzept",home:"Vorschau"}[mode];
+ $("stage-pill").textContent=mode==="photo"?"Foto – Layoutidee":"Geplant – Layoutidee";
+ $("meta-left").textContent={photo:"JPG · 3840 × 2400 · Beispiel",video:"Video · 01:25 · nur Konzept",audio:"Audio · 02:36 · nur Konzept",home:""}[mode];
+ $("meta-right").textContent=mode==="photo"?"Anpassen · 100 %":"Zeit: 00:12 · Zoom";
+ $("timeline-name").textContent=mode==="video"?"Schnitt · Clips & Ton":"Wellenform · Spuren";
+ $("timeline-body").innerHTML=mode==="video"
+ ?'<div class="track"><span class="track-name">Video</span><div class="clip" style="width:43%">Szene 01</div><div class="clip" style="width:30%">Szene 02</div></div><div class="track"><span class="track-name">Audio</span><div class="clip purple" style="width:77%">Originalton</div></div><i class="playhead"></i>'
+ :'<div class="track"><span class="track-name">Aufnahme</span><div class="clip teal" style="width:85%">Sprache · Wellenformspur</div></div><i class="playhead"></i>';
+ show($("back"),false);show($("detail"),false);show($("inspector-footer"),false);show($("tasks"),mode!=="home");$("transport").textContent="▶";
+ $("more").hidden=mode==="home";$("advanced").classList.toggle("show",advanced);
+ $("more").textContent=advanced?"Weniger Werkzeuge anzeigen ▴":"Weitere Werkzeuge anzeigen ▾";
+ $("inspect-title").textContent="Was möchtest du tun?";
+ $("inspect-text").textContent=mode==="photo"?"Wähle eine passende Aufgabe. Weitere Einstellungen sind optional.":"Vorschau der geplanten Bedienung. Noch keine funktionsfähige Bearbeitung.";
+ $("inspector-kicker").textContent=mode==="photo"?"FOTO-WERKZEUGE":mode==="video"?"VIDEO-WERKZEUGE":"AUDIO-WERKZEUGE";
+ paintTasks();
+ $("undo").disabled=true;$("redo").disabled=true;
+ setStatus(mode==="home"?"Bereit. Wähle einen Arbeitsbereich.":mode==="photo"?"Foto-Layout geöffnet (Simulation).":"Geplanter "+(mode==="video"?"Video":"Audio")+"-Arbeitsbereich (Simulation).");
+}
+function paintTasks(){
+ var target=$("tasks");target.innerHTML="";
+ if(mode==="home")return;
+ tasks[mode].forEach(function(item,index){
+  var b=document.createElement("button");b.className="task";
+  b.innerHTML='<span class="task-icon"></span><span style="flex:1"><span class="task-name"></span><br><span class="task-sub"></span></span>'+(item[3]?'<span class="small-ai">KI</span>':'');
+  b.querySelector(".task-icon").textContent=item[0];b.querySelector(".task-name").textContent=item[1];b.querySelector(".task-sub").textContent=item[2];
+  b.onclick=function(){selectTask(index)};target.appendChild(b)
+ })
+}
+function selectTask(index){
+ selected=index;var task=tasks[mode][index];show($("tasks"),false);show($("detail"),true);show($("back"),true);show($("inspector-footer"),true);
+ $("inspect-title").textContent=task[1];$("inspect-text").textContent=task[2]+". Prüfe die Vorschau, bevor du die Änderung übernimmst.";
+ $("strength").value=45;$("fine").value=25;$("strength-value").textContent="45 %";$("fine-value").textContent="25 %";
+ setStatus("Vorschau zu „"+task[1]+"“ geöffnet – noch nicht übernommen.")
+}
+function finish(apply){
+ selected=null;show($("tasks"),true);show($("detail"),false);show($("back"),false);show($("inspector-footer"),false);
+ $("inspect-title").textContent="Was möchtest du tun?";$("inspect-text").textContent="Wähle eine weitere Aufgabe oder exportiere dein Ergebnis.";
+ if(apply){$("undo").disabled=false;setStatus("Änderung übernommen (nur simuliert).")}else{setStatus("Vorschau verworfen (nur simuliert).")}
+}
+document.querySelectorAll("[data-mode]").forEach(function(b){b.addEventListener("click",function(){changeMode(b.dataset.mode)})});
+document.querySelectorAll("[data-open]").forEach(function(b){b.addEventListener("click",function(){changeMode(b.dataset.open)})});
+$("back").onclick=function(){finish(false)};$("cancel").onclick=function(){finish(false)};$("apply").onclick=function(){finish(true)};
+["strength","fine"].forEach(function(id){$(id).addEventListener("input",function(){ $(id+"-value").textContent=this.value+" %";setStatus("Regler angepasst (nur Simulation).") })});
+$("more").onclick=function(){advanced=!advanced;$("advanced").classList.toggle("show",advanced);$("more").textContent=advanced?"Weniger Werkzeuge anzeigen ▴":"Weitere Werkzeuge anzeigen ▾"};
+$("compare").onclick=function(){comparing=!comparing;$("media-photo").classList.toggle("before",comparing);this.classList.toggle("is-on",comparing);setStatus(comparing?"Vorher-Ansicht simuliert.":"Bearbeitete Ansicht simuliert.")};
+$("undo").onclick=function(){setStatus("Rückgängig demonstriert (keine realen Änderungen).");this.disabled=true;$("redo").disabled=false};
+$("redo").onclick=function(){setStatus("Wiederholen demonstriert (keine realen Änderungen).");this.disabled=true;$("undo").disabled=false};
+$("transport").onclick=function(){playing=!playing;this.textContent=playing?"❚❚":"▶";setStatus(playing?"Wiedergabesteuerung simuliert (kein Ton).":"Wiedergabe gestoppt (Simulation).")};
+$("export").onclick=function(){$("modal-title").textContent="Exportvorgang – Designvorschau";$("modal-body").textContent="Hier würde Edivora einen Exportdialog mit Dateiformat, Ziel und Qualitätsoptionen öffnen. Der Prototyp erzeugt keine Dateien."; $("modal-wrap").classList.add("show")};
+$("help").onclick=function(){$("modal-title").textContent="Über diesen Prototyp";$("modal-body").textContent="Dies ist ein klickbarer Entwurf für ein einheitliches Foto-, Video- und Audio-UI. Er demonstriert keine echte Verarbeitung."; $("modal-wrap").classList.add("show")};
+$("close-modal").onclick=function(){$("modal-wrap").classList.remove("show")};
+$("modal-wrap").addEventListener("click",function(ev){if(ev.target===this)this.classList.remove("show")});
+document.addEventListener("keydown",function(ev){if(ev.key==="Escape"&&$("modal-wrap").classList.contains("show")){$("modal-wrap").classList.remove("show")}else if(ev.key==="Escape"&&selected!==null)finish(false)});
+for(var i=0;i<118;i++){var bar=document.createElement("span");bar.className="bar";var height=14+Math.abs(Math.sin(i*.37)*Math.cos(i*.13))*126+Math.abs(Math.sin(i*.081))*31;bar.style.height=height+"px";$("wave").appendChild(bar)}
+changeMode("home");
+})();
+</script>
+</body>
+</html>
