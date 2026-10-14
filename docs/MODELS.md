@@ -1,3 +1,20 @@
+# Modellprofile: Ergänzung für Foto, Video und Audio (0.4 Alpha)
+
+Die bestehende U2NETP-Einführung unten bleibt unverändert. Im neuen Quellstand
+wird neben dem bisherigen Modell das höher auflösende IS-Net-General-Use-ONNX
+für Foto-/Videoframe-Freistellung, das bestehende Silero VAD für
+Sprachaktivität und das mehrsprachige Whisper Tiny INT8 für Audio-/
+Video-Ton-Transkription vorgesehen. Alle vier Modelle müssen bei der
+Windows-Paketierung lokal enthalten und geprüft sein; ansonsten darf der
+Build nicht als vollständiges Offline-Paket bezeichnet werden. Kein
+automatischer Modelldownload beim Nutzer.
+
+System-RAM/CPU bestimmen die automatische Vorauswahl, eine manuelle
+Modellwahl mit Ressourcenvorwarnung ist möglich. GPU-Laufzeiten sind **nicht**
+freigegeben. Modellgewicht und Qualität sind unterschiedliche Kriterien.
+Technische Quellen, Pinned-Digests, Lizenzen und Grenzen:
+[MODEL_PROFILES.md](MODEL_PROFILES.md).
+
 # Model decisions and provenance
 
 Checked on 2026-10-12. "Local inference is technically possible" is not a hardware certification or a release-quality claim.
