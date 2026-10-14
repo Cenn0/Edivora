@@ -132,8 +132,10 @@ def media_smoke_test(directory: Path, compiled_executable: str | None = None) ->
             try:
                 # Load one real clip, then append another instance (not a
                 # mocked list). Validate both QMediaPlayer and project model.
-                for number in range(2):
-                    window.open_path(file)
+                duplicate_source = directory / f"second-{kind}{file.suffix}"
+                duplicate_source.write_bytes(file.read_bytes())
+                for number, current_file in enumerate((file, duplicate_source)):
+                    window.open_path(current_file)
                     deadline = time.monotonic() + 12
                     while len(window.clips) <= number and time.monotonic() < deadline:
                         app.processEvents()
