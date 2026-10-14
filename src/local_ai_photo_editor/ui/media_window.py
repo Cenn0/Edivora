@@ -47,6 +47,7 @@ class MediaWindow(QMainWindow):
         self._active_export: MediaExport | None = None
         self._temporary_export: Path | None = None
         self._export_error = bytearray()
+        self._cancel_requested = False
         self._wave_process: QProcess | None = None
         self._wave_data = bytearray()
         self._status_key = "ready"
@@ -329,7 +330,7 @@ class MediaWindow(QMainWindow):
 
     def _volume_changed(self, value: int) -> None:
         self.volume_label.setText(f"{value} %")
-        self.audio_output.setVolume(value / 100)
+        self.audio_output.setVolume(min(value / 100, 1.0))
 
     def _mute_changed(self, muted: bool) -> None:
         self.audio_output.setMuted(muted)
@@ -465,6 +466,7 @@ class MediaWindow(QMainWindow):
         self._active_export = export
         self._temporary_export = temporary
         self._export_error.clear()
+        self._cancel_requested = False
         process = QProcess(self)
         self._export_process = process
         process.readyReadStandardError.connect(self._collect_error)
@@ -502,6 +504,9 @@ class MediaWindow(QMainWindow):
         self.progress.hide()
         self.cancel_button.hide()
         try:
+            if self._cancel_requested:
+                self._set_status("cancelled")
+                return
             if exit_code != 0 or export is None or temporary is None:
                 error = self._export_error.decode("utf-8", "replace").strip()[-500:]
                 raise RuntimeError(error or self._t("failed"))
@@ -520,12 +525,13 @@ class MediaWindow(QMainWindow):
         if process is None:
             return
         # Detached from playback; killing the encoder cannot change source.
+        self._cancel_requested = True
         process.kill()
         process.waitForFinished(2000)
         # finished() normally invokes cleanup; cover a failed signal delivery.
         if self._export_process is process:
             self._export_finished(-1, QProcess.ExitStatus.CrashExit)
-        self._set_status("cancelled")
+
 
     def _cancel_waveform(self) -> None:
         process = self._wave_process
