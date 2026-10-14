@@ -134,3 +134,38 @@ class ResponsiveSuiteTests(unittest.TestCase):
         button.setCompact(False)
         self.assertEqual(button.text(), "Undo")
         button.deleteLater()
+
+    def test_inspector_uses_cell_width_with_wide_platform_font_metrics(self):
+        from local_ai_photo_editor.ui.sequence_window import SequenceWindow
+        for kind in ("video", "audio"):
+            w = SequenceWindow(kind)
+            self.addCleanup(w.deleteLater)
+            self.addCleanup(w.close)
+            w.setStyleSheet(w.styleSheet() + "\nQWidget {font-family: monospace; font-size: 20px;}")
+            w.resize(640, 480)
+            w.show()
+            self.settle()
+            for language in (0, 1):
+                w.language_combo.setCurrentIndex(language)
+                for index in range(w.inspector_tabs.count()):
+                    w.inspector_tabs.setCurrentIndex(index)
+                    self.settle()
+                    self.assert_scroll_controls_reachable(w)
+
+    def test_wrapped_checkbox_keeps_click_and_keyboard_behavior(self):
+        from PySide6.QtCore import Qt
+        from local_ai_photo_editor.ui.responsive import WrappedCheckBox
+        label = "Lautstärke des fertigen Videos automatisch ausgleichen"
+        checkbox = WrappedCheckBox(label)
+        self.addCleanup(checkbox.deleteLater)
+        self.addCleanup(checkbox.close)
+        checkbox.resize(170, checkbox.heightForWidth(170))
+        checkbox.show()
+        self.settle()
+        self.assertEqual(checkbox.accessibleName(), label)
+        self.assertEqual(checkbox.text(), label)
+        self.assertGreater(checkbox.heightForWidth(170), 24)
+        QTest.mouseClick(checkbox, Qt.MouseButton.LeftButton, pos=QPoint(150, 10))
+        self.assertTrue(checkbox.isChecked())
+        QTest.keyClick(checkbox, Qt.Key.Key_Space)
+        self.assertFalse(checkbox.isChecked())

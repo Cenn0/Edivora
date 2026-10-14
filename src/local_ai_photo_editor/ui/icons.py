@@ -6,7 +6,7 @@ from functools import lru_cache
 from PySide6.QtCore import QByteArray, QRectF, QSize
 from PySide6.QtGui import QIcon, QIconEngine, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QPushButton, QSizePolicy
 
 from .theme import COLORS
 
@@ -109,11 +109,12 @@ def icon(name: str, color: str | None = None) -> QIcon:
 
 
 class IconButton(QPushButton):
-    """Keep a full accessible label even when a toolbar switches to icon-only."""
+    """Full accessible labels; compact appearance can follow a toolbar or its cell."""
     def __init__(self, label: str = "", *, key: str = "", icon_name: str | None = None, parent=None):
         super().__init__(parent)
         self._full_text = ""
         self._compact = False
+        self._fit_to_width = False
         self._icon_name = icon_name or KEY_ICONS.get(key)
         if self._icon_name:
             self.setIcon(icon(self._icon_name))
@@ -130,11 +131,31 @@ class IconButton(QPushButton):
         self._full_text = label
         self.setAccessibleName(label.replace("&", ""))
         self.setToolTip(label.replace("&", ""))
-        super().setText("" if self._compact and not self.icon().isNull() else label)
+        self._render_text()
 
     def setCompact(self, compact: bool) -> None:
         self._compact = compact
-        super().setText("" if compact and not self.icon().isNull() else self._full_text)
+        self._render_text()
+
+    def setFitToWidth(self, enabled: bool = True) -> None:
+        """Fit an inspector cell, not the outer window or a platform font guess."""
+        self._fit_to_width = enabled
+        self.setMinimumWidth(50 if enabled else 0)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored if enabled else QSizePolicy.Policy.Preferred,
+                           QSizePolicy.Policy.Fixed)
+        self._render_text()
+
+    def _render_text(self) -> None:
+        needed = self.fontMetrics().horizontalAdvance(self._full_text) + self.iconSize().width() + 44
+        compact = self._compact or (self._fit_to_width and self.width() < needed)
+        rendered = "" if compact and not self.icon().isNull() else self._full_text
+        if super().text() != rendered:
+            super().setText(rendered)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if self._fit_to_width:
+            self._render_text()
 
     @property
     def full_text(self) -> str:

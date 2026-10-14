@@ -8,7 +8,7 @@ from PIL import Image
 from PySide6.QtCore import QSignalBlocker, Qt, QTimer
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QFileDialog, QHBoxLayout, QLabel, QMessageBox,
-    QProgressBar, QScrollArea, QSlider, QSplitter, QTabWidget, QVBoxLayout, QWidget,
+    QProgressBar, QScrollArea, QSlider, QSizePolicy, QSplitter, QTabWidget, QVBoxLayout, QWidget,
 )
 
 from ..ai.restoration import model_available
@@ -17,7 +17,7 @@ from ..core.video_adjustments import PRESETS, VideoAdjustments
 from ..core.video_job import VideoJob, install_restored_clip, validate_destination
 from .canvas import PhotoCanvas
 from .icons import IconButton, icon
-from .responsive import ElideLabel, fit_initial_window
+from .responsive import ElideLabel, WrappedCheckBox, fit_initial_window
 from .theme import stylesheet
 from .video_jobs import RestorationRunner
 from .video_strings import text
@@ -77,6 +77,9 @@ class VideoEnhancementDialog(QDialog):
         corrections = self._page("corrections")
         corrections.addWidget(self._label("presets"))
         self.presets = QComboBox()
+        self.presets.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.presets.setMinimumContentsLength(10)
+        self.presets.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         for key in PRESETS:
             self.presets.addItem(self._t(key), key)
         self.presets.setAccessibleName(self._t("presets"))
@@ -104,7 +107,7 @@ class VideoEnhancementDialog(QDialog):
         corrections.addWidget(self._label("limits", True))
         corrections.addStretch()
         neural = self._page("neural")
-        self.ai = QCheckBox(self._t("ai"))
+        self.ai = WrappedCheckBox(self._t("ai"))
         self.ai.setEnabled(model_available())
         self.ai.toggled.connect(self._changed)
         neural.addWidget(self.ai)
@@ -130,7 +133,10 @@ class VideoEnhancementDialog(QDialog):
         self.cancel_button = IconButton(self._t("cancel"), icon_name="close")
         self.cancel_button.clicked.connect(self._cancel)
         for button in (self.preview_button, self.apply_button, self.cancel_button):
+            button.setFitToWidth()
             footer.addWidget(button)
+        self.compare.setFitToWidth()
+        self.reset.setFitToWidth()
         root.addLayout(footer)
         self.status = ElideLabel()
         root.addWidget(self.status)
@@ -145,7 +151,7 @@ class VideoEnhancementDialog(QDialog):
     def _t(self, key: str) -> str:
         return text(self.language, key)
 
-    def _label(self, key: str, wrap: bool = False) -> QLabel:
+    def _label(self, key: str, wrap: bool = True) -> QLabel:
         label = QLabel(self._t(key))
         label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(wrap)

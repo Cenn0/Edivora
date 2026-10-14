@@ -31,6 +31,13 @@ class VideoImprovementUITests(unittest.TestCase):
         self.source = fixture(self.root, seconds="3")
         self.clip = MediaClip.create("video", self.source, 3000)
         self.dialogs = []
+        self.errors = []
+        self.addCleanup(lambda: self.assertFalse(self.errors, self.errors))
+        # Qt modal warnings would otherwise block the event-loop timeout on CI.
+        warning = patch("local_ai_photo_editor.ui.video_dialog.QMessageBox.warning",
+                        side_effect=lambda *args: self.errors.append(str(args[2])))
+        warning.start()
+        self.addCleanup(warning.stop)
         self.addCleanup(self.close_dialogs)
 
     def close_dialogs(self):
