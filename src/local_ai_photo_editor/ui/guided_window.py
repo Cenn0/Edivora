@@ -177,6 +177,18 @@ class EditorWindow(BaseEditorWindow):
         for control in (*self.subject_buttons, self.subject_action):
             control.setEnabled(enabled)
             control.setToolTip(self._t("subject_hint" if enabled else "tools_unavailable"))
+        # Never hide Apply/Discard or a live crop/brush workflow behind
+        # a collapsed panel; otherwise the quick actions remain blocked.
+        requires_completion = (
+            self.has_pending_adjustments
+            or self.crop_button.isChecked()
+            or self.mask_button.isChecked()
+        )
+        if requires_completion and not self.more_tools_button.isChecked():
+            self.more_tools_button.setChecked(True)
+            self.more_tools_panel.show()
+            self._sync_more_tools_label()
+        self.more_tools_button.setEnabled(not requires_completion)
         self._update_quick_hint()
 
     def show_editing_tools(self, section: str = "light") -> None:
