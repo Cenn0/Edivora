@@ -8,7 +8,15 @@
 
 ![Edivora Photo, Video und Audio](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
-> **Wichtig: Quellcode ist nicht gleich Download.** Das auf GitHub veröffentlichte **[v0.1.0-alpha.1-Paket](https://github.com/Cenn0/Edivora/releases/tag/v0.1.0-alpha.1)** ist eine ältere, unsignierte **Foto-Testalpha**. Foto-, Video- und Audio-Launcher, Mehrclip-Timelines sowie Projektdateien gehören zum **neueren Entwicklungsstand (0.3.0a1 im Quellcode auf `main`)**. Für diese Suite gibt es noch keine entsprechend freigegebene Windows-Veröffentlichung. Die erste Windows-11-Clean-Machine-Abnahme und Redistribution-Prüfungen stehen aus.
+> **Wichtig: Quellcode ist nicht gleich Download.** Das auf GitHub veröffentlichte **[v0.1.0-alpha.1-Paket](https://github.com/Cenn0/Edivora/releases/tag/v0.1.0-alpha.1)** ist eine ältere, unsignierte **Foto-Testalpha**. Foto-, Video- und Audio-Launcher, Mehrclip-Timelines sowie Projektdateien gehören zum **neueren Entwicklungsstand (0.3.0a1 im Quellcode auf `main`)**. Die aktuelle Suite wird ausschließlich als private, unsignierte Testalpha angeboten; eine breite öffentliche Windows-Veröffentlichung ist nicht freigegeben. Die erste Windows-11-Clean-Machine-Abnahme und Redistribution-Prüfungen stehen aus.
+
+## Aktuellen Entwicklungsstand als Windows-Testversion herunterladen
+
+**[Windows x64: Edivora 0.3.0 Alpha 1 als ZIP herunterladen](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/Edivora-0.3.0-alpha.1-windows-x64.zip)** · [SHA-256-Prüfsumme](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/SHA256SUMS.txt) · [Testbuild und Hinweise](https://github.com/Cenn0/Edivora/releases/tag/v0.3.0-alpha.1) · [Build-Nachweise](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/BUILD_PROVENANCE.json)
+
+Dies ist ein **privates, unsigniertes Prerelease** für Personen mit Zugriff auf dieses Repository, **kein offiziell freigegebener Windows-11-Release**. Der Build wird nur aus einem **erfolgreich geprüften Windows-CI-Artefakt** erstellt; fehlen die Paketprüfungen, wird die Release-Veröffentlichung nicht durchgeführt. Die ältere Foto-Version unten ist **nicht** dieselbe Anwendung. Der neue Testbuild enthält den Launcher und alle drei Werkzeuge.
+
+**So startest du:** ZIP und `SHA256SUMS.txt` laden, den ZIP-Hash in PowerShell mit `Get-FileHash .\Edivora-0.3.0-alpha.1-windows-x64.zip -Algorithm SHA256` vergleichen, alles entpacken und **`LocalAiPhotoEditor/LocalAiPhotoEditor.exe`** öffnen. Der EXE-Dateiname ist noch historisch, die Anwendung heißt **Edivora**. DLLs, Modelle und `media-tools/ffmpeg.exe` müssen im Ordner bleiben. Das Paket erfordert weder separates Python noch Docker. **Nicht öffentlich weiterverteilen:** Die FFmpeg-/Qt-/Modell-Lizenzfreigaben sind noch offen, und eine vollständige Clean-Windows-11-Abnahme fehlt. [Release Notes](docs/RELEASE_NOTES_TEST_SUITE.md) · [Aktuelle Windows-Builds](https://github.com/Cenn0/Edivora/actions/workflows/windows-alpha.yml).
 
 ## Was kann Edivora?
 
