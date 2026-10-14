@@ -1,7 +1,6 @@
 # Edivora 0.3 source MVP – Clips, editable media projects and offline AI
 
-Status: **development branch**. Capabilities in this document must not be confused
-with the published photo-only `v0.1.0-alpha.1` ZIP or a released Windows suite.
+Status: **implemented in the current `main` source (0.3.0a1)**; **not** present in the published photo-only `v0.1.0-alpha.1` ZIP and **not** a separately accepted Windows suite.
 A passing Windows Server CI build is not clean Windows 11 or licensing approval.
 
 ## 1. Clip timeline (Video and Audio)
