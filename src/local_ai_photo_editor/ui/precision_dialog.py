@@ -10,7 +10,7 @@ from ..core.local_adjustments import DEFAULT_STRENGTH, LOCAL_MODES, LocalEdit, r
 from ..core.mask import MaskStroke
 from ..core.recipes import RenderCancelled
 from ..core.selection import MAX_SELECTION_ACTIONS, SelectionHistory, render_selection
-from ..core.subject import effective_subject_mask, selection_overlay, subject_bounds
+from ..core.subject import effective_subject_mask, selection_overlay, validate_subject_mask
 from .detail_strings import STRINGS, text
 from .navigation import NavigationCanvas, ViewControls
 from .subject_dialog import SubjectDialog
@@ -43,7 +43,6 @@ class PrecisionDialog(SubjectDialog):
         self.selection_history = SelectionHistory()
         self._working_preview_mask: Image.Image | None = None
         self._manual = manual
-        # The base validates its initial operation against the original modes.
         initial = mode if mode in LOCAL_MODES[:6] else "light"
         super().__init__(image, language, initial, parent, start_immediately=False)
         self.mode_combo.setCurrentIndex(self.mode_combo.findData(mode))
@@ -82,7 +81,6 @@ class PrecisionDialog(SubjectDialog):
         old_canvas.deleteLater()
         for extra in LOCAL_MODES[6:]:
             self.mode_combo.addItem(self._t(extra), extra)
-
         panel = self.panel.layout()
         self.brush_button = self._button("brush_toggle", self._toggle_brush)
         self.brush_button.setCheckable(True)
@@ -177,7 +175,6 @@ class PrecisionDialog(SubjectDialog):
             return
         try:
             actions = (*self.selection_history.actions, action)
-            # Validate and rasterize before mutating history or clearing redo.
             rendered = render_selection(self._preview_mask, actions)
             self.selection_history.push(action)
             self._working_preview_mask = rendered
@@ -218,11 +215,17 @@ class PrecisionDialog(SubjectDialog):
         if self.is_busy or self._closing or self._mask is not None:
             return
         self._start_timer.stop()
+        try:
+            mask = Image.new("L", self._image.size)
+            preview = Image.new("L", self._preview_source.size)
+            working = preview.copy()
+        except (ValueError, OSError, MemoryError):
+            self.status.setText(self._t("edit_error"))
+            self._update_controls()
+            return
         self._manual = True
         self.selection_history = SelectionHistory()
-        self._mask = Image.new("L", self._image.size)
-        self._preview_mask = Image.new("L", self._preview_source.size)
-        self._working_preview_mask = self._preview_mask.copy()
+        self._mask, self._preview_mask, self._working_preview_mask = mask, preview, working
         self._error_code = ""
         self.layout().itemAt(0).widget().setText(self._t("manual_intro"))
         self.brush_button.setChecked(True)
@@ -230,10 +233,17 @@ class PrecisionDialog(SubjectDialog):
         self._render_preview()
 
     def _install_selection(self, mask: Image.Image) -> None:
-        # Do not relax the inference adapter's rejection of uniform masks.
+        validate_subject_mask(mask, self._image.size)
+        if mask.getextrema()[0] == mask.getextrema()[1]:
+            raise ValueError("A uniform inferred mask is not a usable selection.")
+        owned = mask.copy()
+        preview = mask.resize(self._preview_source.size, Image.Resampling.LANCZOS)
+        self._start_timer.stop()
         self.selection_history = SelectionHistory()
+        self._mask, self._preview_mask = owned, preview
         self._working_preview_mask = None
-        super()._install_selection(mask)
+        self._error_code = ""
+        self._render_preview()
 
     def _mode_changed(self) -> None:
         with QSignalBlocker(self.strength):
@@ -265,8 +275,6 @@ class PrecisionDialog(SubjectDialog):
                 self._preview_result = render_local(self._preview_source, selection, self.edit)
                 self._result_size = self._image.size
                 if self.edit.mode == "crop":
-                    # The corrected thumbnail is not a pixel-exact full-size mask.
-                    # Display an explicit crop-preview label, not exact dimensions.
                     sx, sy = self._image.width / self._preview_source.width, self._image.height / self._preview_source.height
                     self._result_size = (max(1, round(self._preview_result.width * sx)),
                                          max(1, round(self._preview_result.height * sy)))
@@ -301,7 +309,10 @@ class PrecisionDialog(SubjectDialog):
         if (self.is_busy or self._mask is None or self._closing or not self.edit.has_effect
                 or self.brush_button.isChecked() or self.canvas._brush_points is not None):
             return
-        self._render_preview()
+        # Slider changes invalidate the cache; a current preview needs no
+        # second synchronous render before the full-resolution worker starts.
+        if not self._preview_valid:
+            self._render_preview()
         if not self._preview_valid:
             return
         self._timer.stop()
