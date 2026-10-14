@@ -35,7 +35,19 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      - name: Check existing immutable private test release
+        id: existing
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" --json tagName --jq .tagName >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Private test prerelease already published; no retagging."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Verify repository, source SHA and successful Windows artifact
+        if: steps.existing.outputs.skip != 'true'
         id: source
         shell: bash
         run: |
@@ -85,6 +97,7 @@ jobs:
           PY
 
       - name: Download digest-verified Windows package
+        if: steps.existing.outputs.skip != 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           artifact-ids: ${{ steps.source.outputs.artifact_id }}
@@ -95,6 +108,7 @@ jobs:
           digest-mismatch: error
 
       - name: Assemble portable ZIP and checksums
+        if: steps.existing.outputs.skip != 'true'
         env:
           ARTIFACT_DIGEST: ${{ steps.source.outputs.digest }}
           ARTIFACT_ID: ${{ steps.source.outputs.artifact_id }}
@@ -152,6 +166,7 @@ jobs:
             >> release-files/RELEASE_NOTES.md
 
       - name: Publish immutable private GitHub prerelease
+        if: steps.existing.outputs.skip != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -168,6 +183,7 @@ jobs:
           fi
 
       - name: Download GitHub release and verify exact original file hashes
+        if: steps.existing.outputs.skip != 'true'
         shell: bash
         run: |
           set -euo pipefail
