@@ -192,7 +192,7 @@ class EditorWindow(QMainWindow):
 
         rail = QFrame()
         rail.setObjectName("navRail")
-        rail.setFixedWidth(90)
+        rail.setFixedWidth(104)
         rail_layout = QVBoxLayout(rail)
         rail_layout.setContentsMargins(7, 12, 7, 12)
         rail_layout.setSpacing(5)
@@ -439,6 +439,9 @@ class EditorWindow(QMainWindow):
         actions.addStretch()
         import_layout.addLayout(actions)
         layout.addWidget(import_card)
+        self.home_continue_button = self._button("home_continue", self._go_photo)
+        self.home_continue_button.hide()
+        layout.addWidget(self.home_continue_button)
 
         tiles = QHBoxLayout()
         tiles.setSpacing(12)
@@ -459,7 +462,7 @@ class EditorWindow(QMainWindow):
             col.addWidget(self._label(title_key, "sectionTitle", wrap=True))
             col.addWidget(self._label(desc_key, "homeDescription", wrap=True), 1)
             action_key = "home_planned" if planned else "home_open_photo"
-            button = self._button(action_key, lambda: None if planned else self.open_photo(),
+            button = self._button(action_key, (lambda: None) if planned else self.open_photo,
                                   "homePlanned" if planned else "homePrimary")
             button.setEnabled(not planned)
             col.addWidget(button)
@@ -498,12 +501,15 @@ class EditorWindow(QMainWindow):
         dialog.setWindowTitle(self._t("nav_settings"))
         form = QVBoxLayout(dialog)
         form.setContentsMargins(20, 20, 20, 20)
-        form.addWidget(self._label("settings_language"))
+        label = QLabel(self._t("settings_language"))
+        label.setTextFormat(Qt.TextFormat.PlainText)
+        form.addWidget(label)
         choice = QComboBox(dialog)
         choice.addItem("Deutsch", "de")
         choice.addItem("English", "en")
         choice.setCurrentIndex(choice.findData(self.language))
         choice.currentIndexChanged.connect(lambda: self.set_language(str(choice.currentData())))
+        choice.setAccessibleName(self._t("settings_language"))
         form.addWidget(choice)
         done = QPushButton(self._t("settings_done"))
         done.clicked.connect(dialog.accept)
@@ -672,6 +678,7 @@ class EditorWindow(QMainWindow):
             "changes_pending" if has_document and self._has_unexported_changes()
             else "changes_clean" if has_document else "changes_empty"
         ))
+        self.home_continue_button.setVisible(has_document)
         self._update_status()
 
     def _editable(self) -> bool:
