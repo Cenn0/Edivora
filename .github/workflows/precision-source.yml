@@ -1,0 +1,76 @@
+name: Precision source verification
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/test_precision*.py'
+      - 'tests/test_selection_precision.py'
+      - 'tools/verify_precision_tools.py'
+      - '.github/workflows/precision-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: precision-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  precision-runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    env:
+      PYTHONPATH: src
+      QT_QPA_PLATFORM: ${{ matrix.os == 'windows-2022' && 'windows' || 'offscreen' }}
+      HF_HUB_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install Linux Qt runtime libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libopengl0 libgl1 libxkbcommon0
+      - name: Install existing pinned application dependencies
+        run: python -m pip install -e .
+      - name: Prepare checksum-pinned model at build time
+        run: python tools/prepare_model.py
+      - name: Compile source
+        run: python -m compileall -q src tests tools
+      - name: Verify actual precision inference manual selection and DE EN views
+        run: python tools/verify_precision_tools.py test-results/precision-runtime
+      - name: Retain source-only snapshot and runtime evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: precision-source-${{ runner.os }}
+          path: |
+            src/
+            tests/
+            tools/
+            docs/
+            packaging/
+            main.py
+            pyproject.toml
+            README.md
+            AGENTS.md
+            LICENSE
+            THIRD_PARTY_NOTICES.md
+            test-results/precision-runtime/
+            !src/**/*.onnx
+            !**/__pycache__/**
+          if-no-files-found: error
+          retention-days: 14
