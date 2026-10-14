@@ -2,7 +2,7 @@
 
 ![Edivora Bildmarke](../src/local_ai_photo_editor/assets/edivora-mark.svg)
 
-Diese Dokumentation beschreibt zwei **unterschiedliche** Softwarestände: das veröffentlichte, historische Foto-Alpha-Paket **\`v0.1.0-alpha.1\`** und die neuere **Edivora-Suite im Quellcode (0.3.0a1)**. Die aktuelle Quellcode-Suite verfügt über Foto-, Video- und Audiobearbeitung, aber es liegt **keine entsprechend freigegebene neue Windows-Version** vor. Der alte Paketprüfnachweis darf nicht auf aktuelle Features übertragen werden.
+Diese Dokumentation beschreibt zwei **unterschiedliche** Softwarestände: das veröffentlichte, historische Foto-Alpha-Paket **`v0.1.0-alpha.1`** und die neuere **Edivora-Suite im Quellcode (0.3.0a1)**. Die aktuelle Quellcode-Suite verfügt über Foto-, Video- und Audiobearbeitung, aber es liegt **keine entsprechend freigegebene neue Windows-Version** vor. Der alte Paketprüfnachweis darf nicht auf aktuelle Features übertragen werden.
 
 ## Anwenden
 
@@ -12,7 +12,7 @@ Diese Dokumentation beschreibt zwei **unterschiedliche** Softwarestände: das ve
 - [Foto bearbeiten: Licht, Farbe, Looks und Hintergrund](EDITING_TOOLS.md)
 - [Foto-Motivwerkzeuge und KI-Auswahl](AI_SUBJECT_TOOLS.md)
 - [Manuelle Maskenkorrektur](MASK_REFINEMENT.md)
-- [Foto-Projektformat \`.laip\`](PROJECT_FORMAT.md)
+- [Foto-Projektformat `.laip`](PROJECT_FORMAT.md)
 
 ## Verstehen und erweitern
 
