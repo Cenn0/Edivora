@@ -55,12 +55,63 @@ def apply_mask(image: Image.Image, mask: Image.Image) -> Image.Image:
     return result
 
 
-def predict_subject(image: Image.Image, path: Path | None = None) -> Image.Image:
-    """Infer an independent L-mode selection, not source alpha or new RGB pixels.
+def _predict_isnet(image: Image.Image) -> Image.Image:
+    """Run the larger pinned IS-Net/DIS model on the CPU only.
 
-    Call only from the local worker process. The saliency map is not an object
-    identity, a depth map or a calibrated confidence probability.
+    The source's RGB is preserved; the result is a subject-alpha mask.
+    ONNX input/output contracts match the upstream 1024-pixel rembg export.
     """
+    import hashlib
+    from .catalog import ISNET_MAX_BYTES, ISNET_SHA256, model_file
+
+    path = model_file("isnet-general-use")
+    with path.open("rb") as input_file:
+        data = input_file.read(ISNET_MAX_BYTES + 1)
+    if not data or len(data) > ISNET_MAX_BYTES or hashlib.sha256(data).hexdigest() != ISNET_SHA256:
+        from .models import ModelIntegrityError
+        raise ModelIntegrityError("The pinned IS-Net model is invalid.")
+    import onnxruntime as ort
+
+    ort.disable_telemetry_events()
+    opts = ort.SessionOptions()
+    opts.intra_op_num_threads = max(1, min(4, os.cpu_count() or 2))
+    opts.inter_op_num_threads = 1
+    opts.log_severity_level = 3
+    session = ort.InferenceSession(data, sess_options=opts, providers=["CPUExecutionProvider"])
+    inputs = session.get_inputs()
+    if len(inputs) != 1 or inputs[0].shape != [1, 3, 1024, 1024]:
+        raise ValueError("IS-Net model input dimensions changed.")
+    rgb = image.convert("RGB").resize((1024, 1024), Image.Resampling.LANCZOS)
+    floats = np.asarray(rgb, dtype=np.float32)
+    maximum = float(floats.max())
+    if maximum > 0:
+        floats /= maximum
+    floats -= 0.5
+    tensor = np.ascontiguousarray(floats.transpose(2, 0, 1)[None])
+    prediction = session.run([session.get_outputs()[0].name], {inputs[0].name: tensor})[0]
+    values = np.asarray(prediction, dtype=np.float32)
+    if values.shape != (1, 1, 1024, 1024) or not np.isfinite(values).all():
+        raise ValueError("IS-Net returned an invalid subject map.")
+    plane = values[0, 0]
+    low, high = float(plane.min()), float(plane.max())
+    if high - low <= np.finfo(np.float32).eps:
+        raise NoSubjectError("IS-Net did not detect a separable foreground.")
+    alpha = np.rint((plane - low) / (high - low) * 255).clip(0, 255).astype(np.uint8)
+    return Image.fromarray(alpha).resize(image.size, Image.Resampling.LANCZOS)
+
+
+def predict_subject(image: Image.Image, path: Path | None = None,
+                    *, model_id: str = "u2netp") -> Image.Image:
+    """Infer a local selection; model may be higher quality but not generative.
+
+    Selection is performed by the worker process, never directly in the GUI.
+    """
+    if model_id == "isnet-general-use":
+        if path is not None:
+            raise ValueError("Custom IS-Net model paths are not supported.")
+        return _predict_isnet(image)
+    if model_id != "u2netp":
+        raise ValueError("Unsupported segmentation model.")
     data = verified_model_bytes(path)
     import onnxruntime as ort
 
@@ -77,5 +128,6 @@ def predict_subject(image: Image.Image, path: Path | None = None) -> Image.Image
     return output_mask(predictions[0], image.size)
 
 
-def remove_background(image: Image.Image, path: Path | None = None) -> Image.Image:
-    return apply_mask(image, predict_subject(image, path))
+def remove_background(image: Image.Image, path: Path | None = None,
+                      *, model_id: str = "u2netp") -> Image.Image:
+    return apply_mask(image, predict_subject(image, path, model_id=model_id))
