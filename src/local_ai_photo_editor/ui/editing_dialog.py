@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from ..core.editing import load_image
 from ..core.recipes import (ASPECTS, LOOKS, EditRecipe, RenderCancelled, auto_levels,
                             output_size, render_recipe)
+from .theme import stylesheet
 from .canvas import PhotoCanvas
 from .editing_strings import text
 
@@ -76,13 +77,7 @@ class EditingDialog(QDialog):
         self.setWindowTitle(self._t("dialog_title"))
         self.setMinimumSize(800, 560)
         self.resize(1080, 720)
-        self.setStyleSheet("""
-            QTabWidget::pane { border: 1px solid #454b59; background: #262a34; }
-            QTabBar::tab { color: #ecebf5; background: #343949; padding: 9px 12px; }
-            QTabBar::tab:selected { background: #544469; }
-            QToolButton { color: #edeef4; background: #343949; border: 1px solid #4b5162; padding: 3px 6px; }
-            QWidget#editingPage { background: #262a34; }
-        """)
+        self.setStyleSheet(stylesheet())
         self._build()
         self.tabs.setCurrentIndex(_SECTIONS.index(section))
         self._refresh_controls()
