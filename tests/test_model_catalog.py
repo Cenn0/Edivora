@@ -16,6 +16,7 @@ from local_ai_photo_editor.ai.catalog import (
     TASK_TRANSCRIBE, TASK_VOICE, choose_model, model_installed, recommended,
 )
 from local_ai_photo_editor.ai.background import _predict_isnet
+from local_ai_photo_editor.ai.models import ModelIntegrityError
 from local_ai_photo_editor.ai.transcribe import _export_text, transcribe
 from local_ai_photo_editor import __main__ as entry
 
@@ -96,14 +97,18 @@ class StrongISNetAdapterTests(unittest.TestCase):
                 result = _predict_isnet(Image.new("RGB", (53, 31), "purple"))
             self.assertEqual(result.mode, "L")
             self.assertEqual(result.size, (53, 31))
-            self.assertEqual(result.getextrema(), (0, 255))
+            minimum, maximum = result.getextrema()
+            # Lanczos downsampling cannot retain the outermost values for
+            # an artificial ramp, but the mask still spans almost the range.
+            self.assertLess(minimum, 20)
+            self.assertGreater(maximum, 235)
 
     def test_model_rejects_corrupt_hash(self) -> None:
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "invalid.onnx"
             path.write_bytes(b"not-onxx")
             with patch("local_ai_photo_editor.ai.catalog.model_file", return_value=path):
-                with self.assertRaises(ValueError):
+                with self.assertRaises(ModelIntegrityError):
                     _predict_isnet(Image.new("RGB", (20, 20), "red"))
 
 
