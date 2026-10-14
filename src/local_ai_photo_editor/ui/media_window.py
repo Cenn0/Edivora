@@ -120,6 +120,9 @@ class MediaWindow(QMainWindow):
             if widget is self.wave_label and self._wave_pixmap is not None:
                 continue
             widget.setText(self._t(key))
+            if isinstance(widget, QCheckBox):
+                widget.setAccessibleName(self._t(key))
+                widget.setToolTip(self._t(key))
         if self.wave_label is not None and self._wave_pixmap is not None:
             self.wave_label.setToolTip(
                 self._t("waveform_partial") if self.duration_ms > 900_000 else ""

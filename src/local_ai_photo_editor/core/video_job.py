@@ -87,6 +87,8 @@ def install_restored_clip(temporary: Path, destination: Path,
         raise ValueError("Invalid restoration output or staging directory.")
     # The job directory is created beside the destination, including on Windows:
     # a cross-volume move cannot accidentally turn this into a non-atomic copy.
-    with temporary.open("rb") as stream:
+    # Windows FlushFileBuffers requires a writable handle. The completed
+    # staging file is ours; r+b preserves its bytes and does not truncate it.
+    with temporary.open("r+b") as stream:
         os.fsync(stream.fileno())
     os.replace(temporary, destination)

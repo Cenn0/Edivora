@@ -52,7 +52,9 @@ class ResponsiveSuiteTests(unittest.TestCase):
                 scroll.ensureWidgetVisible(control, 0, 0)
                 self.settle()
                 self.assertTrue(in_viewport(control, scroll.viewport()),
-                    f"Unreachable {type(control).__name__}/{control.accessibleName()} in {window.windowTitle()} at {window.size()}")
+                    f"Unreachable {type(control).__name__}/{control.accessibleName()} in {window.windowTitle()} "
+                    f"at {window.size()}: control={control.size()}, origin={control.mapTo(scroll.viewport(), QPoint(0, 0))}, "
+                    f"viewport={scroll.viewport().size()}, page={page.size()}")
 
     def test_launcher_reflows_and_direct_actions_remain_visible(self):
         from local_ai_photo_editor.ui.launcher import LauncherWindow

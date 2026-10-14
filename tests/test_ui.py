@@ -236,7 +236,7 @@ class EditorWindowTests(unittest.TestCase):
             with patch("local_ai_photo_editor.ui.window.QFileDialog.getSaveFileName", return_value=(str(fresh), "PNG (*.png)")):
                 self.window.export_copy()
             self.assertTrue(fresh.exists())
-            self.assertEqual(self.window.status_label.text(), self.window._t("export_done", name=fresh.name))
+            self.assertEqual(self.window.status_label.accessibleName(), self.window._t("export_done", name=fresh.name))
 
     def test_invalid_project_does_not_replace_active_document(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

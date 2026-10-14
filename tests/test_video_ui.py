@@ -27,7 +27,7 @@ class VideoImprovementUITests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.source = fixture(self.root, seconds="3")
         self.clip = MediaClip.create("video", self.source, 3000)
         self.dialogs = []
