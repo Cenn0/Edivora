@@ -64,9 +64,11 @@ class BeginnerWorkspaceTests(unittest.TestCase):
 
     def test_quick_ai_cutout_uses_preview_dialog_not_direct_ai_apply(self) -> None:
         self.open_image()
-        with patch.object(self.window, "show_editing_tools") as edit, \\
-                patch.object(self.window, "show_ai_tools") as ai, \\
-                patch.object(self.window, "start_background_removal") as direct:
+        with (
+            patch.object(self.window, "show_editing_tools") as edit,
+            patch.object(self.window, "show_ai_tools") as ai,
+            patch.object(self.window, "start_background_removal") as direct,
+        ):
             self.window.quick_buttons[0].click()
             self.window.quick_buttons[1].click()
             self.window.quick_buttons[2].click()
