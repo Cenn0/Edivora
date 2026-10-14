@@ -1,0 +1,43 @@
+name: Suite development verification
+on:
+  push:
+    branches: [feat/responsive-suite-video-restoration]
+    paths: ['.github/workflows/suite-development.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-workspace:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Archive exact tracked source
+        shell: bash
+        run: |
+          mkdir -p verification
+          python - <<'PY'
+          import pathlib, subprocess, zipfile
+          with zipfile.ZipFile('verification/source.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+              for name in subprocess.check_output(['git','ls-files','-z']).decode().split('\0'):
+                  if name and pathlib.Path(name).is_file():
+                      z.write(name, name)
+          pathlib.Path('verification/commit.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: suite-source-workspace
+          path: verification/
+          retention-days: 3
+      - name: Prepare offline Linux test wheels
+        run: python -m pip download --only-binary=:all: --dest wheelhouse Pillow==12.3.0 numpy==2.5.4 PySide6==6.12.0 onnxruntime==1.31.0 imageio-ffmpeg==0.6.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: suite-offline-linux-wheels
+          path: wheelhouse/
+          retention-days: 1
