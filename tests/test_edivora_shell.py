@@ -54,17 +54,17 @@ class EdivoraShellTests(unittest.TestCase):
         self.window.deleteLater()
         self.app.processEvents()
 
-    def test_start_hub_and_navigation_are_honest_about_supported_media(self) -> None:
+    def test_start_hub_and_navigation_enable_the_available_media_mvp(self) -> None:
         w = self.window
         self.assertEqual(w.windowTitle(), "Edivora · Foto")
         self.assertIs(w.stage_stack.currentWidget(), w.home_page)
         self.assertTrue(w.nav_start.isChecked())
-        self.assertFalse(w.nav_video.isEnabled())
-        self.assertFalse(w.nav_audio.isEnabled())
+        self.assertTrue(w.nav_video.isEnabled())
+        self.assertTrue(w.nav_audio.isEnabled())
         self.assertEqual(len(w.home_media_buttons), 3)
         self.assertTrue(w.home_media_buttons[0].isEnabled())
-        self.assertFalse(w.home_media_buttons[1].isEnabled())
-        self.assertFalse(w.home_media_buttons[2].isEnabled())
+        self.assertTrue(w.home_media_buttons[1].isEnabled())
+        self.assertTrue(w.home_media_buttons[2].isEnabled())
         self.assertTrue(w.home_continue_button.isHidden())
 
     def test_opened_photo_appears_on_canvas_and_can_be_resumed_from_start(self) -> None:
@@ -100,11 +100,21 @@ class EdivoraShellTests(unittest.TestCase):
         w.set_language("en")
         self.assertIn("Photo", w.nav_photo.text())
         self.assertEqual(w.nav_photo.accessibleName(), "Photo")
-        self.assertIn("Planned", w.nav_video.toolTip())
+        self.assertIn("Open separate window", w.nav_video.toolTip())
         self.assertEqual(w.quick_buttons[0].text(), "Enhance photo …")
         w.set_language("de")
         self.assertIn("Foto", w.nav_photo.text())
         self.assertIn("Weitere", w.more_tools_button.text())
+
+    def test_media_navigation_starts_independent_tools(self) -> None:
+        w = self.window
+        with patch.object(w, "_launch_other_tool") as launch:
+            w.nav_video.click()
+            w.nav_audio.click()
+            w.home_media_buttons[1].click()
+            w.home_media_buttons[2].click()
+        self.assertEqual([x.args[0] for x in launch.call_args_list],
+                         ["video", "audio", "video", "audio"])
 
     def test_photo_navigation_opens_import_without_simulated_media_features(self) -> None:
         w = self.window
