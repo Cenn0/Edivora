@@ -6,7 +6,7 @@ Die Anwendungen sind für gelegentliche lokale Foto-, Video- und Audiobearbeitun
 
 **[Edivora 0.3.0 Alpha 1 herunterladen](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/Edivora-0.3.0-alpha.1-windows-x64.zip)** · [SHA-256](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/SHA256SUMS.txt) · [Release-Hinweise](https://github.com/Cenn0/Edivora/releases/tag/v0.3.0-alpha.1). Der Download ist nur für Personen mit Zugriff auf das **private Repository** bestimmt. Diese Version enthält Foto-, Video- und Audiobearbeitung, ist **unsigniert** und noch **nicht** auf einem frischen Windows 11 umfassend abgenommen. Drittanbieter-Lizenzprüfungen für öffentliche Weitergabe sind nicht abgeschlossen.
 
-Nach Download den SHA-256 des ZIPs prüfen (`Get-FileHash .\\Edivora-0.3.0-alpha.1-windows-x64.zip -Algorithm SHA256`), komplett entpacken, dann `LocalAiPhotoEditor/LocalAiPhotoEditor.exe` öffnen. Die alte technische EXE-Bezeichnung ist beabsichtigt. Die Anwendung wird unter dem Namen **Edivora** gestartet; der Launcher bietet alle drei Werkzeuge. Enthaltene DLLs, FFmpeg und Modell-Dateien dürfen nicht aus dem Ordner entfernt werden.
+Nach Download den SHA-256 des ZIPs prüfen (`Get-FileHash .\Edivora-0.3.0-alpha.1-windows-x64.zip -Algorithm SHA256`), komplett entpacken, dann `LocalAiPhotoEditor/LocalAiPhotoEditor.exe` öffnen. Die alte technische EXE-Bezeichnung ist beabsichtigt. Die Anwendung wird unter dem Namen **Edivora** gestartet; der Launcher bietet alle drei Werkzeuge. Enthaltene DLLs, FFmpeg und Modell-Dateien dürfen nicht aus dem Ordner entfernt werden.
 
 ## 1. Nur ein Foto bearbeiten: historische Windows-Testalpha
 
