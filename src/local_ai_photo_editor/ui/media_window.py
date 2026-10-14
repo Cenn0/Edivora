@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..core.media import (
-    MediaExport, commit_export, ffmpeg_executable, validate_source,
+    MIN_SELECTION_MS, MediaExport, commit_export, ffmpeg_executable, validate_source,
 )
 from .media_strings import text
 from .theme import stylesheet
@@ -326,7 +326,7 @@ class MediaWindow(QMainWindow):
             return False
         start = round(self.start_spin.value() * 1000)
         end = round(self.end_spin.value() * 1000)
-        if start < 0 or end > self.duration_ms + 1 or end - start < 100:
+        if start < 0 or end > self.duration_ms + 1 or end - start < MIN_SELECTION_MS:
             return False
         if self.kind == "audio":
             fades = round((self.fade_in.value() + self.fade_out.value()) * 1000)
@@ -379,19 +379,19 @@ class MediaWindow(QMainWindow):
         self.player.setPosition(position_ms)
 
     def _mark_start_at_playhead(self) -> None:
-        if self.source is None or self.duration_ms < 100 or self._is_busy():
+        if self.source is None or self.duration_ms < MIN_SELECTION_MS or self._is_busy():
             return
-        position = min(self.player.position(), round(self.end_spin.value() * 1000) - 100)
+        position = min(self.player.position(), round(self.end_spin.value() * 1000) - MIN_SELECTION_MS)
         self.start_spin.setValue(max(0, position) / 1000)
 
     def _mark_end_at_playhead(self) -> None:
-        if self.source is None or self.duration_ms < 100 or self._is_busy():
+        if self.source is None or self.duration_ms < MIN_SELECTION_MS or self._is_busy():
             return
-        position = max(self.player.position(), round(self.start_spin.value() * 1000) + 100)
+        position = max(self.player.position(), round(self.start_spin.value() * 1000) + MIN_SELECTION_MS)
         self.end_spin.setValue(min(self.duration_ms, position) / 1000)
 
     def _reset_range(self) -> None:
-        if self.source is None or self.duration_ms < 100 or self._is_busy():
+        if self.source is None or self.duration_ms < MIN_SELECTION_MS or self._is_busy():
             return
         with QSignalBlocker(self.start_spin), QSignalBlocker(self.end_spin):
             self.start_spin.setValue(0)
