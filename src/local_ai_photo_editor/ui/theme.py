@@ -125,6 +125,17 @@ QSlider::handle:horizontal {
 QSlider:disabled::handle:horizontal { background: $muted; }
 QProgressBar { border: 0; background: $border; border-radius: 3px; max-height: 7px; }
 QProgressBar::chunk { background: $ai; border-radius: 3px; }
+QTabWidget::pane { border: 1px solid $border; background: $panel; }
+QTabBar::tab {
+    color: $secondary; background: $elevated;
+    padding: 10px 14px; min-height: 26px;
+}
+QTabBar::tab:selected { color: $primary; background: $panel; }
+QToolButton {
+    color: $text; background: $elevated;
+    border: 1px solid $border; border-radius: 6px; padding: 6px;
+}
+QWidget#editingPage { background: $panel; }
 QScrollArea { border: none; background: transparent; }
 QScrollBar:vertical { width: 9px; background: transparent; }
 QScrollBar::handle:vertical { background: $border; border-radius: 4px; min-height: 30px; }
