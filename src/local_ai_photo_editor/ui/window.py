@@ -10,7 +10,7 @@ from typing import Callable
 
 from PIL import Image
 from PySide6.QtCore import QProcess, QSignalBlocker, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QDragEnterEvent, QDropEvent, QKeySequence
+from PySide6.QtGui import QAction, QCloseEvent, QDragEnterEvent, QDropEvent, QKeySequence, QResizeEvent
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
     QFrame, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QProgressBar,
@@ -470,7 +470,12 @@ class EditorWindow(QMainWindow):
             tiles.addWidget(tile, 1)
         layout.addLayout(tiles)
         layout.addStretch()
-        return home
+        scroll = QScrollArea()
+        scroll.setObjectName("homeScroll")
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(home)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        return scroll
 
     def _go_start(self) -> None:
         # Never conceal controls needed to apply or cancel a pending preview.
@@ -680,6 +685,31 @@ class EditorWindow(QMainWindow):
         ))
         self.home_continue_button.setVisible(has_document)
         self._update_status()
+        self._apply_header_size()
+
+    def _apply_header_size(self) -> None:
+        """Keep all primary actions reachable at 900 px without clipping."""
+        if not hasattr(self, "undo_button"):
+            return
+        compact = self.width() < 1180
+        self.undo_button.setText("↶" if compact else self._t("undo"))
+        self.redo_button.setText("↷" if compact else self._t("redo"))
+        original_key = "original_active" if self.original_button.isChecked() else "original"
+        self.original_button.setText(
+            (self._t("compare_compact_active") if self.original_button.isChecked()
+             else self._t("compare_compact")) if compact else self._t(original_key)
+        )
+        for button, key in (
+            (self.undo_button, "undo"), (self.redo_button, "redo"),
+            (self.original_button, original_key),
+        ):
+            button.setAccessibleName(self._t(key))
+            button.setToolTip(self._t(key))
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "original_button"):
+            self._apply_header_size()
 
     def _editable(self) -> bool:
         return self.document is not None and not self.is_busy and not self.has_pending_adjustments and not self.original_button.isChecked() and not self.mask_button.isChecked()
