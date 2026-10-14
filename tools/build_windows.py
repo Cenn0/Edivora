@@ -18,6 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from local_ai_photo_editor.ai.models import MODEL_SHA256, model_path, verified_model_bytes  # noqa: E402
+from local_ai_photo_editor.ai.restoration import (
+    MODEL_SHA256 as RESTORATION_SHA256, MODEL_BYTES as RESTORATION_BYTES,
+    model_path as restoration_model_path, verified_bytes as verified_restoration,
+)
 from local_ai_photo_editor.ai.voice import (  # noqa: E402
     VOICE_MODEL_SHA256, voice_model_path, verified_voice_model,
 )
@@ -28,6 +32,7 @@ def main() -> int:
         raise SystemExit("Build this package on 64-bit Windows with 64-bit Python 3.12.")
     verified_model_bytes()
     verified_voice_model()
+    verified_restoration()
     import imageio_ffmpeg
     ffmpeg_binary = Path(imageio_ffmpeg.get_ffmpeg_exe()).resolve()
     if not ffmpeg_binary.is_file():
@@ -68,6 +73,10 @@ def main() -> int:
         raise RuntimeError("Nuitka did not produce the expected standalone executable.")
     verified_model_bytes(compiled / "local_ai_photo_editor" / "models" / model_path().name)
     verified_voice_model(compiled / "local_ai_photo_editor" / "models" / voice_model_path().name)
+    neural = compiled / "local_ai_photo_editor" / "models" / restoration_model_path().name
+    if (not neural.is_file() or neural.stat().st_size != RESTORATION_BYTES
+            or hashlib.sha256(neural.read_bytes()).hexdigest() != RESTORATION_SHA256):
+        raise RuntimeError("Packaged DnCNN model is missing or corrupt.")
     destination = ROOT / "dist" / "LocalAiPhotoEditor"
     if destination.exists():
         shutil.rmtree(destination)
@@ -88,14 +97,16 @@ def main() -> int:
     shutil.copy2(ROOT / "packaging" / "START_HERE.txt", destination / "START_HERE.txt")
     shutil.copytree(ROOT / "docs", destination / "docs")
     (destination / "build-info.json").write_text(json.dumps({
-        "version": "0.3.0a1",
+        "version": "0.4.0a1",
         "commit": os.environ.get("GITHUB_SHA", "local-build"),
         "python": platform.python_version(),
         "platform": platform.platform(),
         "model_sha256": MODEL_SHA256,
         "voice_model_sha256": VOICE_MODEL_SHA256,
+        "restoration_model_sha256": RESTORATION_SHA256,
+        "media_project_version": 2,
         "media_project_formats": [".edvp", ".edap"],
-        "ai_features": ["single-video-frame-U2NETP", "audio-Silero-VAD-v6.2.1"],
+        "ai_features": ["single-video-frame-U2NETP", "audio-Silero-VAD-v6.2.1", "video-DnCNN-RGB-denoising"],
         "media_binary_sha256": hashlib.sha256(
             (destination / "media-tools" / "ffmpeg.exe").read_bytes()
         ).hexdigest(),

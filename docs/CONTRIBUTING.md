@@ -61,3 +61,7 @@ Gib dem Assistenten den Repository-Link **und** die Anweisung, **AGENTS.md zuers
 ## Release-Gates
 
 Für ein neues verbreitetes Windows-Paket müssen Source- und Paket-Smoke, echter Offline-Modelltest, FFmpeg-Build-/Lizenzpflichten, Qt-/Modellumverteilung, realistische Codec-Tests und frische Windows-11-Abnahme separat belegt sein. Unsignierte Builds müssen als Teststände gekennzeichnet werden. [Historische Nachweise](VERIFICATION.md) dürfen nicht als Abnahme eines späteren Stands wiederverwendet werden.
+
+## Video restoration and responsive suite changes
+
+Before touching the 0.4 pipeline, read [VIDEO_RESTORATION.md](VIDEO_RESTORATION.md). Run the new protocol, history, real-model, cancellation, UI and geometry regressions. `--suite-smoke-test <fresh-output-directory>` must also pass in source and standalone form. Do not call classical presets AI, claim generic filter reversal or expand model/time/resource limits without new evidence.

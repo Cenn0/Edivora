@@ -70,9 +70,9 @@ class EditorWindowTests(unittest.TestCase):
         self.assertTrue(self.window.open_button.isEnabled())
         self.assertFalse(self.window.ai_button.isEnabled())
         self.assertFalse(self.window.export_button.isEnabled())
-        self.assertEqual(self.window.open_button.text(), "Foto öffnen")
+        self.assertEqual(self.window.open_button.accessibleName(), "Foto öffnen")
         self.window.set_language("en")
-        self.assertEqual(self.window.open_button.text(), "Open photo")
+        self.assertEqual(self.window.open_button.accessibleName(), "Open photo")
         self.assertEqual(self.window.language_combo.currentData(), "en")
 
     def test_adjustment_preview_is_committed_explicitly_and_undoable(self) -> None:

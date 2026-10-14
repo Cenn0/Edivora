@@ -26,6 +26,8 @@ from ..core import (
 from .canvas import PhotoCanvas
 from .strings import STRINGS, translate
 from .theme import stylesheet
+from .icons import IconButton, icon, KEY_ICONS
+from .responsive import ElideLabel, fit_initial_window
 
 _STYLE = stylesheet()
 
@@ -65,12 +67,13 @@ class EditorWindow(QMainWindow):
         self._preview_timer.setSingleShot(True)
         self._preview_timer.timeout.connect(self._show_preview)
         self.setWindowTitle("Edivora · Foto")
-        self.setMinimumSize(900, 660)
+        self.setMinimumSize(640, 480)
         self.resize(1340, 840)
         self.setAcceptDrops(True)
         self.setStyleSheet(_STYLE)
         self._build_ui()
         self.set_language("de")
+        fit_initial_window(self, (1340, 840))
 
     @property
     def is_busy(self) -> bool:
@@ -93,7 +96,7 @@ class EditorWindow(QMainWindow):
         return label
 
     def _button(self, key: str, callback: Callable, style: str = "") -> QPushButton:
-        button = QPushButton(self._t(key))
+        button = IconButton(self._t(key), key=key)
         button.clicked.connect(callback)
         if style:
             button.setObjectName(style)
@@ -102,6 +105,8 @@ class EditorWindow(QMainWindow):
 
     def _action(self, key: str, callback: Callable, shortcut: QKeySequence.StandardKey | None = None) -> QAction:
         action = QAction(self._t(key), self)
+        if key in KEY_ICONS:
+            action.setIcon(icon(KEY_ICONS[key]))
         action.triggered.connect(callback)
         if shortcut is not None:
             action.setShortcut(QKeySequence(shortcut))
@@ -158,7 +163,7 @@ class EditorWindow(QMainWindow):
         brand_mark.setObjectName("brandMark")
         brand_mark.setAccessibleName("Edivora")
         header.addWidget(brand_mark)
-        brand = QLabel("Edivora")
+        self.brand_label = brand = QLabel("Edivora")
         brand.setObjectName("appName")
         header.addWidget(brand)
         self.workspace_heading = self._label("nav_start", "workspaceName")
@@ -193,7 +198,7 @@ class EditorWindow(QMainWindow):
         body.setSpacing(0)
         outer.addLayout(body, 1)
 
-        rail = QFrame()
+        self.nav_rail = rail = QFrame()
         rail.setObjectName("navRail")
         rail.setFixedWidth(104)
         rail_layout = QVBoxLayout(rail)
@@ -238,14 +243,14 @@ class EditorWindow(QMainWindow):
         photo_layout = QVBoxLayout(photo_frame)
         photo_layout.setContentsMargins(12, 12, 12, 12)
         photo_info = QHBoxLayout()
-        self.file_label = QLabel()
+        self.file_label = ElideLabel()
         self.file_label.setTextFormat(Qt.TextFormat.PlainText)
         self.file_label.setObjectName("fileName")
         self.file_label.setMinimumWidth(0)
-        self.file_label.setWordWrap(True)
         photo_info.addWidget(self.file_label, 1)
         photo_layout.addLayout(photo_info)
         self.canvas = PhotoCanvas()
+        self.canvas.setMinimumSize(140, 120)
         self.canvas.selection_changed.connect(self._on_crop_selection)
         self.canvas.brush_stroke_finished.connect(self._mask_stroke_finished)
         photo_layout.addWidget(self.canvas, 1)
@@ -262,7 +267,7 @@ class EditorWindow(QMainWindow):
 
         panel = QWidget()
         panel.setObjectName("toolsPanel")
-        panel.setMinimumWidth(295)
+        panel.setMinimumWidth(260)
         panel_layout = QVBoxLayout(panel)
         panel_layout.setContentsMargins(0, 0, 6, 0)
         panel_layout.setSpacing(14)
@@ -383,7 +388,7 @@ class EditorWindow(QMainWindow):
         scroll.setWidget(panel)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setMinimumWidth(300)
+        scroll.setMinimumWidth(265)
         scroll.setMaximumWidth(460)
         self.shell_splitter.addWidget(scroll)
         self.shell_splitter.setStretchFactor(0, 1)
@@ -396,7 +401,7 @@ class EditorWindow(QMainWindow):
         self.job_bar.setObjectName("jobBar")
         job_layout = QHBoxLayout(self.job_bar)
         job_layout.setContentsMargins(14, 10, 14, 10)
-        self.job_label = self._label("ai_busy")
+        self.job_label = self._label("ai_busy", wrap=True)
         job_layout.addWidget(self.job_label)
         progress = QProgressBar()
         progress.setRange(0, 0)
@@ -410,10 +415,9 @@ class EditorWindow(QMainWindow):
         bottom_layout = QHBoxLayout(bottom_bar)
         bottom_layout.setContentsMargins(16, 4, 16, 4)
         bottom_layout.setSpacing(12)
-        self.status_label = QLabel()
+        self.status_label = ElideLabel()
         self.status_label.setTextFormat(Qt.TextFormat.PlainText)
         self.status_label.setObjectName("status")
-        self.status_label.setWordWrap(True)
         bottom_layout.addWidget(self.status_label, 1)
         self.save_state_label = QLabel()
         self.save_state_label.setObjectName("saveState")
@@ -428,11 +432,11 @@ class EditorWindow(QMainWindow):
         layout = QVBoxLayout(home)
         layout.setContentsMargins(28, 28, 28, 28)
         layout.setSpacing(18)
-        layout.addWidget(self._label("home_title", "homeTitle"))
+        layout.addWidget(self._label("home_title", "homeTitle", wrap=True))
         layout.addWidget(self._label("home_intro", "muted", wrap=True))
 
         import_card, import_layout = self._card("home_import_title", "home_drop_hint")
-        actions = QHBoxLayout()
+        actions = QVBoxLayout()
         self.home_photo_button = self._button("home_open_photo", self.open_photo, "homePrimary")
         self.home_project_button = self._button("open_project", self.open_project)
         actions.addWidget(self.home_photo_button)
@@ -444,10 +448,10 @@ class EditorWindow(QMainWindow):
         self.home_continue_button.hide()
         layout.addWidget(self.home_continue_button)
 
-        tiles = QHBoxLayout()
+        self.home_tiles = tiles = QVBoxLayout()
         tiles.setSpacing(12)
         self.home_media_buttons = []
-        for title_key, desc_key, icon, tool in (
+        for title_key, desc_key, _symbol, tool in (
             ("home_photo_title", "home_photo_desc", "▣", "photo"),
             ("home_video_title", "home_video_desc", "▶", "video"),
             ("home_audio_title", "home_audio_desc", "♫", "audio"),
@@ -457,7 +461,8 @@ class EditorWindow(QMainWindow):
             col = QVBoxLayout(tile)
             col.setContentsMargins(16, 16, 16, 16)
             col.setSpacing(10)
-            symbol = QLabel(icon)
+            symbol = QLabel()
+            symbol.setPixmap(icon(tool).pixmap(28, 28))
             symbol.setObjectName("brandMark" if tool == "photo" else "aiAccent")
             col.addWidget(symbol)
             col.addWidget(self._label(title_key, "sectionTitle", wrap=True))
@@ -539,7 +544,7 @@ class EditorWindow(QMainWindow):
         for widget, key in self._translated_widgets:
             widget.setText(self._t(key))
         for button, symbol, key in self._navigation_items:
-            button.setText(f"{symbol}\n{self._t(key)}")
+            button.setText(self._t(key))
             button.setAccessibleName(self._t(key))
         for button in (self.nav_video, self.nav_audio):
             button.setToolTip(self._t("home_open_tool"))
@@ -697,23 +702,23 @@ class EditorWindow(QMainWindow):
         self._apply_header_size()
 
     def _apply_header_size(self) -> None:
-        """Keep all primary actions reachable at 900 px without clipping."""
+        """Compact vector actions retain full keyboard and accessible labels."""
         if not hasattr(self, "undo_button"):
             return
         compact = self.width() < 1180
-        self.undo_button.setText("↶" if compact else self._t("undo"))
-        self.redo_button.setText("↷" if compact else self._t("redo"))
         original_key = "original_active" if self.original_button.isChecked() else "original"
-        self.original_button.setText(
-            (self._t("compare_compact_active") if self.original_button.isChecked()
-             else self._t("compare_compact")) if compact else self._t(original_key)
-        )
-        for button, key in (
-            (self.undo_button, "undo"), (self.redo_button, "redo"),
-            (self.original_button, original_key),
-        ):
-            button.setAccessibleName(self._t(key))
-            button.setToolTip(self._t(key))
+        for button, key in ((self.open_button, "open"), (self.export_button, "export"),
+                            (self.undo_button, "undo"), (self.redo_button, "redo"),
+                            (self.original_button, original_key)):
+            button.setText(self._t(key))
+            button.setCompact(compact)
+        self.brand_label.setVisible(self.width() >= 850)
+        self.workspace_heading.setVisible(self.width() >= 760)
+        small = self.width() < 1000
+        self.nav_rail.setFixedWidth(56 if small else 112)
+        for button, _symbol, _key in self._navigation_items:
+            button.setCompact(small)
+        self.nav_rail.setStyleSheet("QPushButton#railButton { min-height: 38px; }" if self.height() < 680 else "")
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
