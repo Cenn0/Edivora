@@ -1,106 +1,45 @@
-# Edivora – Launcher, Video & Audio MVP (Entwicklungsstand)
+# Edivora Video & Audio – aktueller Medien-MVP
 
-**Stand:** 14.10.2026, aktuellere Quellcodeentwicklung auf Basis des gemergten Media-MVP. Dieses Dokument ersetzt weder einen erfolgreichen Windows-Build noch einen auf einem sauberen Windows-11-System geprüften Release. Das veröffentlichte `v0.1.0-alpha.1` ist weiterhin nur der ältere Fotoeditor.
+**Stand: aktueller `main`-Quellcode 0.3.0a1 (14.10.2026).** Das ältere veröffentlichte `v0.1.0-alpha.1`-ZIP enthält ausschließlich den Fotoeditor. Die neuen Medienfunktionen sind **im Quellcode implementiert**, aber noch **nicht** als neue Windows-Suite mit abgeschlossenem Paket-/Lizenz-/Windows-11-Test veröffentlicht.
 
-> **Nachfolger:** Die aktuelle Entwicklungsstufe erweitert das ursprüngliche
-> **Ein-Datei-MVP** um Mehrclip-Sequenzen, verlinkte `.edvp/.edap`-Projekte
-> und zwei echte lokale ONNX-KI-Aktionen. Dieses Dokument beschreibt
-> weitgehend den **vorherigen MVP-Funktionsstand**. Der neue vollständige
-> Umfang und seine Grenzen stehen in [MEDIA_PROJECTS_AI.md](MEDIA_PROJECTS_AI.md).
-> Aussagen weiter unten wie „eine Datei“, „kein Projektformat“ und „keine
-> Video-/Audio-KI“ sind damit als historische MVP-Abgrenzung zu lesen.
+## Start und Fenster
 
-## Ein Programm, drei voneinander unabhängige Fenster
+Der Edivora-Launcher (`python -m local_ai_photo_editor` oder aktuelle Entwicklungs-EXE `LocalAiPhotoEditor.exe`) bietet **Foto**, **Video** und **Audio**. Die Werkzeuge lassen sich **einzeln, zu zweit oder alle drei** in unabhängigen Prozessen öffnen, ohne einander zu beenden. Direktstart: `--tool photo`, `--tool video`, `--tool audio`.
 
-`Edivora.exe` (im jetzigen Windows-Build weiterhin `LocalAiPhotoEditor.exe` genannt) öffnet ohne Argumente den **Edivora Launcher**. Die Startansicht zeigt Foto, Video und Audio mit jeweils einem **Öffnen**-Knopf und einer separaten Checkbox **Auswählen**. Mit **Ausgewählte Werkzeuge öffnen** können beliebige Kombinationen von einem, zwei oder drei verschiedenen Editoren gleichzeitig geöffnet werden. Der Launcher bleibt geöffnet und kann erneut Werkzeuge starten.
+**Die aktuelle Windows-EXE ist nicht „onefile“:** Der ganze portable Ordner mit Qt, lokalen Modellen und `media-tools/ffmpeg.exe` gehört zusammen. Der Produktname Edivora und die neue Bildmarke ändern aktuell **nicht** den technischen Dateinamen `LocalAiPhotoEditor.exe`.
 
-Technisch startet der Launcher für jede Wahl **eine neue Instanz derselben EXE**:
+## Funktionen
 
-- `LocalAiPhotoEditor.exe --tool photo`: unveränderter funktionaler Fotoeditor mit lokaler KI.
-- `LocalAiPhotoEditor.exe --tool video`: eigenständiges Video-MVP.
-- `LocalAiPhotoEditor.exe --tool audio`: eigenständiges Audio-MVP.
-- Ohne Parameter oder `--launcher`: Startauswahl.
-
-Im Entwicklungscheckout genügt `python -m local_ai_photo_editor`; einzeln oder parallel über `python -m local_ai_photo_editor --tool video` und `--tool audio`. Für den fertigen portablen Windows-Build braucht der Anwender kein Python oder separat installiertes FFmpeg. **Wichtig:** Die EXE ist *keine Onefile-Datei*; alle DLLs, das KI-Modell und `media-tools/ffmpeg.exe` verbleiben im mitgelieferten Ordner. Eine einzelne verschobene EXE funktioniert nicht.
-
-Der Fotoeditor bietet zusätzlich aktive Video- und Audio-Schaltflächen, die die jeweils andere Editorinstanz starten und den aktuellen Fotostand nicht verwerfen. Schließen eines Editorfensters beendet keine anderen Prozesse.
-
-## Funktionsumfang
-
-| | Video-MVP | Audio-MVP |
+| Funktion | Video | Audio |
 | --- | --- | --- |
-| Öffnen | MP4, MOV, MKV, WebM, AVI, M4V (container-/codecabhängig) | WAV, MP3, M4A, AAC, FLAC, OGG, Opus (codecabhängig) |
-| Vorschau | Videobild und Ton mit Qt Multimedia | Audio mit Qt Multimedia, separate Wellenform über FFmpeg |
-| Bearbeiten | Interaktiver Schnittbereich (verschiebbare Start-/Endmarken), Sekundenfelder, Bereichsvorschau, Lautstärke, Ton stummschalten | Interaktiver Schnittbereich, Sekundenfelder und separate Wellenform, Lautstärke, optionale Loudness-Normalisierung und Fades |
-| Export | MP4: MPEG-4 Part 2 + AAC | WAV: PCM 16-bit/48 kHz/Stereo oder MP3: 192 kbit/s |
-| Persistenz | Neue Videodatei, **kein** natives Schnittprojekt | Neue Audiodatei, **kein** natives Schnittprojekt |
+| Eingaben | u. a. MP4, MOV, MKV, WebM, AVI, M4V – **abhängig vom vorhandenen Decoder** | u. a. WAV, MP3, M4A, AAC, FLAC, OGG, Opus – **abhängig vom Decoder** |
+| Vorschau | Qt-Multimedia-Player für **ausgewählten Einzelclip** | Qt-Multimedia-Player für Einzelclip + separate FFmpeg-Wellenformvorschau |
+| Clip-Bearbeitung | Bis **24** Clips, per Drag & Drop sortieren, duplizieren, teilen, pro Clip Anfang/Ende sowie Lautstärke/Stumm | Bis **24** Clips, sortieren, duplizieren, teilen, trimmen, pro Clip Lautstärke, optionale Gesamt-Normalisierung/Fades |
+| Projekt | **`.edvp`**, geordnete Clips und Parameter, lokale Quelldatei-Verweise | **`.edap`**, geordnete Clips und Parameter, lokale Quelldatei-Verweise |
+| Ergebnisexport | **MP4** mit 1280×720/30 fps, MPEG-4 Part 2 und AAC | **WAV** (PCM16, 48 kHz, Stereo) oder **MP3** (192 kbit/s) |
+| Lokale KI | U2NETP: Hintergrund **eines ausgewählten Standbilds** als transparentes PNG entfernen | Silero VAD v6.2.1: **Sprachregionen** im gewählten Bereich vorschlagen, nach Bestätigung als Clips anwenden |
 
-Das erste MVP besitzt **eine Datei und eine zusammenhängende Auswahl** pro Editorfenster. Es enthält noch kein Clip-Arrangement, mehrere Spuren, Übergänge, Keyframes, Undo/Redo für Bearbeitungsschritte, Untertitel, Bildfilter oder KI-Verarbeitung für Video/Audio. Die separate Audio-Wellenform ist eine Anzeige, ihre letzten Abschnitte können bei Clips über 15 Minuten fehlen. **Start und Ende** lassen sich nun sowohl über numerische Felder als auch durch Ziehen der zwei Schnittmarken auf der Zeitleiste setzen; die Markierungen beziehen sich immer auf die **gesamte Dateidauer**, nicht nur die gegebenenfalls verkürzte Wellenformanzeige. Der Videoexport nutzt bewusst den verbreiteten MPEG-4-Part-2-Encoder, nicht H.264 und keine professionelle Codec-/Qualitätsauswahl; Wiedergabekompatibilität variiert je nach Abspielgerät. Der eingebaute Player verwendet **Qt Multimedia** und hat eine vom FFmpeg-Export unabhängige Decodierunterstützung – nicht jede Datei, die FFmpeg verarbeiten kann, muss in der Vorschau spielen.
+Die farbigen Schnittmarken auf der Zeitleiste sind mit den numerischen Ein-/Auswerten synchronisiert; damit wird **der jeweils gewählte Clip** getrimmt. Ein Klick außerhalb der Marken verändert den Abspielkopf, nicht den Schnitt. **Export** fügt die ganze sortierte Sequenz zusammen, nicht nur den gerade angezeigten Clip.
 
-**Anwenderablauf:** Datei öffnen oder ins Fenster ziehen → Start-/Endmarke auf der Zeitleiste ziehen oder Sekundenfelder benutzen → Play zur Vorschau → optional Ton bearbeiten → **Als neue Datei exportieren** → Speicherort wählen und ggf. Ersetzen bestätigen → Abschlussstatus. Beim Export bleibt die App bedienbar, die betreffenden Editierregler sind gesperrt und **Abbrechen** beendet den Kodierer. Mehrere Editoren arbeiten unabhängig.
+**Bewusste Grenzen:** Nur **eine** geordnete Spur, **keine Überlagerungen/Transitions, keine Keyframes oder Medien-Undo-History**, keine kontinuierliche Gesamtvorschau und keine automatische Projektwiederherstellung. Video-KI verarbeitet keine ganze Bewegung; Audio-KI erstellt **keine Transkription**. Das ursprüngliche Ein-Datei-MVP ist durch diese Stufe ersetzt worden. Weitere Details und Ressourcenlimits: [Mehrclip-Projekte & KI](MEDIA_PROJECTS_AI.md).
 
-## Visuelle Schnittauswahl (neuer Entwicklungsstand)
+## Projekte sind nicht die exportierten Medien
 
-Die Zeitleiste liegt in beiden Editoren direkt unter dem Wiedergaberegler. Der **eingefärbte Bereich** wird exportiert; die grauen Bereiche werden verworfen. Eine separate farbige Linie zeigt die aktuelle Wiedergabeposition. So funktioniert die Bearbeitung:
+`.edvp/.edap` sind streng validierte kleine **JSON-Manifeste**, die Clips und Quellreferenzen speichern. Sie enthalten **keine** Video- oder Audiodateien. Quellen unterhalb des Projektordners werden relativ, externe lokale Dateien ggf. **absolut** referenziert; beim Weitergeben können dadurch lokale Verzeichnisse sichtbar werden. Nach Verschieben/Ändern einer Quelldatei kann das Öffnen wegen fehlender Datei oder Fingerprint-Abweichung scheitern. Automatisches Relinking existiert noch nicht.
 
-1. **Schnittmarken verschieben:** Anfang/Ende lassen sich unabhängig voneinander mit der Maus ziehen. Der Bereich bleibt mindestens 0,1 Sekunden lang.
-2. **Abspielposition ändern:** Auf die Leiste außerhalb der beiden Marken klicken. Dies bewegt nur den Abspielkopf; der Exportbereich ändert sich dadurch nicht.
-3. **Hier beginnen / Hier enden:** Die aktuelle Wiedergabeposition wird zum Anfang oder Ende des Ausschnitts, begrenzt auf eine gültige Auswahl.
-4. **Gesamte Datei verwenden:** Start- und Endmarke zurücksetzen. Die präzisen Sekundenfelder rechts lassen sich weiterhin direkt bearbeiten.
-5. **Tastatur:** Zeitleiste fokussieren, gewünschte Schnittmarke mit der Maus auswählen, dann mit **Pfeil links/rechts** um 0,1 s oder mit **Umschalt + Pfeil** um 1 s ändern. Für vollständige Tastatur- und Screenreader-Bedienung dienen die separaten numerischen Felder als Alternative.
+Foto-Projekte **`.laip`** verwenden hingegen ein ZIP-Archiv mit Bildständen und erlaubten Verlaufssnapshots. Diese Formate sind nicht austauschbar.
 
-Eine Änderung der Zeitleiste aktualisiert sofort die numerischen Eingaben. Der bereits validierte FFmpeg-Export nimmt exakt dieselbe Start-/Endauswahl. Bei unzulässigen Werten (z. B. Fades länger als der neue Audiobereich) wird Export deaktiviert, bis die Einstellungen wieder zusammenpassen. Das Anfassen eines Markers pausiert die Wiedergabe und zeigt die neue Abspielposition an. Video bleibt bei einer Datei, Audio bei einer Datei; die Markierungen sind noch keine Clips auf mehreren Spuren.
+## Sicherheit und reale Unterstützung
 
-Die neuen UI- und Export-Verknüpfungstests laufen in der Windows- und Linux-CI. Der Windows-Standalone-Test muss auf dem konkreten neuen Commit erfolgreich sein, bevor dieses Teil-Feature als **getestetes Paket** bezeichnet werden darf.
+- Lokale KI: **CPU ONNX Runtime**, geprüfte gepinnte U2NETP-/Silero-Modelldateien, Vorbereitung **nur zur Buildzeit**. Kein Runtime-Modell-Download, keine Konten oder Cloud.
+- Ein gesamter Videoexport erzwingt konsistente Streams. Stille Videos erhalten lokal einen stummen Audiostream. Audioquellen werden zur Ausgabe resampelt/neu kodiert.
+- FFmpeg wird ohne Shell mit validierten festen Befehlen gestartet. Originale, erkannte Aliase und Hardlinks dürfen nicht überschrieben werden; fertig gerenderte Dateien werden atomar installiert. Decoder-Eingaben bleiben sicherheitskritisch: **keine Sandbox**.
+- Qt-Playback unterstützt nicht zwingend dieselben Formate wie der FFmpeg-Encoder. Daher ist ein unterstützter Container **keine garantierte Codec-Unterstützung**.
+- Maximal **24 Clips**, höchstens **2 h** je Medienreferenz, insgesamt höchstens **4 h** gewählte Sequenz und **20 GiB** je Quelldatei. Spracherkennung analysiert höchstens **15 Minuten** pro Anfrage.
+- Keine offiziell bestätigten GPU-Backends, Windows-11-Clean-Machine-Abnahme oder komplette Lizenzfreigabe des neuen Pakets.
 
-## Datenschutz und Dateischutz
+## Technische Anknüpfungspunkte
 
-- Keine Runtime-Downloads, Cloud-Aufrufe, API-Schlüssel oder Telemetrie. `imageio-ffmpeg` liefert beim *Build* eine feste lokale FFmpeg-Binärdatei.
-- FFmpeg wird ohne Shell aufgerufen; `-protocol_whitelist file,pipe,data` beschränkt die bei der Eingabe akzeptierten Protokolle. Decoder verarbeiten trotzdem nicht vertrauenswürdige Mediendaten; das Werkzeug ist **keine** Sicherheitssandbox.
-- Eingabedateien werden nicht beschrieben. Gleiche Pfade, aufgelöste Symlinks und bestehende Hardlinks zum Original werden beim Export abgelehnt. Ein temporäres Ergebnis im Zielordner wird erst bei erfolgreichem Prozess und nichtleerem Output per `os.replace` installiert.
-- Bei Export in bestehende andere Dateien fragt die UI vorab nach. Ein Crash kann eine temporäre Datei `.edivora-…` zurücklassen. Es gibt keine projektinterne Backup-/Autosave-Funktion.
-- Medien werden exportiert ohne Kopie der ursprünglichen Metadaten oder Kapitel. Bei Bild-/Tonverarbeitung wird neu kodiert und es kann Qualitätsverlust auftreten.
-- Das MVP beschränkt den Eingabedateiumfang auf 20 GiB. Ein unbekannter oder von Qt nicht ermittelbarer Zeitwert sperrt den Export statt eine willkürliche Dauer anzunehmen.
-- Ein vom Benutzer gewählter synchronisierter Zielordner ist nicht „offline“ gegenüber dessen Synchronisationssoftware.
+`ui/launcher.py` (Start), `ui/sequence_window.py` (Timeline, UI), `ui/trim_timeline.py` (Marker), `core/media.py` (Exportvalidierung), `core/media_sequence.py` (Renderplan), `core/media_project.py` (Projektformat), `ai/voice.py` (VAD), `ai/video_frame.py` (ein Frame) und `media_smoke.py` (reale synthetische Medien-Smokes).
 
-## Architektur
-
-```mermaid
-flowchart LR
-  EXE["Eine EXE"] --> HUB["Launcher (Qt)"]
-  HUB --> PHOTO["Foto-Prozess"]
-  HUB --> VIDEO["Video-Prozess (Qt)"]
-  HUB --> AUDIO["Audio-Prozess (Qt)"]
-  PHOTO --> SEG["Lokaler ONNX-Worker"]
-  VIDEO --> DEC["Qt Multimedia-Vorschau"]
-  AUDIO --> DEC
-  VIDEO --> ENC["FFmpeg-Unterprozess"]
-  AUDIO --> ENC
-  ENC --> TEMP["Temporäre Ausgabedatei"]
-  TEMP --> ATOMIC["Atomarer Export"]
-```
-
-Quellen: `src/local_ai_photo_editor/__main__.py` (Argumentrouting), `ui/launcher.py`, `ui/media_window.py`, `core/media.py` (Qt-freie Validierung/Exportkommandos), `ui/media_strings.py` (DE/EN), `media_smoke.py` (synthetische Smoke-Tests).
-
-## Entwicklung, Tests und Windows-Build
-
-```powershell
-py -3.12 -m venv .venv
-.venv\Scripts\python -m pip install -e . Nuitka==4.2.2
-$env:PYTHONPATH='src'
-.venv\Scripts\python -m unittest discover -s tests -v
-.venv\Scripts\python -m compileall -q src tests tools
-.venv\Scripts\python -m local_ai_photo_editor --media-smoke-test test-results/media
-.venv\Scripts\python tools/prepare_model.py
-.venv\Scripts\python tools/build_windows.py
-```
-
-Ein erfolgreicher Windows-Build wird als *kompletter* Ordner `dist/LocalAiPhotoEditor/` ausgegeben; `LocalAiPhotoEditor.exe` ist dessen Einstiegspunkt. `.github/workflows/windows-alpha.yml` testet Quell- und gepackte EXE mit synthetischen Medien und drei Qt-Fenster-Screenshots. Das ersetzt keine manuelle UX-/Audio-/Videowiedergabe- und Windows-11-Abnahme für reale Dateien; eine grüne CI-Gesamtprüfung muss abgewartet werden.
-
-### Lizenzgrenze vor Veröffentlichung
-
-Die `imageio-ffmpeg==0.6.0`-Wheel-Binärdatei enthält externe FFmpeg-Codecs. Bei Weitergabe des EXE-Pakets sind **die genauen Build-Flags, die tatsächliche GPL-/LGPL-Lizenz und zugehörige korrespondierende Quelltexte** zu prüfen und gesetzeskonform bereitzustellen. Das bloße Beilegen eines GPL-Lizenztextes ist keine vollständige Erfüllung. Der Windows-Build trägt deshalb explizit den Hinweis `media_license_review`. Für ein öffentlich vertriebenes Paket muss diese Lizenzprüfung abgeschlossen werden; parallel gelten die bestehenden Qt-/ONNX-Modell-Hinweise aus `THIRD_PARTY_NOTICES.md`.
-
-## Späterer Ausbau
-
-Geplant, noch **nicht** implementiert: Clip-Reihenfolge und mehrspuriges Audio (die neue einfache Ein-Datei-Schnittzeitleiste ist keine Multitrack-Timeline), nicht-destruktive lokale Projekte und Undo/Redo, interaktive Wellenform-Auswahl, weitere Exportprofile, lokale KI für Transkription/Rauschminderung/Untertitel sowie echte Nutzertests und Lizenz-/Codec-Matrix.
+[Erste Schritte](GETTING_STARTED.md) · [Architektur](ARCHITECTURE.md) · [Tests/Release-Gates](VERIFICATION.md) · [Roadmap](ROADMAP.md).
