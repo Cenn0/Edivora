@@ -93,7 +93,8 @@ class MediaClip:
                *, start_ms: int = 0, end_ms: int | None = None,
                volume_percent: int = 100, mute: bool = False,
                has_audio: bool = True) -> "MediaClip":
-        clip = cls(uuid.uuid4().hex, Path(source), duration_ms, start_ms,
+        clip = cls(uuid.uuid4().hex, validate_source(_allowed_path(Path(source)), kind),
+                   duration_ms, start_ms,
                    duration_ms if end_ms is None else end_ms, volume_percent, mute, has_audio)
         return clip.validated(kind)
 
