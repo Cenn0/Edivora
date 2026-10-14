@@ -21,7 +21,7 @@ from .voice import VOICE_MODEL_NAME, VOICE_MODEL_SHA256, VOICE_MODEL_SIZE, voice
 ISNET_FILENAME = "isnet-general-use.onnx"
 ISNET_SHA256 = "60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a"
 ISNET_SOURCE_URL = (
-    "https://huggingface.co/tomjackson2023/rembg/resolve/cd3a3d6/"
+    "https://github.com/danielgatis/rembg/releases/download/v0.0.0/"
     "isnet-general-use.onnx"
 )
 WHISPER_SOURCE_ROOT = (
