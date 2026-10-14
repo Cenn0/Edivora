@@ -1,7 +1,16 @@
 # Edivora — unified UI/UX design system
 
 **Status:** design specification from 14 October 2026. **Phase 1 is implemented in the source UI branch, with Qt/Windows verification still pending.** See [UI implementation status](UI_IMPLEMENTATION.md).  
-**Scope:** existing Photo editor and future Video/Audio workspaces.  
+**Scope:** the Photo editor and limited Video/Audio MVP workspaces.
+
+**MVP implementation update (2026-10-14):** the application now has a
+separate start launcher and independent Qt windows for Photo, Video and Audio,
+all started by the **same executable**. This document also includes design
+aspirations beyond the implemented MVP (e.g. multitrack timelines, detailed
+timeline-based trim, Undo/Redo and video/audio AI); these should **not** be
+presented as features that already exist. See
+[MEDIA_MVP.md](MEDIA_MVP.md) for the concrete current capabilities and
+[UI_IMPLEMENTATION.md](UI_IMPLEMENTATION.md) for implementation status.  
 **Clickable preview:** [open the standalone layout prototype](prototypes/edivora-shell.html) in a local browser after saving it as an HTML file. It is an interactive design demonstration, not a functioning editor.  
 **Related work:** [task-first Photo PR #10](https://github.com/Cenn0/LocalAiPhotoEditor/pull/10) and [Edivora branding PR #11](https://github.com/Cenn0/LocalAiPhotoEditor/pull/11) remain separately open. The implementation branch reuses the task-first Photo approach; the official SVG brand assets are not yet integrated. Do not confuse source UI changes with the published `v0.1.0-alpha.1` package.
 
@@ -21,10 +30,10 @@ The preview/accept/cancel model, status messaging, AI handling, history and expo
 
 ### Non-goals
 
-- No three separate desktop executables or unrelated layouts.
+- No three unrelated executables or layouts: launch distinct processes of the same bundled application.
 - No professional editing terminology on the initial screen unless essential.
 - No default chat window dominating the editor.
-- No promise of Video/Audio implementation, codecs, speech models or GPU performance.
+- Do not infer a rich multitrack editor, speech model or GPU capability from the limited Video/Audio MVP.
 - No forced cloud account, model server, telemetry, hidden network access or automatic model download.
 - No immediate rewrite to QML, a web runtime or a new framework merely to achieve this layout.
 - No assumption that a new suite name changes old `.laip` files or historical binaries.

@@ -66,6 +66,10 @@ jobs:
             }
             exit $smokeExit
           }
+      - name: Verify source launcher, media editor shells and real local exports
+        env:
+          QT_QPA_PLATFORM: windows
+        run: python -m local_ai_photo_editor --media-smoke-test test-results/source-media
       - name: Restore native compiler cache
         id: compiler_cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -109,6 +113,22 @@ jobs:
           $guiOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-gui'
           $gui = Start-Process -FilePath $appPath -ArgumentList "--ui-smoke-test `"$guiOutput`"" -WorkingDirectory $env:RUNNER_TEMP -PassThru -Wait
           if ($gui.ExitCode -ne 0) { throw "Packaged GUI failed: $($gui.ExitCode)" }
+      - name: Verify packaged launcher, editors and media export outside the repo
+        if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
+        env:
+          QT_QPA_PLATFORM: windows
+        shell: pwsh
+        run: |
+          Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+          $appPath = (Resolve-Path 'dist/LocalAiPhotoEditor/LocalAiPhotoEditor.exe').Path
+          $mediaOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-media'
+          $media = Start-Process -FilePath $appPath -ArgumentList "--media-smoke-test `"$mediaOutput`"" -WorkingDirectory $env:RUNNER_TEMP -PassThru -Wait
+          if ($media.ExitCode -ne 0) {
+            if (Test-Path (Join-Path $mediaOutput 'media-smoke.json')) {
+              Get-Content (Join-Path $mediaOutput 'media-smoke.json')
+            }
+            throw "Packaged media and launcher smoke failed: $($media.ExitCode)"
+          }
       - name: Add successful runtime verification to the portable package
         run: |
           Copy-Item -Recurse test-results dist/LocalAiPhotoEditor/verification

@@ -1,6 +1,8 @@
-# localAiPhotoEditor
+# Edivora – lokale Foto-, Video- und Audiobearbeitung
 
-Ein einfacher Fotoeditor mit lokaler KI: Foto öffnen, bearbeiten, den Hintergrund entfernen und eine neue Bilddatei speichern. Deine Fotos bleiben dabei auf deinem Computer.
+**Entwicklungsstand (noch nicht als Windows-Paket veröffentlicht):** Der neue Edivora-Launcher eröffnet drei unabhängige Werkzeuge für Foto, Video und Audio. Beim Programmstart werden Foto, Video und Audio angezeigt; man kann **ein einzelnes, zwei oder alle drei Werkzeuge parallel** in getrennten Fenstern öffnen. Video und Audio besitzen jetzt eigene einfache Editoren mit Wiedergabe, Start-/Endauswahl und lokalem Export. Dokumentation und Grenzen: **[Video-/Audio-MVP und Launcher](docs/MEDIA_MVP.md)**.
+
+Der bereits **veröffentlichte Download `v0.1.0-alpha.1` ist dagegen weiterhin die ältere reine Foto-Testalpha**, ohne Video-/Audio-MVP und ohne neuen Launcher. Die nachstehenden Prüfergebnisse und Downloadlinks gelten **nur** für diese unveränderte Testalpha; eine neue EXE ist erst nach erfolgreichem Windows-Build des Entwicklungsstands als CI-Artefakt verfügbar.
 
 **Geprüfte portable Testalpha für Windows x64.** Das vollständige portable ZIP enthält die Anwendung, ihre Laufzeit und das Standardmodell. Eine separate Python-, CUDA- oder Modellserver-Einrichtung gehört nicht zum vorgesehenen Start. Die Alpha ist **unsigniert** und noch keine stabile Endnutzer-Version.
 
@@ -27,13 +29,26 @@ Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte
 
 **Die Originaldatei bleibt geschützt.** Der Export verlangt ein anderes Ziel. PNG und WebP können Transparenz erhalten; bei JPEG werden transparente Stellen weiß. Die Ausgabe übernimmt keine EXIF-, GPS- oder Kommentardaten des Eingabebildes und enthält ein sRGB-Farbprofil.
 
-## Edivora: neue Oberfläche im Entwicklungsstand
+## Edivora: drei Werkzeuge, gemeinsamer Start im Entwicklungsstand
 
-Die neue, **noch nicht veröffentlichte Qt-Oberfläche** folgt dem [gemeinsamen Edivora-Designsystem](docs/DESIGN_SYSTEM.md). Ein Startbereich bietet den Fotoimport und das Öffnen vorhandener Bearbeitungsprojekte. In der gemeinsamen Navigationsleiste sind **Foto** (funktional) sowie **Video** und **Audio** (ausdrücklich *geplant*, nicht bedienbar) aufgeführt. Das Foto erhält eine große Arbeitsfläche und rechts vier einfache Einstiegsaktionen: Foto verbessern, Zuschneiden/Drehen, Hintergrund weichzeichnen (lokale KI) und Hintergrund entfernen (lokale KI). Weitere Werkzeuge sind einklappbar.
+Die neue, noch **nicht im älteren Release enthaltene** Qt-Oberfläche verwendet das [gemeinsame Designsystem](docs/DESIGN_SYSTEM.md). Ein eigener Launcher zeigt die drei Werkzeuge mit Direktstart und Mehrfachauswahl:
 
-Die KI-Aufgaben öffnen weiterhin ihre bestehenden **Vorschau-Dialoge mit Übernehmen/Abbrechen**. Regler-, Zuschneide- und Maskenkorrekturen bleiben so lange erreichbar, wie eine Vorschau offen ist. Oben stehen Datei öffnen, Rückgängig, Wiederholen, Originalvergleich und **Exportieren**; „Projekt speichern“ bleibt im Datei-Menü und unter `Strg+S`. Ein abgeschlossener Bildexport erzeugt eine **neue Datei** und verändert das Original nicht. Die Oberfläche unterstützt Deutsch und Englisch; die Farben und Steuerelemente werden gemeinsam verwaltet.
+- **Foto:** bisheriger Editor mit lokalen KI-Motivfunktionen, Projektdateien, Vorschau und Bearbeitungshistorie.
+- **Video-MVP:** lokale Dateiwiedergabe, Ausschnitt wählen, Ton stummschalten/Lautstärke, MP4-Export.
+- **Audio-MVP:** lokale Wiedergabe mit Wellenformvorschau, Ausschnitt wählen, Lautstärke, optionale Normalisierung und Ein-/Ausblenden, WAV-/MP3-Export.
 
-**Abgrenzung:** Dies ist eine Aktualisierung der aktuellen *Quellcode-Oberfläche*, nicht der bereits veröffentlichten Windows-Testalpha `v0.1.0-alpha.1`. Video-/Audio-Verarbeitung, eine vollständig eingebettete Bearbeitung aller Fotoeffekte ohne Dialoge, reale Usability-/Screenreader-Tests und DPI-/Windows-Abnahme sind noch ausstehend. Details: [Implementierungsstand der Oberfläche](docs/UI_IMPLEMENTATION.md).
+**Start aus dem Quellcode** (nach `pip install -e .`):
+
+```powershell
+python -m local_ai_photo_editor                  # Launcher
+python -m local_ai_photo_editor --tool photo      # nur Foto
+python -m local_ai_photo_editor --tool video      # nur Video
+python -m local_ai_photo_editor --tool audio      # nur Audio
+```
+
+Im vollständigen späteren Windows-Build wird statt Python dieselbe `LocalAiPhotoEditor.exe` doppelt angeklickt. Von dort startet sie die ausgewählten Werkzeuge als separate Prozesse; die EXE benötigt ihren mitgelieferten DLL-, Modell- und FFmpeg-Ordner. Python und FFmpeg müssen auf dem Zielsystem **nicht separat installiert** werden. Das Foto-Menü erlaubt außerdem den parallelen Start der beiden Medienwerkzeuge.
+
+Video und Audio sind **bewusst MVPs**: keine kombinierte Mehrspur-Zeitleiste, kein lokales Medien-Projektformat, kein Undo/Redo, keine Video-/Audio-KI, keine allgemeine Codec-Garantie und kein Ersatz für spezialisierte professionelle Editoren. Wiedergabe über Qt Multimedia und Export über FFmpeg haben unterschiedliche Format-/Codec-Fähigkeiten. Die neue Paket-/Lizenz- und Windows-11-Abnahme ist noch ausstehend. [Funktionen, Grenzen und Tests](docs/MEDIA_MVP.md).
 
 ## Neu im Quellstand: KI-Motivwerkzeuge
 
