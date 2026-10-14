@@ -17,7 +17,30 @@ The application's own code is licensed under Apache-2.0; see `LICENSE`. That lic
 
 The build copies available license, copying and notice files from installed distributions into `third-party-licenses/`, alongside an inventory of exact installed versions. The inventory also includes development/build tools; inclusion in that list does not mean all of those packages are shipped as executable application dependencies. The Nuitka compilation report records what is actually included.
 
-## Additional local AI model: Silero VAD 6.2.1
+## Additional models and ASR runtime for Edivora 0.4 Alpha
+
+The new four-model suite includes **IS-Net General Use ONNX**, distributed
+through [rembg v0.0.0](https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx)
+and developed under [DIS / IS-Net](https://github.com/xuebinqin/DIS)
+(Apache-2.0 upstream), and **Whisper Tiny multilingual INT8 ONNX**
+from [sherpa-onnx Whisper Tiny](https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny),
+using the pinned [sherpa-onnx 1.13.0](https://pypi.org/project/sherpa-onnx/1.13.0/)
+native CPU recognizer runtime. Original Whisper source/weights and exporter
+have separately applicable MIT/Apache terms and notices. The model files
+are obtained and pinned during the build, not committed and not fetched
+at runtime.
+
+A successful automated test is **not** legal verification of converted model
+weights or the full native binary dependency graph. The distributed IS-Net,
+Whisper ONNX assets, tokenizer, native sherpa libraries, Qt and FFmpeg
+require an explicit final rights, license-notice and corresponding-source
+review. The old U2NETP provenance and FFmpeg redistribution gates
+remain open. See [docs/MODEL_PROFILES.md](docs/MODEL_PROFILES.md).
+The Whisper tokenizer is bound to an immutable model repository revision
+plus a build-generated SHA256 manifest but lacks an independently
+pre-reviewed pinned digest, as documented.
+
+
 
 The Audio editor can use the exact `snakers4/silero-vad@v6.2.1` ONNX
 voice activity model for speech/non-speech region proposals. Upstream:
