@@ -67,6 +67,20 @@ def main() -> int:
     AI_FOLDER.mkdir(parents=True, exist_ok=True)
     _download(ISNET_SOURCE_URL, model_file("isnet-general-use"), ISNET_SHA256, ISNET_MAX_BYTES)
     token_sha = ""
+    existing_manifest = AI_FOLDER / MANIFEST_NAME
+    # Without a pre-pinned upstream digest, never silently accept a local
+    # tokenizer as the new trust root on subsequent builds.
+    tokens_file = model_file("whisper-tiny", "tiny-tokens.txt")
+    if tokens_file.is_file():
+        if not existing_manifest.is_file():
+            raise ValueError("Existing Whisper tokenizer has no trusted build manifest.")
+        try:
+            saved = json.loads(existing_manifest.read_text("utf-8"))
+            previous_hash = saved["token_sha256"]
+        except (ValueError, OSError, KeyError, TypeError) as exc:
+            raise ValueError("Corrupt tokenizer verification manifest.") from exc
+        if hashlib.sha256(tokens_file.read_bytes()).hexdigest() != previous_hash:
+            raise ValueError("Whisper tokenizer was changed after a prior build.")
     for name, sha in WHISPER_FILES.items():
         downloaded_sha = _download(
             WHISPER_SOURCE_ROOT + "/" + name,
