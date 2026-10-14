@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from .theme import COLORS
-
 import math
 
 from PIL import Image
@@ -12,6 +10,7 @@ from PySide6.QtGui import QColor, QImage, QMouseEvent, QPainter, QPainterPath, Q
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from .strings import translate
+from .theme import COLORS
 
 
 class PhotoCanvas(QWidget):
@@ -227,7 +226,7 @@ class PhotoCanvas(QWidget):
         if self._brush_enabled:
             painter.save()
             painter.setClipRect(rect)
-            colour = QColor("#78e3ba" if self._brush_mode == "restore" else "#f49ea6")
+            colour = QColor(COLORS["primary"] if self._brush_mode == "restore" else COLORS["error"])
             radius = max(0.75, self._brush_diameter * min(rect.width(), rect.height()) / 2)
             if self._brush_points:
                 path = QPainterPath()
