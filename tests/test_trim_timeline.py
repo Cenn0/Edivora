@@ -72,6 +72,18 @@ class TrimTimelineQtTests(unittest.TestCase):
         self.assertEqual((w.start_ms, w.end_ms), (2_000, 8_000))
         self.assertEqual(received_ranges, [])
 
+    def test_clock_labels_do_not_seek(self) -> None:
+        w = self.timeline
+        w.set_duration(10_000)
+        w.set_range(2_000, 8_000)
+        seeks = []
+        w.seekRequested.connect(seeks.append)
+        self.QTest.mouseClick(
+            w, self.Qt.MouseButton.LeftButton,
+            pos=self.QPoint(round(w._x_at(5_000)), 8),
+        )
+        self.assertEqual(seeks, [])
+
     def test_draggable_start_and_end_are_bounded(self) -> None:
         w = self.timeline
         w.set_duration(10_000)
