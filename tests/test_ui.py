@@ -55,7 +55,10 @@ class EditorWindowTests(unittest.TestCase):
         from PySide6.QtWidgets import QLabel
 
         self.assertEqual(self.window.findChild(QLabel, "appName").text(), "Edivora")
-        self.assertIn("Edivora", self.window.windowTitle())
+        self.assertEqual(self.window.windowTitle(), "Edivora · Foto")
+        self.window.set_language("en")
+        self.assertEqual(self.window.windowTitle(), "Edivora · Photo")
+        self.window.set_language("de")
         self.assertFalse(self.window.windowIcon().isNull())
         self.assertFalse(self.window.windowIcon().pixmap(32, 32).isNull())
         self.assertEqual(self.window.findChild(QLabel, "brandMark").accessibleName(), "Edivora")

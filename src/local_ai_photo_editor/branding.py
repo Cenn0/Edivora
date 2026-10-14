@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 APP_NAME = "Edivora"
-PHOTO_EDITOR_TITLE = "Edivora · Photo"
+PHOTO_EDITOR_TITLE = APP_NAME  # Initial title; localized by the UI on startup.
 BRAND_TAGLINE_DE = "Einfach kreativ. Alles lokal."
 BRAND_TAGLINE_EN = "Create simply. Stay local."
 

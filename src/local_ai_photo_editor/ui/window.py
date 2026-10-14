@@ -409,6 +409,7 @@ class EditorWindow(QMainWindow):
         if language not in STRINGS:
             raise ValueError("Unsupported UI language.")
         self.language = language
+        self.setWindowTitle(self._t("window_title"))
         with QSignalBlocker(self.language_combo):
             self.language_combo.setCurrentIndex(self.language_combo.findData(language))
         for widget, key in self._translated_widgets:

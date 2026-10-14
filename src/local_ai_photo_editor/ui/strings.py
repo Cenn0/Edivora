@@ -2,6 +2,7 @@
 
 STRINGS = {
     "de": {
+        "window_title": "Edivora · Foto",
         "app_tagline": "Einfach kreativ. Alles lokal.",
         "local_badge": "Lokal & ohne Konto",
         "open": "Foto öffnen",
@@ -121,6 +122,7 @@ STRINGS = {
         "canvas_accessible": "Fotovorschau und Auswahl zum Zuschneiden",
     },
     "en": {
+        "window_title": "Edivora · Photo",
         "app_tagline": "Create simply. Stay local.",
         "local_badge": "Local & no account",
         "open": "Open photo",
