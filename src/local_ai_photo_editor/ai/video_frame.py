@@ -20,7 +20,7 @@ from .background import remove_background
 
 
 def extract_ai_frame(source: Path, at_ms: int, destination: Path,
-                     *, ffmpeg: str | None = None) -> Path:
+                     *, ffmpeg: str | None = None, model_id: str = "u2netp") -> Path:
     source = validate_source(source, "video")
     if type(at_ms) is not int or at_ms < 0 or at_ms > 2 * 60 * 60 * 1000:
         raise ValueError("Invalid frame timestamp.")
@@ -46,7 +46,7 @@ def extract_ai_frame(source: Path, at_ms: int, destination: Path,
             if not 1 <= picture.width * picture.height <= 2_000_000:
                 raise ValueError("Selected frame exceeds the local AI bounds.")
             picture.load()
-            output = remove_background(picture.convert("RGBA"))
+            output = remove_background(picture.convert("RGBA"), model_id=model_id)
         temporary = destination.parent / f".edivora-ai-{uuid.uuid4().hex}.png"
         try:
             output.save(temporary, format="PNG")
@@ -68,11 +68,19 @@ def frame_worker(job_directory: Path, executable: str | None = None) -> int:
         if request.stat().st_size > 8192:
             raise ValueError("Oversized video AI request.")
         data = json.loads(request.read_text("utf-8"))
-        if type(data) is not dict or set(data) != {"source", "at_ms", "destination"}:
+        if type(data) is not dict or set(data) not in (
+            {"source", "at_ms", "destination"},
+            {"source", "at_ms", "destination", "model"},
+        ):
             raise ValueError("Invalid video AI request.")
+        from .catalog import TASK_IMAGE, choose_model
+        requested = data.get("model", "u2netp")
+        chosen = choose_model(TASK_IMAGE, requested, verify=True)
+        if chosen is None:
+            raise ValueError("No usable bundled image segmentation model.")
         path = extract_ai_frame(
             Path(data["source"]), data["at_ms"], Path(data["destination"]),
-            ffmpeg=ffmpeg_executable(executable),
+            ffmpeg=ffmpeg_executable(executable), model_id=chosen,
         )
         reply.write_text(json.dumps({"ok": True, "name": path.name}), encoding="utf-8")
         return 0
