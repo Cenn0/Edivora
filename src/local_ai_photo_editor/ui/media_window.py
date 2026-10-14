@@ -127,6 +127,8 @@ class MediaWindow(QMainWindow):
         self.language_combo.addItem("English", "en")
         self.language_combo.currentIndexChanged.connect(self._switch_language)
         top.addWidget(self.language_combo)
+        self.model_config_button = self._button("models", self.show_ai_model_settings, "quiet")
+        top.addWidget(self.model_config_button)
         root.addWidget(header)
 
         content = QSplitter(Qt.Orientation.Horizontal)
@@ -290,6 +292,11 @@ class MediaWindow(QMainWindow):
         bottom.addWidget(self.cancel_button)
         root.addWidget(footer)
         self._set_status("ready")
+
+    def show_ai_model_settings(self) -> None:
+        from .model_settings import ModelSettingsDialog
+        ModelSettingsDialog(self.language, self).exec()
+        self._update_enabled()
 
     def _switch_language(self) -> None:
         self.language = str(self.language_combo.currentData() or "de")
