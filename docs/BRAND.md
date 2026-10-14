@@ -39,4 +39,4 @@ Die eigentliche UI-Tokenquelle ist `src/local_ai_photo_editor/ui/theme.py`; Abst
 
 ## Asset-Änderungen prüfen
 
-Wenn du ein Logo bearbeitest, kontrolliere `viewBox`, Kontrast, kleinere Darstellungen, Lesbarkeit, fehlende externen URLs und die aus dem SVG abgeleitete Windows-ICO-Ausgabe. Führe `PYTHONPATH=src python -m unittest tests.test_branding -v` in geeigneter Umgebung aus und prüfe neue UI-/Windows-Screenshots, bevor du Branding in einem Release versprichst.
+Wenn du ein Logo bearbeitest, kontrolliere `viewBox`, Kontrast, kleinere Darstellungen, Lesbarkeit, fehlende externen URLs und die aus dem SVG abgeleitete Windows-ICO-Ausgabe. Führe `PYTHONPATH=src python -m unittest discover -s tests -p 'test_branding.py' -v` in geeigneter Umgebung aus und prüfe neue UI-/Windows-Screenshots, bevor du Branding in einem Release versprichst.

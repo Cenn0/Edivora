@@ -15,7 +15,7 @@ Der alte, **unsignierte** Windows-x64-Testdownload enthält Import/Export von JP
 - Video: geordnete **Single-Lane-Timeline bis 24 Clips**, Drag & Drop, Schnitt-/Duplizierfunktionen, `.edvp`-Projekt und lokaler FFmpeg-MP4-Export.
 - Audio: dieselbe Grund-Timeline bis 24 Clips, Pegel/Fades, `.edap`-Projekt und FFmpeg-WAV-/MP3-Export.
 - Echte lokale **U2NETP-Standbild-Freistellung** im Videoeditor und **Silero-VAD-Sprachaktivitätsvorschläge** im Audioeditor; CPU-ONNX mit fest geprüften Modellen und ohne Runtime-Downloads.
-- Zentrales Dark-Theme und zweisprachige Beschriftungen. Markendarstellung mit Edivora-Logo und dokumentierten Vektorassets befindet sich im Branding-Integrationszweig, **nicht** im zuvor veröffentlichten ZIP.
+- Zentrales Dark-Theme und zweisprachige Beschriftungen. Markendarstellung mit Edivora-Logo und dokumentierten Vektorassets ist im begleitenden Branding-Änderungssatz integriert, **nicht** im zuvor veröffentlichten ZIP.
 
 [Umfang und Grenzen](MEDIA_MVP.md) · [Mediendateien, Render und KI](MEDIA_PROJECTS_AI.md) · [UI-Designsystem](DESIGN_SYSTEM.md).
 
