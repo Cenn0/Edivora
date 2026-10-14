@@ -1,0 +1,776 @@
+"""Beginner-focused ordered clip editor built over the existing Qt media preview.
+
+The visual timeline is a reorderable row of clips. The existing precision
+trim timeline edits the selected clip only. Rendering composes every clip in
+the displayed order with one cancellable local FFmpeg process.
+"""
+from __future__ import annotations
+
+from dataclasses import replace
+import json
+from pathlib import Path
+import tempfile
+import uuid
+
+from PySide6.QtCore import QProcess, QSignalBlocker, Qt, QUrl
+from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
+from PySide6.QtWidgets import (
+    QAbstractItemView, QFileDialog, QFrame, QHBoxLayout, QLabel,
+    QListWidget, QListWidgetItem, QMessageBox, QPushButton, QVBoxLayout,
+    QWidget,
+)
+
+from ..ai.models import available as image_model_available
+from ..ai.voice import model_available as voice_model_available
+from ..core.media import MIN_SELECTION_MS, ffmpeg_executable, validate_source
+from ..core.media_project import (
+    MAX_CLIPS, MediaClip, MediaSequence, PROJECT_EXTENSIONS,
+    load_media_project, save_media_project,
+)
+from ..core.media_sequence import SequenceExport, commit_sequence_export
+from .media_strings import text
+from .media_window import MediaWindow, clock
+
+
+class SequenceWindow(MediaWindow):
+    """A simple single-lane clip arrangement; not a multitrack NLE."""
+
+    def __init__(self, kind: str, compiled_executable: str | None = None) -> None:
+        self.clips: list[MediaClip] = []
+        self.active_id: str | None = None
+        self._project_file: Path | None = None
+        self._dirty = False
+        self._ui_ready = False
+        self._loading = False
+        self._pending_new: Path | None = None
+        self._pending_existing: str | None = None
+        self._sequence_plan: SequenceExport | None = None
+        self._sequence_temp: Path | None = None
+        self._export_cancelled = False
+        self._ai_process: QProcess | None = None
+        self._ai_job_folder: tempfile.TemporaryDirectory | None = None
+        self._ai_action: str | None = None
+        self._ai_target: Path | None = None
+        self._ai_clip_id: str | None = None
+        super().__init__(kind, compiled_executable)
+        self._install_sequence_controls()
+        self.player.hasAudioChanged.connect(self._audio_presence_changed)
+        self._ui_ready = True
+        self._update_enabled()
+
+    def _install_sequence_controls(self) -> None:
+        # Use one visible horizontal lane; each clip can be dragged to reorder.
+        stage = self.timeline.parentWidget()
+        stage_layout = stage.layout()
+        position = stage_layout.indexOf(self.timeline)
+        lane = QFrame()
+        lane.setObjectName("toolCard")
+        lane_layout = QVBoxLayout(lane)
+        lane_layout.setContentsMargins(10, 8, 10, 8)
+        lane_layout.setSpacing(5)
+        head = QHBoxLayout()
+        self.clip_heading = QLabel()
+        self.clip_heading.setObjectName("sectionTitle")
+        head.addWidget(self.clip_heading)
+        head.addStretch(1)
+        self.add_button = QPushButton()
+        self.add_button.clicked.connect(self.add_media)
+        head.addWidget(self.add_button)
+        self.remove_button = QPushButton()
+        self.remove_button.clicked.connect(self.remove_selected)
+        head.addWidget(self.remove_button)
+        lane_layout.addLayout(head)
+        self.clip_list = QListWidget()
+        self.clip_list.setObjectName("clipTimeline")
+        self.clip_list.setAccessibleName("Media sequence")
+        self.clip_list.setMinimumHeight(82)
+        self.clip_list.setMaximumHeight(105)
+        self.clip_list.setFlow(QListWidget.Flow.LeftToRight)
+        self.clip_list.setWrapping(False)
+        self.clip_list.setDragEnabled(True)
+        self.clip_list.setAcceptDrops(True)
+        self.clip_list.setDropIndicatorShown(True)
+        self.clip_list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.clip_list.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.clip_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.clip_list.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.clip_list.currentRowChanged.connect(self._select_list_row)
+        self.clip_list.model().rowsMoved.connect(self._reorder_from_widget)
+        lane_layout.addWidget(self.clip_list)
+        buttons = QHBoxLayout()
+        self.up_button = QPushButton()
+        self.up_button.clicked.connect(lambda: self.move_selected(-1))
+        self.down_button = QPushButton()
+        self.down_button.clicked.connect(lambda: self.move_selected(1))
+        self.duplicate_button = QPushButton()
+        self.duplicate_button.clicked.connect(self.duplicate_selected)
+        self.split_button = QPushButton()
+        self.split_button.clicked.connect(self.split_selected)
+        for btn in (self.up_button, self.down_button, self.duplicate_button, self.split_button):
+            buttons.addWidget(btn)
+        lane_layout.addLayout(buttons)
+        stage_layout.insertWidget(position, lane)
+
+        project_row = QFrame()
+        project_row.setObjectName("toolCard")
+        project_layout = QVBoxLayout(project_row)
+        project_layout.setContentsMargins(12, 10, 12, 10)
+        self.project_heading = QLabel()
+        self.project_heading.setObjectName("sectionTitle")
+        project_layout.addWidget(self.project_heading)
+        bar = QHBoxLayout()
+        self.open_project_button = QPushButton()
+        self.open_project_button.clicked.connect(self.open_media_project)
+        self.save_project_button = QPushButton()
+        self.save_project_button.clicked.connect(self.save_media_project)
+        self.save_as_button = QPushButton()
+        self.save_as_button.clicked.connect(self.save_media_project_as)
+        for button in (self.open_project_button, self.save_project_button, self.save_as_button):
+            bar.addWidget(button)
+        project_layout.addLayout(bar)
+        outer = self.centralWidget().layout()
+        # A separate bottom strip keeps project commands accessible from
+        # Video and Audio without conflating them with final-file export.
+        outer.insertWidget(outer.count() - 1, project_row)
+
+        self.ai_button = QPushButton()
+        self.ai_button.setObjectName("quickAiAction")
+        self.ai_button.clicked.connect(self.start_local_ai)
+        project_layout.addWidget(self.ai_button)
+
+        QShortcut(QKeySequence("Ctrl+Shift+O"), self, activated=self.open_media_project)
+        QShortcut(QKeySequence("Ctrl+S"), self, activated=self.save_media_project)
+        self.language_combo.currentIndexChanged.connect(self._translate_sequence)
+        self._translate_sequence()
+        self._refresh_clips()
+
+    def _translate_sequence(self) -> None:
+        def key(k: str) -> str:
+            return text(self.language, k)
+        for button, name in (
+            (self.add_button, "clip_add"), (self.remove_button, "clip_remove"),
+            (self.up_button, "clip_up"), (self.down_button, "clip_down"),
+            (self.split_button, "clip_split"), (self.duplicate_button, "clip_duplicate"),
+            (self.open_project_button, "media_project_open"),
+            (self.save_project_button, "media_project_save"),
+            (self.save_as_button, "media_project_save_as"),
+        ):
+            button.setText(key(name))
+        self.clip_heading.setText(key("clip_lane"))
+        self.project_heading.setText(key("project_title"))
+        self.ai_button.setText(key("ai_voice" if self.kind == "audio" else "ai_video_frame"))
+        self.clip_list.setAccessibleName(key("clip_lane"))
+        self.clip_list.setToolTip(key("clip_tip"))
+        self._refresh_clips()
+
+    def _is_busy(self) -> bool:
+        return super()._is_busy() or self._ai_process is not None
+
+    def _update_enabled(self) -> None:
+        super()._update_enabled()
+        if not getattr(self, "_ui_ready", False):
+            return
+        busy = self._is_busy()
+        has = self._selected_index() is not None and self.source is not None
+        ready = has and self.duration_ms > 0 and not busy and not self._loading
+        # The button in the original toolbar should render the full sequence.
+        self.export_button.setEnabled(ready and self._can_render())
+        self.export_second.setEnabled(ready and self._can_render())
+        self.add_button.setEnabled(not busy and len(self.clips) < MAX_CLIPS)
+        self.open_project_button.setEnabled(not busy)
+        self.save_project_button.setEnabled(not busy and bool(self.clips))
+        self.save_as_button.setEnabled(not busy and bool(self.clips))
+        self.remove_button.setEnabled(ready)
+        self.duplicate_button.setEnabled(ready and len(self.clips) < MAX_CLIPS)
+        self.split_button.setEnabled(ready and len(self.clips) < MAX_CLIPS)
+        idx = self._selected_index()
+        self.up_button.setEnabled(ready and idx is not None and idx > 0)
+        self.down_button.setEnabled(ready and idx is not None and idx < len(self.clips) - 1)
+        self.clip_list.setEnabled(not busy)
+        self.ai_button.setEnabled(
+            ready and (voice_model_available() if self.kind == "audio" else image_model_available())
+        )
+        self.ai_button.setToolTip(
+            self._t("ai_ready" if self.ai_button.isEnabled() else "ai_unavailable")
+        )
+
+    def _can_render(self) -> bool:
+        try:
+            self._snapshot().validated()
+            return self._valid_selection()
+        except (OSError, ValueError):
+            return False
+
+    def _selected_index(self) -> int | None:
+        for index, clip in enumerate(self.clips):
+            if clip.id == self.active_id:
+                return index
+        return None
+
+    def _snapshot(self) -> MediaSequence:
+        return MediaSequence(
+            self.kind, tuple(self.clips), self.active_id,
+            self.normalize.isChecked() if self.normalize is not None else False,
+            round(self.fade_in.value() * 1000) if self.fade_in is not None else 0,
+            round(self.fade_out.value() * 1000) if self.fade_out is not None else 0,
+        )
+
+    def _mark_changed(self) -> None:
+        self._dirty = True
+        self._update_project_heading()
+
+    def _update_project_heading(self) -> None:
+        if not getattr(self, "_ui_ready", False):
+            return
+        label = text(self.language, "project_title")
+        if self._project_file is not None:
+            label += " · " + self._project_file.name
+        if self._dirty:
+            label += " *"
+        self.project_heading.setText(label)
+
+    def _capture_selected(self) -> bool:
+        if self._loading or self.source is None:
+            return True
+        idx = self._selected_index()
+        if idx is None:
+            return True
+        clip = self.clips[idx]
+        # Reject invalid intermediate numeric edits instead of silently
+        # losing them during a workspace/clip switch.
+        start = round(self.start_spin.value() * 1000)
+        end = round(self.end_spin.value() * 1000)
+        if not (0 <= start < end <= self.duration_ms + 1 and end - start >= MIN_SELECTION_MS):
+            return False
+        changed = replace(clip, start_ms=start, end_ms=min(end, clip.duration_ms),
+                          volume_percent=self.volume.value(),
+                          mute=self.mute.isChecked() if self.mute is not None else False)
+        if changed != clip:
+            self.clips[idx] = changed
+            self._mark_changed()
+            self._refresh_clips()
+        return True
+
+    def _refresh_clips(self) -> None:
+        if not hasattr(self, "clip_list"):
+            return
+        with QSignalBlocker(self.clip_list):
+            self.clip_list.clear()
+            for index, clip in enumerate(self.clips):
+                title = (
+                    f"{index + 1:02d} · {clip.source.name[:24]}\n"
+                    f"{clock(clip.start_ms)} – {clock(clip.end_ms)}"
+                )
+                item = QListWidgetItem(title)
+                item.setData(Qt.ItemDataRole.UserRole, clip.id)
+                item.setToolTip(f"{clip.source.name} · {clock(clip.length_ms)}")
+                item.setSizeHint(self.clip_list.sizeHintForIndex(self.clip_list.model().index(0, 0))
+                                 if False else item.sizeHint())
+                self.clip_list.addItem(item)
+                if clip.id == self.active_id:
+                    self.clip_list.setCurrentItem(item)
+        self._update_project_heading()
+
+    def _reorder_from_widget(self, *_args: object) -> None:
+        if self._loading or self._is_busy():
+            return
+        ids = [self.clip_list.item(i).data(Qt.ItemDataRole.UserRole)
+               for i in range(self.clip_list.count())]
+        if len(ids) != len(self.clips) or len(set(ids)) != len(ids):
+            self._refresh_clips()
+            return
+        by_id = {c.id: c for c in self.clips}
+        if set(ids) != set(by_id):
+            self._refresh_clips()
+            return
+        self.clips = [by_id[uid] for uid in ids]
+        self._mark_changed()
+        self._refresh_clips()
+
+    def _select_list_row(self, row: int) -> None:
+        if self._loading or not 0 <= row < len(self.clips):
+            return
+        new_id = self.clip_list.item(row).data(Qt.ItemDataRole.UserRole)
+        if new_id == self.active_id or self._is_busy():
+            return
+        if not self._capture_selected():
+            QMessageBox.warning(self, self._t("error"), self._t("invalid_selection"))
+            self._refresh_clips()
+            return
+        clip = next((c for c in self.clips if c.id == new_id), None)
+        if clip is not None:
+            self._preview_clip(clip)
+
+    def _preview_clip(self, clip: MediaClip) -> None:
+        self.active_id = clip.id
+        self._pending_existing = clip.id
+        self._pending_new = None
+        self._loading = True
+        super().open_path(clip.source)
+        self._refresh_clips()
+
+    def _duration_changed(self, duration: int) -> None:
+        if not hasattr(self, "clips"):
+            super()._duration_changed(duration)
+            return
+        if duration <= 0:
+            super()._duration_changed(duration)
+            return
+        self._loading = True
+        super()._duration_changed(duration)
+        if self._pending_new is not None:
+            clip = MediaClip.create(
+                self.kind, self._pending_new, int(duration),
+                has_audio=True if self.kind == "audio" else bool(self.player.hasAudio()),
+            )
+            self.clips.append(clip)
+            self.active_id = clip.id
+            self._pending_new = None
+            self._mark_changed()
+        if self._pending_existing is not None:
+            self.active_id = self._pending_existing
+            self._pending_existing = None
+        idx = self._selected_index()
+        if idx is not None:
+            clip = self.clips[idx]
+            with QSignalBlocker(self.start_spin), QSignalBlocker(self.end_spin):
+                self.start_spin.setValue(clip.start_ms / 1000)
+                self.end_spin.setValue(min(clip.end_ms, duration) / 1000)
+            with QSignalBlocker(self.volume):
+                self.volume.setValue(clip.volume_percent)
+            self._volume_changed(clip.volume_percent)
+            if self.mute is not None:
+                with QSignalBlocker(self.mute):
+                    self.mute.setChecked(clip.mute)
+                self._mute_changed(clip.mute)
+            self.timeline.set_range(clip.start_ms, clip.end_ms)
+        self._loading = False
+        self._refresh_clips()
+        self._update_enabled()
+
+    def _audio_presence_changed(self, has_audio: bool) -> None:
+        idx = self._selected_index()
+        if self.kind != "video" or idx is None or self._loading:
+            return
+        clip = self.clips[idx]
+        if clip.has_audio != bool(has_audio):
+            self.clips[idx] = replace(clip, has_audio=bool(has_audio))
+            self._mark_changed()
+            self._refresh_clips()
+
+    def _selection_changed(self, *_args: object) -> None:
+        super()._selection_changed(*_args)
+        if self._ui_ready and not self._loading:
+            self._capture_selected()
+
+    def _volume_changed(self, value: int) -> None:
+        super()._volume_changed(value)
+        if self._ui_ready and not self._loading:
+            self._capture_selected()
+
+    def open_path(self, path: str | Path) -> None:
+        if self._is_busy() or len(self.clips) >= MAX_CLIPS:
+            return
+        try:
+            source = validate_source(path, self.kind)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, self._t("error"), str(exc))
+            return
+        if not self._capture_selected():
+            QMessageBox.warning(self, self._t("error"), self._t("invalid_selection"))
+            return
+        self._pending_new = source
+        self._pending_existing = None
+        self._loading = True
+        super().open_path(source)
+
+    def add_media(self) -> None:
+        if not self._is_busy():
+            super().open_file()
+
+    def remove_selected(self) -> None:
+        idx = self._selected_index()
+        if idx is None or self._is_busy():
+            return
+        self.clips.pop(idx)
+        self.active_id = None
+        self._mark_changed()
+        if self.clips:
+            self._preview_clip(self.clips[min(idx, len(self.clips) - 1)])
+        else:
+            self.player.stop()
+            self.player.setSource(QUrl())
+            self.source = None
+            self.duration_ms = 0
+            self._loading = False
+            self.timeline.set_duration(0)
+            self.file_label.setText(self._t(f"empty_{self.kind}"))
+            self._refresh_clips()
+            self._update_enabled()
+
+    def move_selected(self, delta: int) -> None:
+        idx = self._selected_index()
+        if idx is None or self._is_busy() or not 0 <= idx + delta < len(self.clips):
+            return
+        self._capture_selected()
+        item = self.clips.pop(idx)
+        self.clips.insert(idx + delta, item)
+        self._mark_changed()
+        self._refresh_clips()
+        self._update_enabled()
+
+    def duplicate_selected(self) -> None:
+        idx = self._selected_index()
+        if idx is None or self._is_busy() or len(self.clips) >= MAX_CLIPS:
+            return
+        if not self._capture_selected():
+            return
+        duplicated = replace(self.clips[idx], id=uuid.uuid4().hex)
+        self.clips.insert(idx + 1, duplicated)
+        self._mark_changed()
+        self._preview_clip(duplicated)
+
+    def split_selected(self) -> None:
+        idx = self._selected_index()
+        if idx is None or self._is_busy() or len(self.clips) >= MAX_CLIPS:
+            return
+        if not self._capture_selected():
+            return
+        clip = self.clips[idx]
+        at = self.player.position()
+        if not clip.start_ms + MIN_SELECTION_MS <= at <= clip.end_ms - MIN_SELECTION_MS:
+            QMessageBox.information(self, self._t("clip_split"), self._t("split_hint"))
+            return
+        first = replace(clip, end_ms=at)
+        second = replace(clip, id=uuid.uuid4().hex, start_ms=at)
+        self.clips[idx:idx + 1] = [first, second]
+        self._mark_changed()
+        self._preview_clip(second)
+
+    def _confirm_unsaved(self) -> bool:
+        if not self._dirty:
+            return True
+        return QMessageBox.question(
+            self, self._t("project_title"), self._t("media_project_unsaved"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        ) == QMessageBox.StandardButton.Yes
+
+    def open_media_project(self) -> None:
+        if self._is_busy() or not self._confirm_unsaved():
+            return
+        kinds = PROJECT_EXTENSIONS[self.kind]
+        path, _ = QFileDialog.getOpenFileName(
+            self, self._t("media_project_open"), "", f"Edivora (*{kinds})"
+        )
+        if not path:
+            return
+        try:
+            sequence = load_media_project(path)
+            if sequence.kind != self.kind:
+                raise ValueError("This project belongs to a different editor.")
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, self._t("error"), str(exc))
+            return
+        self._cancel_waveform()
+        self.clips = list(sequence.clips)
+        self.active_id = None
+        self._project_file = Path(path)
+        self._dirty = False
+        if self.normalize is not None:
+            self.normalize.setChecked(sequence.normalize)
+            self.fade_in.setValue(sequence.fade_in_ms / 1000)
+            self.fade_out.setValue(sequence.fade_out_ms / 1000)
+        selection = next(
+            (c for c in self.clips if c.id == sequence.selected_id), self.clips[0]
+        )
+        self._preview_clip(selection)
+        self._dirty = False
+        self._update_project_heading()
+
+    def save_media_project(self) -> None:
+        if self._project_file is None:
+            self.save_media_project_as()
+            return
+        self._save_to(self._project_file)
+
+    def save_media_project_as(self) -> None:
+        if self._is_busy() or not self.clips:
+            return
+        extension = PROJECT_EXTENSIONS[self.kind]
+        suggested = str(self._project_file or
+                        (self.clips[0].source.parent / f"edivora-project{extension}"))
+        path, _ = QFileDialog.getSaveFileName(
+            self, self._t("media_project_save_as"), suggested, f"Edivora (*{extension})"
+        )
+        if not path:
+            return
+        dest = Path(path)
+        if not dest.suffix:
+            dest = dest.with_suffix(extension)
+        self._save_to(dest)
+
+    def _save_to(self, path: Path) -> None:
+        if self._is_busy() or not self._capture_selected():
+            return
+        try:
+            save_media_project(self._snapshot(), path)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, self._t("error"), str(exc))
+            return
+        self._project_file = Path(path)
+        self._dirty = False
+        self._set_status("media_project_saved", name=path.name)
+        self._update_project_heading()
+
+    def _sequence_export(self, destination: Path) -> SequenceExport:
+        if not self._capture_selected():
+            raise ValueError(self._t("invalid_selection"))
+        return SequenceExport(self._snapshot(), destination).validated()
+
+    def export_file(self) -> None:
+        if self._is_busy() or not self.clips or not self._can_render():
+            return
+        extension = ".mp4" if self.kind == "video" else ".wav"
+        filename = self._project_file.stem if self._project_file else self.clips[0].source.stem
+        suggested = self.clips[0].source.parent / (filename + "-edivora" + extension)
+        choices = "MP4 (*.mp4)" if self.kind == "video" else "WAV (*.wav);;MP3 (*.mp3)"
+        selected, preferred = QFileDialog.getSaveFileName(
+            self, self._t("export_title"), str(suggested), choices
+        )
+        if not selected:
+            return
+        dest = Path(selected)
+        if not dest.suffix:
+            dest = dest.with_suffix(".mp3" if "MP3" in preferred else extension)
+        try:
+            plan = self._sequence_export(dest)
+            engine = ffmpeg_executable(self._compiled_executable)
+            if dest.exists() and QMessageBox.question(
+                self, self._t("export_title"), self._t("overwrite"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            ) != QMessageBox.StandardButton.Yes:
+                return
+            temporary = plan.temp_output()
+            arguments = plan.ffmpeg_arguments(temporary)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, self._t("error"), str(exc))
+            return
+        self.stop_playback()
+        self._sequence_plan = plan
+        self._sequence_temp = temporary
+        self._export_cancelled = False
+        self._export_error.clear()
+        process = QProcess(self)
+        self._export_process = process
+        process.setProgram(engine)
+        process.setArguments(arguments)
+        process.readyReadStandardError.connect(self._collect_error)
+        process.finished.connect(lambda code, status, p=process: self._sequence_finished(p, code))
+        process.errorOccurred.connect(
+            lambda error, p=process: self._sequence_start_error(p, error)
+        )
+        self.progress.setRange(0, 0)
+        self.progress.show()
+        self.cancel_button.show()
+        self._set_status("media_sequence_render")
+        self._update_enabled()
+        process.start()
+
+    def _sequence_start_error(self, process: QProcess, error: QProcess.ProcessError) -> None:
+        if process is self._export_process and error == QProcess.ProcessError.FailedToStart:
+            self._sequence_finished(process, -1)
+
+    def _sequence_finished(self, process: QProcess, code: int) -> None:
+        if process is not self._export_process:
+            return
+        self._collect_error()
+        plan, temporary = self._sequence_plan, self._sequence_temp
+        self._export_process = None
+        self._sequence_plan = None
+        self._sequence_temp = None
+        process.deleteLater()
+        self.progress.hide()
+        self.cancel_button.hide()
+        try:
+            if self._export_cancelled:
+                self._set_status("cancelled")
+            elif code != 0 or plan is None or temporary is None:
+                detail = self._export_error.decode("utf-8", "replace").strip()[-300:]
+                raise RuntimeError(detail or self._t("failed"))
+            else:
+                commit_sequence_export(plan, temporary)
+                self._set_status("done", name=plan.destination.name)
+        except (OSError, RuntimeError, ValueError) as exc:
+            self._set_status("failed")
+            QMessageBox.warning(self, self._t("error"), str(exc))
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+            self._update_enabled()
+
+    def _media_ai_command(self, operation: str, directory: Path) -> tuple[str, list[str]]:
+        from ..__main__ import media_job_command
+
+        return media_job_command(operation, directory)
+
+    def start_local_ai(self) -> None:
+        idx = self._selected_index()
+        if idx is None or self._is_busy() or not self._capture_selected():
+            return
+        clip = self.clips[idx]
+        operation = "voice" if self.kind == "audio" else "frame"
+        target: Path | None = None
+        if operation == "voice":
+            if not voice_model_available():
+                QMessageBox.warning(self, self._t("error"), self._t("ai_unavailable"))
+                return
+            if clip.length_ms > 15 * 60 * 1000:
+                QMessageBox.information(self, self._t("ai_voice"), self._t("ai_voice_limit"))
+                return
+            payload = {"source": str(clip.source.resolve()),
+                       "start_ms": clip.start_ms, "end_ms": clip.end_ms}
+        else:
+            if not image_model_available():
+                QMessageBox.warning(self, self._t("error"), self._t("ai_unavailable"))
+                return
+            picked, _ = QFileDialog.getSaveFileName(
+                self, self._t("ai_video_frame"), str(clip.source.with_suffix("").with_name(
+                    clip.source.stem + "-ai-frame.png"
+                )), "PNG (*.png)"
+            )
+            if not picked:
+                return
+            target = Path(picked)
+            if not target.suffix:
+                target = target.with_suffix(".png")
+            if target.exists() and QMessageBox.question(
+                self, self._t("ai_video_frame"), self._t("overwrite"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            ) != QMessageBox.StandardButton.Yes:
+                return
+            payload = {"source": str(clip.source.resolve()),
+                       "at_ms": min(self.player.position(), clip.duration_ms),
+                       "destination": str(target)}
+        folder = tempfile.TemporaryDirectory(prefix="edivora-media-ai-")
+        workdir = Path(folder.name)
+        (workdir / "request.json").write_text(json.dumps(payload), encoding="utf-8")
+        program, args = self._media_ai_command(operation, workdir)
+        process = QProcess(self)
+        self._ai_process = process
+        self._ai_job_folder = folder
+        self._ai_action = operation
+        self._ai_target = target
+        self._ai_clip_id = clip.id
+        process.setProgram(program)
+        process.setArguments(args)
+        process.finished.connect(lambda code, status, p=process: self._ai_finished(p, code))
+        process.errorOccurred.connect(lambda err, p=process: self._ai_start_error(p, err))
+        self.progress.setRange(0, 0)
+        self.progress.show()
+        self.cancel_button.show()
+        self._set_status("ai_busy_media")
+        self._update_enabled()
+        process.start()
+
+    def _ai_start_error(self, process: QProcess, error: QProcess.ProcessError) -> None:
+        if process is self._ai_process and error == QProcess.ProcessError.FailedToStart:
+            self._ai_finished(process, -1)
+
+    def _ai_finished(self, process: QProcess, code: int) -> None:
+        if process is not self._ai_process:
+            return
+        operation = self._ai_action
+        clip_id = self._ai_clip_id
+        folder = self._ai_job_folder
+        self._ai_process = None
+        self._ai_action = None
+        self._ai_clip_id = None
+        self._ai_job_folder = None
+        process.deleteLater()
+        self.progress.hide()
+        self.cancel_button.hide()
+        try:
+            if folder is None or code != 0:
+                raise RuntimeError(self._t("ai_media_error"))
+            file = Path(folder.name) / "result.json"
+            if not file.is_file() or file.stat().st_size > 16384:
+                raise ValueError("Invalid local AI result.")
+            result = json.loads(file.read_text("utf-8"))
+            if result.get("ok") is not True:
+                raise RuntimeError(result.get("message", self._t("ai_media_error")))
+            if operation == "voice":
+                rows = result.get("segments", [])
+                if result.get("too_many") or not isinstance(rows, list):
+                    raise ValueError(self._t("ai_voice_too_many"))
+                idx = next((i for i, c in enumerate(self.clips) if c.id == clip_id), None)
+                if idx is None:
+                    raise RuntimeError("The source clip changed during local inference.")
+                clip = self.clips[idx]
+                proposed = []
+                for interval in rows:
+                    if (not isinstance(interval, list) or len(interval) != 2
+                            or any(type(v) is not int for v in interval)):
+                        raise ValueError("Malformed voice detection interval.")
+                    lo, hi = interval
+                    if not clip.start_ms <= lo < hi <= clip.end_ms or hi - lo < MIN_SELECTION_MS:
+                        raise ValueError("Voice detection returned an invalid region.")
+                    proposed.append(replace(clip, id=uuid.uuid4().hex,
+                                            start_ms=lo, end_ms=hi))
+                if not proposed:
+                    QMessageBox.information(self, self._t("ai_voice"), self._t("ai_voice_none"))
+                elif len(self.clips) - 1 + len(proposed) > MAX_CLIPS:
+                    QMessageBox.warning(self, self._t("error"), self._t("ai_voice_too_many"))
+                elif QMessageBox.question(
+                    self, self._t("ai_voice"),
+                    self._t("ai_voice_confirm", count=len(proposed)),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
+                ) == QMessageBox.StandardButton.Yes:
+                    self.clips[idx:idx + 1] = proposed
+                    self._mark_changed()
+                    self._preview_clip(proposed[0])
+            else:
+                self._set_status("ai_frame_done", name=str(result["name"]))
+        except (OSError, ValueError, RuntimeError, TypeError, KeyError) as exc:
+            if code != -9:
+                QMessageBox.warning(self, self._t("error"), str(exc))
+        finally:
+            if folder is not None:
+                folder.cleanup()
+            self._update_enabled()
+
+    def cancel_export(self) -> None:
+        if self._ai_process is not None:
+            process = self._ai_process
+            process.kill()
+            process.waitForFinished(3000)
+            if self._ai_process is process:
+                self._ai_finished(process, -9)
+            self._set_status("cancelled")
+            return
+        if self._export_process is not None:
+            process = self._export_process
+            self._export_cancelled = True
+            process.kill()
+            process.waitForFinished(3000)
+            if self._export_process is process:
+                self._sequence_finished(process, -9)
+            return
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        if self._dirty and not self._is_busy() and not self._confirm_unsaved():
+            event.ignore()
+            return
+        if self._ai_process is not None:
+            if QMessageBox.question(
+                self, self._t("error"), self._t("close_processing"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            ) != QMessageBox.StandardButton.Yes:
+                event.ignore()
+                return
+            self.cancel_export()
+        super().closeEvent(event)
