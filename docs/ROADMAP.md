@@ -8,6 +8,8 @@ Der alte, **unsignierte** Windows-x64-Testdownload enthält Import/Export von JP
 
 ## Aktueller `main`-Quellcode: 0.3.0a1
 
+**Privater Testdownload:** [Edivora 0.3.0 Alpha 1](https://github.com/Cenn0/Edivora/releases/tag/v0.3.0-alpha.1) enthält den gemergten Entwicklungsstand, sobald die Windows-Paketprüfung erfolgreich ist. Dieses **unsignierte interne Prerelease** bedeutet ausdrücklich keine öffentliche Lizenz-/Hardware-/Windows-11-Freigabe.
+
 **Implementiert, noch nicht als gleichwertiger neuer Endnutzerdownload freigegeben:**
 
 - Gemeinsamer Edivora-Launcher mit einzeln, zu zweit oder zu dritt parallel geöffneten, unabhängigen Foto-/Video-/Audio-Prozessen.
