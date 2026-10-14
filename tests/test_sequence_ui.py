@@ -32,6 +32,22 @@ class SequencerQtTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
 
+    def test_video_and_audio_show_embedded_brand_mark(self) -> None:
+        from PySide6.QtWidgets import QLabel
+        for kind in ("video", "audio"):
+            with self.subTest(kind=kind):
+                w = self.window_type(kind)
+                try:
+                    labels = w.findChildren(QLabel, "brandMark")
+                    self.assertEqual(len(labels), 1)
+                    self.assertEqual(labels[0].accessibleName(), "Edivora")
+                    self.assertFalse(labels[0].pixmap().isNull())
+                finally:
+                    w._dirty = False
+                    w.close()
+                    w.deleteLater()
+                    self.app.processEvents()
+
     def make_audio(self, name: str, frequency: int) -> Path:
         dest = self.root / name
         done = subprocess.run([
