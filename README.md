@@ -16,6 +16,26 @@ Die Prüfsumme des Downloads steht im separaten Release-Asset `SHA256SUMS.txt` d
 
 Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte Testrechner verwendet Windows Server 2022. Eine vollständige Abnahme auf einer frischen Windows-11-Installation ohne Entwicklungswerkzeuge steht noch aus.
 
+## Einfacher Einstieg im aktuellen Quellcode
+
+Die neue Hauptansicht ist für Menschen gedacht, die nur gelegentlich ein Foto bearbeiten:
+**Foto öffnen → Aufgabe wählen → Vorschau prüfen → Kopie exportieren.**
+Zunächst gibt es vier große Aufgaben: **Foto verbessern**, **Zuschneiden & drehen**,
+**Hintergrund unscharf (KI)** und **Hintergrund entfernen (KI)**. Die beiden
+KI-Schnellaktionen zeigen vor dem Übernehmen eine Vorschau. Regler,
+Spezialeffekte und die manuelle Kantenkorrektur liegen unter
+**Weitere Möglichkeiten anzeigen**. Begonnene Korrekturen bleiben sichtbar,
+bis sie übernommen oder verworfen wurden.
+
+Die Originaldatei wird nicht überschrieben. **Projekt speichern** für die
+spätere Weiterbearbeitung ist weiterhin über **Datei** bzw. **Strg+S**
+verfügbar. [Bedienkonzept und Prüfumfang](docs/USER_INTERFACE.md).
+
+**Versionshinweis:** Die vereinfachte Startoberfläche existiert derzeit
+im Entwicklungsquellcode, **nicht** im veröffentlichten
+`v0.1.0-alpha.1`-ZIP. Die oben verlinkten Paket-Screenshots
+zeigen den geprüften älteren Release-Stand.
+
 ## Funktionen der Alpha
 
 - JPEG-, PNG- und WebP-Fotos öffnen.
@@ -39,7 +59,7 @@ Du brauchst für die Hintergrund-Unschärfe kein zweites Hintergrundfoto. Die Er
 
 ## Neu im Quellstand: Mehr Werkzeuge, einfach bedienbar
 
-Unter **Weitere Werkzeuge** oder mit **Strg+E** öffnet sich ein gemeinsamer Bearbeitungsbereich mit vier übersichtlichen Reitern:
+Unter **Weitere Möglichkeiten anzeigen → Weitere Werkzeuge** oder mit **Strg+E** öffnet sich ein gemeinsamer Bearbeitungsbereich mit vier übersichtlichen Reitern:
 
 | Bereich | Möglichkeiten |
 | --- | --- |
@@ -120,6 +140,7 @@ Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. `prepare_model.
 - [KI-Modell, Herkunft und Grenzen](docs/MODELS.md)
 - [Lokale KI-Motivwerkzeuge](docs/AI_SUBJECT_TOOLS.md)
 - [Geführte Bildbearbeitung: Licht, Looks, Ausschnitt und Hintergrund](docs/EDITING_TOOLS.md)
+- [Benutzeroberfläche: einfacher Einstieg und erweiterte Werkzeuge](docs/USER_INTERFACE.md)
 - [Lokale Bearbeitungsprojekte (.laip)](docs/PROJECT_FORMAT.md)
 - [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md)
 - [Prüfergebnisse und offene Nachweise](docs/VERIFICATION.md)
