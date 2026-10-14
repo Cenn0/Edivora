@@ -1,6 +1,6 @@
 # Edivora – Launcher, Video & Audio MVP (Entwicklungsstand)
 
-**Stand:** 14.10.2026, Quellcode im Entwicklungsbranch. Dieses Dokument ersetzt weder einen erfolgreichen Windows-Build noch einen auf einem sauberen Windows-11-System geprüften Release. Das veröffentlichte `v0.1.0-alpha.1` ist weiterhin nur der ältere Fotoeditor.
+**Stand:** 14.10.2026, aktuellere Quellcodeentwicklung auf Basis des gemergten Media-MVP. Dieses Dokument ersetzt weder einen erfolgreichen Windows-Build noch einen auf einem sauberen Windows-11-System geprüften Release. Das veröffentlichte `v0.1.0-alpha.1` ist weiterhin nur der ältere Fotoeditor.
 
 ## Ein Programm, drei voneinander unabhängige Fenster
 
@@ -23,13 +23,27 @@ Der Fotoeditor bietet zusätzlich aktive Video- und Audio-Schaltflächen, die di
 | --- | --- | --- |
 | Öffnen | MP4, MOV, MKV, WebM, AVI, M4V (container-/codecabhängig) | WAV, MP3, M4A, AAC, FLAC, OGG, Opus (codecabhängig) |
 | Vorschau | Videobild und Ton mit Qt Multimedia | Audio mit Qt Multimedia, separate Wellenform über FFmpeg |
-| Bearbeiten | Start/Ende wählen, Vorschau des Bereichs, Lautstärke, Ton stummschalten | Start/Ende wählen, Vorschau, Lautstärke, optionale Loudness-Normalisierung, Ein- und Ausblenden |
+| Bearbeiten | Interaktiver Schnittbereich (verschiebbare Start-/Endmarken), Sekundenfelder, Bereichsvorschau, Lautstärke, Ton stummschalten | Interaktiver Schnittbereich, Sekundenfelder und separate Wellenform, Lautstärke, optionale Loudness-Normalisierung und Fades |
 | Export | MP4: MPEG-4 Part 2 + AAC | WAV: PCM 16-bit/48 kHz/Stereo oder MP3: 192 kbit/s |
 | Persistenz | Neue Videodatei, **kein** natives Schnittprojekt | Neue Audiodatei, **kein** natives Schnittprojekt |
 
-Das erste MVP besitzt **eine Datei und eine zusammenhängende Auswahl** pro Editorfenster. Es enthält noch kein Clip-Arrangement, mehrere Spuren, Übergänge, Keyframes, Undo/Redo für Bearbeitungsschritte, Untertitel, Bildfilter oder KI-Verarbeitung für Video/Audio. Die Audio-Wellenform ist nur eine Anzeige, ihre letzten Abschnitte können bei Clips über 15 Minuten fehlen; Start/Ende werden mit numerischen Feldern gesetzt. Der Videoexport nutzt bewusst den verbreiteten MPEG-4-Part-2-Encoder, nicht H.264 und keine professionelle Codec-/Qualitätsauswahl; Wiedergabekompatibilität variiert je nach Abspielgerät. Der eingebaute Player verwendet **Qt Multimedia** und hat eine vom FFmpeg-Export unabhängige Decodierunterstützung – nicht jede Datei, die FFmpeg verarbeiten kann, muss in der Vorschau spielen.
+Das erste MVP besitzt **eine Datei und eine zusammenhängende Auswahl** pro Editorfenster. Es enthält noch kein Clip-Arrangement, mehrere Spuren, Übergänge, Keyframes, Undo/Redo für Bearbeitungsschritte, Untertitel, Bildfilter oder KI-Verarbeitung für Video/Audio. Die separate Audio-Wellenform ist eine Anzeige, ihre letzten Abschnitte können bei Clips über 15 Minuten fehlen. **Start und Ende** lassen sich nun sowohl über numerische Felder als auch durch Ziehen der zwei Schnittmarken auf der Zeitleiste setzen; die Markierungen beziehen sich immer auf die **gesamte Dateidauer**, nicht nur die gegebenenfalls verkürzte Wellenformanzeige. Der Videoexport nutzt bewusst den verbreiteten MPEG-4-Part-2-Encoder, nicht H.264 und keine professionelle Codec-/Qualitätsauswahl; Wiedergabekompatibilität variiert je nach Abspielgerät. Der eingebaute Player verwendet **Qt Multimedia** und hat eine vom FFmpeg-Export unabhängige Decodierunterstützung – nicht jede Datei, die FFmpeg verarbeiten kann, muss in der Vorschau spielen.
 
-**Anwenderablauf:** Datei öffnen oder ins Fenster ziehen → Start/Ende einstellen → Play zur Vorschau → optional Ton bearbeiten → **Als neue Datei exportieren** → Speicherort wählen und ggf. Ersetzen bestätigen → Abschlussstatus. Beim Export bleibt die App bedienbar, die betreffenden Editierregler sind gesperrt und **Abbrechen** beendet den Kodierer. Mehrere Editoren arbeiten unabhängig.
+**Anwenderablauf:** Datei öffnen oder ins Fenster ziehen → Start-/Endmarke auf der Zeitleiste ziehen oder Sekundenfelder benutzen → Play zur Vorschau → optional Ton bearbeiten → **Als neue Datei exportieren** → Speicherort wählen und ggf. Ersetzen bestätigen → Abschlussstatus. Beim Export bleibt die App bedienbar, die betreffenden Editierregler sind gesperrt und **Abbrechen** beendet den Kodierer. Mehrere Editoren arbeiten unabhängig.
+
+## Visuelle Schnittauswahl (neuer Entwicklungsstand)
+
+Die Zeitleiste liegt in beiden Editoren direkt unter dem Wiedergaberegler. Der **eingefärbte Bereich** wird exportiert; die grauen Bereiche werden verworfen. Eine separate farbige Linie zeigt die aktuelle Wiedergabeposition. So funktioniert die Bearbeitung:
+
+1. **Schnittmarken verschieben:** Anfang/Ende lassen sich unabhängig voneinander mit der Maus ziehen. Der Bereich bleibt mindestens 0,1 Sekunden lang.
+2. **Abspielposition ändern:** Auf die Leiste außerhalb der beiden Marken klicken. Dies bewegt nur den Abspielkopf; der Exportbereich ändert sich dadurch nicht.
+3. **Hier beginnen / Hier enden:** Die aktuelle Wiedergabeposition wird zum Anfang oder Ende des Ausschnitts, begrenzt auf eine gültige Auswahl.
+4. **Gesamte Datei verwenden:** Start- und Endmarke zurücksetzen. Die präzisen Sekundenfelder rechts lassen sich weiterhin direkt bearbeiten.
+5. **Tastatur:** Zeitleiste fokussieren, gewünschte Schnittmarke mit der Maus auswählen, dann mit **Pfeil links/rechts** um 0,1 s oder mit **Umschalt + Pfeil** um 1 s ändern. Für vollständige Tastatur- und Screenreader-Bedienung dienen die separaten numerischen Felder als Alternative.
+
+Eine Änderung der Zeitleiste aktualisiert sofort die numerischen Eingaben. Der bereits validierte FFmpeg-Export nimmt exakt dieselbe Start-/Endauswahl. Bei unzulässigen Werten (z. B. Fades länger als der neue Audiobereich) wird Export deaktiviert, bis die Einstellungen wieder zusammenpassen. Das Anfassen eines Markers pausiert die Wiedergabe und zeigt die neue Abspielposition an. Video bleibt bei einer Datei, Audio bei einer Datei; die Markierungen sind noch keine Clips auf mehreren Spuren.
+
+Die neuen UI- und Export-Verknüpfungstests laufen in der Windows- und Linux-CI. Der Windows-Standalone-Test muss auf dem konkreten neuen Commit erfolgreich sein, bevor dieses Teil-Feature als **getestetes Paket** bezeichnet werden darf.
 
 ## Datenschutz und Dateischutz
 
@@ -81,4 +95,4 @@ Die `imageio-ffmpeg==0.6.0`-Wheel-Binärdatei enthält externe FFmpeg-Codecs. Be
 
 ## Späterer Ausbau
 
-Geplant, noch **nicht** implementiert: visuelle Video-Zeitleiste mit Clip-Reihenfolge und mehrspuriges Audio, nicht-destruktive lokale Projekte und Undo/Redo, interaktive Wellenform-Auswahl, weitere Exportprofile, lokale KI für Transkription/Rauschminderung/Untertitel sowie echte Nutzertests und Lizenz-/Codec-Matrix.
+Geplant, noch **nicht** implementiert: Clip-Reihenfolge und mehrspuriges Audio (die neue einfache Ein-Datei-Schnittzeitleiste ist keine Multitrack-Timeline), nicht-destruktive lokale Projekte und Undo/Redo, interaktive Wellenform-Auswahl, weitere Exportprofile, lokale KI für Transkription/Rauschminderung/Untertitel sowie echte Nutzertests und Lizenz-/Codec-Matrix.
