@@ -46,6 +46,8 @@ jobs:
         run: python tools/prepare_model.py
       - name: Prepare and verify pinned offline voice model (build time only)
         run: python tools/prepare_voice_model.py
+      - name: Prepare and verify extra pinned AI tiers (build time only)
+        run: python tools/prepare_extra_models.py
       - name: Exercise the real source worker
         run: python -m local_ai_photo_editor --smoke-test test-results/source-worker
       - name: Exercise real AI subject selection and native source dialogs
