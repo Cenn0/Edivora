@@ -1,6 +1,6 @@
 # Edivora – lokale Foto-, Video- und Audiobearbeitung
 
-**Entwicklungsstand (noch nicht als Windows-Paket veröffentlicht):** Der neue Edivora-Launcher eröffnet drei unabhängige Werkzeuge für Foto, Video und Audio. Beim Programmstart werden Foto, Video und Audio angezeigt; man kann **ein einzelnes, zwei oder alle drei Werkzeuge parallel** in getrennten Fenstern öffnen. Video und Audio besitzen jetzt eigene einfache Editoren mit Wiedergabe, Start-/Endauswahl und lokalem Export. Dokumentation und Grenzen: **[Video-/Audio-MVP und Launcher](docs/MEDIA_MVP.md)**.
+**Entwicklungsstand (noch nicht als Windows-Paket veröffentlicht):** Der neue Edivora-Launcher eröffnet drei unabhängige Werkzeuge für Foto, Video und Audio. Beim Programmstart werden Foto, Video und Audio angezeigt; man kann **ein einzelnes, zwei oder alle drei Werkzeuge parallel** in getrennten Fenstern öffnen. Video und Audio besitzen eigene Editoren mit Wiedergabe, einer **visuellen Zeitleiste mit verschiebbaren Schnittmarken**, genauer Zeitangabe und lokalem Export. Dokumentation und Grenzen: **[Video-/Audio-MVP und Launcher](docs/MEDIA_MVP.md)**.
 
 Der bereits **veröffentlichte Download `v0.1.0-alpha.1` ist dagegen weiterhin die ältere reine Foto-Testalpha**, ohne Video-/Audio-MVP und ohne neuen Launcher. Die nachstehenden Prüfergebnisse und Downloadlinks gelten **nur** für diese unveränderte Testalpha; eine neue EXE ist erst nach erfolgreichem Windows-Build des Entwicklungsstands als CI-Artefakt verfügbar.
 
@@ -34,8 +34,8 @@ Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte
 Die neue, noch **nicht im älteren Release enthaltene** Qt-Oberfläche verwendet das [gemeinsame Designsystem](docs/DESIGN_SYSTEM.md). Ein eigener Launcher zeigt die drei Werkzeuge mit Direktstart und Mehrfachauswahl:
 
 - **Foto:** bisheriger Editor mit lokalen KI-Motivfunktionen, Projektdateien, Vorschau und Bearbeitungshistorie.
-- **Video-MVP:** lokale Dateiwiedergabe, Ausschnitt wählen, Ton stummschalten/Lautstärke, MP4-Export.
-- **Audio-MVP:** lokale Wiedergabe mit Wellenformvorschau, Ausschnitt wählen, Lautstärke, optionale Normalisierung und Ein-/Ausblenden, WAV-/MP3-Export.
+- **Video-MVP:** lokale Dateiwiedergabe, grafischer Schnittbereich mit verschiebbaren Anfangs-/Endmarken und Abspielkopf, Ton stummschalten/Lautstärke, MP4-Export.
+- **Audio-MVP:** lokale Wiedergabe mit Wellenformvorschau, derselbe grafische Schnittbereich, Lautstärke, optionale Normalisierung und Ein-/Ausblenden, WAV-/MP3-Export.
 
 **Start aus dem Quellcode** (nach `pip install -e .`):
 

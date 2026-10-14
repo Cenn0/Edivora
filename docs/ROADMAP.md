@@ -5,10 +5,11 @@
 - Implemented in development source: one Edivora launcher executable that starts
   the Photo, Video or Audio workspace separately; any two or all three
   can run at once.
-- Video MVP: file import and Qt playback, single start/end range, volume/mute,
+- Video MVP: file import and Qt playback, **graphical in/out timeline with draggable handles**,
+  precise range spin boxes, current-position start/end actions, volume/mute,
   MP4 export through local FFmpeg with original-file protection.
-- Audio MVP: file import and Qt playback, non-interactive waveform preview,
-  single start/end range, volume, loudness normalization and fades,
+- Audio MVP: file import and Qt playback, separate waveform preview,
+  **the same interactive trim range**, volume, loudness normalization and fades,
   WAV/MP3 export.
 - Shared German/English visual language and task labels. Source and packaged
   Windows smoke checks exercise Qt window construction and synthetic FFmpeg exports.
@@ -19,7 +20,7 @@ licence review of distributed FFmpeg/Qt components, fresh Windows 11
 usability and offline-network acceptance, and completion of the first
 new Edivora distribution. Building code is not evidence of a release.
 
-**Later:** interactive video timeline and audio waveform editing, multitrack,
+**Later:** full clip-arrangement video timeline and draggable waveform editing, multitrack,
 reversible native media-project format, H.264-quality/performance matrix,
 and genuinely local AI for speech/subtitles/audio enhancement. Detailed MVP
 contract: [MEDIA_MVP.md](MEDIA_MVP.md).
