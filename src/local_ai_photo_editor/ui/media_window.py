@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QProcess, Qt, QTimer, QUrl
+from PySide6.QtCore import QProcess, QSignalBlocker, Qt, QTimer, QUrl
 from PySide6.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QPixmap
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
@@ -19,10 +19,11 @@ from PySide6.QtWidgets import (
 )
 
 from ..core.media import (
-    MediaExport, commit_export, ffmpeg_executable, validate_source,
+    MIN_SELECTION_MS, MediaExport, commit_export, ffmpeg_executable, validate_source,
 )
 from .media_strings import text
 from .theme import stylesheet
+from .trim_timeline import TrimTimeline
 
 
 def clock(milliseconds: int) -> str:
@@ -50,6 +51,7 @@ class MediaWindow(QMainWindow):
         self._cancel_requested = False
         self._wave_process: QProcess | None = None
         self._wave_data = bytearray()
+        self._wave_pixmap: QPixmap | None = None
         self._status_key = "ready"
         self._status_values: dict[str, object] = {}
         self.setMinimumSize(850, 620)
@@ -135,12 +137,12 @@ class MediaWindow(QMainWindow):
         stage.setObjectName("previewFrame")
         stage_layout = QVBoxLayout(stage)
         stage_layout.setContentsMargins(18, 18, 18, 18)
-        stage_layout.setSpacing(12)
+        stage_layout.setSpacing(8)
         self.file_label = self._label(f"empty_{self.kind}", "sectionTitle", wrap=True)
         stage_layout.addWidget(self.file_label)
         if self.kind == "video":
             self.video_surface = QVideoWidget(stage)
-            self.video_surface.setMinimumHeight(240)
+            self.video_surface.setMinimumHeight(190)
             self.player.setVideoOutput(self.video_surface)
             stage_layout.addWidget(self.video_surface, 1)
             self.wave_label = None
@@ -165,11 +167,13 @@ class MediaWindow(QMainWindow):
         player_row.addStretch()
         player_row.addWidget(self.time_label)
         stage_layout.addLayout(player_row)
-        self.seek_slider = QSlider(Qt.Orientation.Horizontal)
-        self.seek_slider.setAccessibleName("Playback position")
-        self.seek_slider.sliderMoved.connect(self.player.setPosition)
-        stage_layout.addWidget(self.seek_slider)
-        stage_layout.addWidget(self._label("codec_hint", "muted", wrap=True))
+        # The range bar is also the seek control: no competing second slider.
+        # It shows the whole file plus current selected in/out markers.
+        self.timeline = TrimTimeline(stage)
+        self.timeline.rangeChanged.connect(self._timeline_changed)
+        self.timeline.seekRequested.connect(self._seek_from_timeline)
+        stage_layout.addWidget(self.timeline)
+        stage_layout.addWidget(self._label("timeline_hint", "muted", wrap=True))
         content.addWidget(stage)
 
         controls = QScrollArea()
@@ -201,6 +205,14 @@ class MediaWindow(QMainWindow):
         range_form.addRow(self._label("start_time"), self.start_spin)
         range_form.addRow(self._label("end_time"), self.end_spin)
         range_layout.addLayout(range_form)
+        markers = QHBoxLayout()
+        self.mark_start_button = self._button("mark_start", self._mark_start_at_playhead, "quiet")
+        self.mark_end_button = self._button("mark_end", self._mark_end_at_playhead, "quiet")
+        markers.addWidget(self.mark_start_button)
+        markers.addWidget(self.mark_end_button)
+        range_layout.addLayout(markers)
+        self.reset_range_button = self._button("reset_range", self._reset_range, "quiet")
+        range_layout.addWidget(self.reset_range_button)
         form_outer.addWidget(range_card)
 
         audio_card = QFrame()
@@ -253,6 +265,7 @@ class MediaWindow(QMainWindow):
         self.export_second = self._button("export", self.export_file, "primary")
         export_layout.addWidget(self.export_second)
         form_outer.addWidget(export_card)
+        form_outer.addWidget(self._label("codec_hint", "muted", wrap=True))
         form_outer.addStretch()
         controls.setWidget(inspector)
         content.addWidget(controls)
@@ -285,11 +298,20 @@ class MediaWindow(QMainWindow):
     def _translate(self) -> None:
         self.setWindowTitle(f"Edivora · {self._t(self.kind)}")
         for widget, key in self._labels:
-            # QLabel and QAbstractButton expose the same setText interface.
+            # A language switch must not erase a decoded waveform pixmap.
+            if widget is self.wave_label and self._wave_pixmap is not None:
+                continue
             widget.setText(self._t(key))
+        if self.wave_label is not None and self._wave_pixmap is not None:
+            self.wave_label.setToolTip(
+                self._t("waveform_partial") if self.duration_ms > 900_000 else ""
+            )
         if self.source is not None:
             self.file_label.setText(self.source.name)
         self._set_status(self._status_key, **self._status_values)
+        self.timeline.setToolTip(self._t("timeline_hint"))
+        self.timeline.setAccessibleName(self._t("timeline_title"))
+        self.timeline.setAccessibleDescription(self._t("timeline_accessible"))
         self._playback_changed(self.player.playbackState())
 
     def _set_status(self, key: str, **values: object) -> None:
@@ -305,7 +327,7 @@ class MediaWindow(QMainWindow):
             return False
         start = round(self.start_spin.value() * 1000)
         end = round(self.end_spin.value() * 1000)
-        if start < 0 or end > self.duration_ms + 1 or end - start < 100:
+        if start < 0 or end > self.duration_ms + 1 or end - start < MIN_SELECTION_MS:
             return False
         if self.kind == "audio":
             fades = round((self.fade_in.value() + self.fade_out.value()) * 1000)
@@ -319,15 +341,63 @@ class MediaWindow(QMainWindow):
         for button in (self.export_button, self.export_second):
             button.setEnabled(can_export)
         self.open_button.setEnabled(not self._is_busy())
-        for control in (self.play_button, self.stop_button, self.seek_slider, self.start_spin,
-                        self.end_spin, self.volume):
+        for control in (self.play_button, self.stop_button, self.start_spin,
+                        self.end_spin, self.volume, self.timeline, self.mark_start_button,
+                        self.mark_end_button, self.reset_range_button):
             control.setEnabled(enabled)
         for control in (self.mute, self.normalize, self.fade_in, self.fade_out):
             if control is not None:
                 control.setEnabled(enabled)
 
     def _selection_changed(self, *_args: object) -> None:
+        self.timeline.set_range(
+            round(self.start_spin.value() * 1000),
+            round(self.end_spin.value() * 1000),
+        )
         self._update_enabled()
+        if self.source is not None and self.duration_ms > 0:
+            if not self._valid_selection() and not self._is_busy():
+                self._set_status("invalid_selection")
+            elif self._status_key == "invalid_selection":
+                self._set_status("loaded")
+
+    def _timeline_changed(self, start_ms: int, end_ms: int) -> None:
+        # Prevent a signal cycle from numeric field updates. The spin boxes
+        # remain the exact source for the existing validated FFmpeg export.
+        if self._is_busy() or self.duration_ms <= 0:
+            return
+        with QSignalBlocker(self.start_spin), QSignalBlocker(self.end_spin):
+            self.start_spin.setValue(start_ms / 1000)
+            self.end_spin.setValue(end_ms / 1000)
+        self._selection_changed()
+
+    def _seek_from_timeline(self, position_ms: int) -> None:
+        if self.source is None or self.duration_ms <= 0 or self._is_busy():
+            return
+        if self.timeline._dragging:
+            self.player.pause()
+        self.timeline.set_position(position_ms)
+        self.player.setPosition(position_ms)
+
+    def _mark_start_at_playhead(self) -> None:
+        if self.source is None or self.duration_ms < MIN_SELECTION_MS or self._is_busy():
+            return
+        position = min(self.player.position(), round(self.end_spin.value() * 1000) - MIN_SELECTION_MS)
+        self.start_spin.setValue(max(0, position) / 1000)
+
+    def _mark_end_at_playhead(self) -> None:
+        if self.source is None or self.duration_ms < MIN_SELECTION_MS or self._is_busy():
+            return
+        position = max(self.player.position(), round(self.start_spin.value() * 1000) + MIN_SELECTION_MS)
+        self.end_spin.setValue(min(self.duration_ms, position) / 1000)
+
+    def _reset_range(self) -> None:
+        if self.source is None or self.duration_ms < MIN_SELECTION_MS or self._is_busy():
+            return
+        with QSignalBlocker(self.start_spin), QSignalBlocker(self.end_spin):
+            self.start_spin.setValue(0)
+            self.end_spin.setValue(self.duration_ms / 1000)
+        self._selection_changed()
 
     def _volume_changed(self, value: int) -> None:
         self.volume_label.setText(f"{value} %")
@@ -361,7 +431,7 @@ class MediaWindow(QMainWindow):
         self.duration_ms = 0
         self.file_label.setText(file.name)
         self.file_label.setToolTip(str(file))
-        self.seek_slider.setRange(0, 0)
+        self.timeline.set_duration(0)
         for spin in (self.start_spin, self.end_spin):
             spin.blockSignals(True)
             spin.setRange(0, 0)
@@ -377,7 +447,7 @@ class MediaWindow(QMainWindow):
         if self.source is None:
             return
         self.duration_ms = max(0, int(duration))
-        self.seek_slider.setRange(0, self.duration_ms)
+        self.timeline.set_duration(self.duration_ms)
         seconds = self.duration_ms / 1000
         for spin in (self.start_spin, self.end_spin):
             spin.blockSignals(True)
@@ -390,8 +460,7 @@ class MediaWindow(QMainWindow):
         self._position_changed(self.player.position())
 
     def _position_changed(self, position: int) -> None:
-        if not self.seek_slider.isSliderDown():
-            self.seek_slider.setValue(position)
+        self.timeline.set_position(position)
         self.time_label.setText(self._t("time_label", position=clock(position), duration=clock(self.duration_ms)))
         if self._valid_selection() and self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
             if position >= round(self.end_spin.value() * 1000):
@@ -542,11 +611,14 @@ class MediaWindow(QMainWindow):
             process.waitForFinished(1000)
             process.deleteLater()
         self._wave_data.clear()
+        self._wave_pixmap = None
 
     def _render_waveform(self, source: Path) -> None:
         if self.wave_label is None:
             return
         self.wave_label.setText(self._t("waveform"))
+        self.wave_label.setToolTip("")
+        self._wave_pixmap = None
         try:
             engine = ffmpeg_executable(self._compiled_executable)
         except (OSError, RuntimeError):
@@ -564,8 +636,12 @@ class MediaWindow(QMainWindow):
             "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1",
         ])
         process.readyReadStandardOutput.connect(self._collect_waveform)
-        process.finished.connect(self._waveform_finished)
-        process.errorOccurred.connect(self._waveform_error)
+        process.finished.connect(
+            lambda code, status, p=process: self._waveform_finished(p, code, status)
+        )
+        process.errorOccurred.connect(
+            lambda error, p=process: self._waveform_error(p, error)
+        )
         QTimer.singleShot(30000, lambda p=process: self._waveform_timeout(p))
         process.start()
 
@@ -576,9 +652,11 @@ class MediaWindow(QMainWindow):
         if len(self._wave_data) > 5 * 1024 * 1024:
             self._wave_process.kill()
 
-    def _waveform_finished(self, code: int, _status: QProcess.ExitStatus) -> None:
-        process = self._wave_process
-        if process is None:
+    def _waveform_finished(
+        self, process: QProcess, code: int, _status: QProcess.ExitStatus
+    ) -> None:
+        # Ignore completion of a canceled job after another file was opened.
+        if self._wave_process is not process:
             return
         self._collect_waveform()
         self._wave_process = None
@@ -587,6 +665,7 @@ class MediaWindow(QMainWindow):
             return
         picture = QPixmap()
         if code == 0 and picture.loadFromData(bytes(self._wave_data), "PNG"):
+            self._wave_pixmap = picture
             self.wave_label.setPixmap(picture)
             self.wave_label.setScaledContents(True)
             if self.duration_ms > 900000:
@@ -595,9 +674,9 @@ class MediaWindow(QMainWindow):
             self.wave_label.setText(self._t("waveform_unavailable"))
         self._wave_data.clear()
 
-    def _waveform_error(self, error: QProcess.ProcessError) -> None:
-        if error == QProcess.ProcessError.FailedToStart:
-            self._waveform_finished(-1, QProcess.ExitStatus.CrashExit)
+    def _waveform_error(self, process: QProcess, error: QProcess.ProcessError) -> None:
+        if process is self._wave_process and error == QProcess.ProcessError.FailedToStart:
+            self._waveform_finished(process, -1, QProcess.ExitStatus.CrashExit)
 
     def _waveform_timeout(self, process: QProcess) -> None:
         if self._wave_process is process and process.state() != QProcess.ProcessState.NotRunning:

@@ -10,7 +10,11 @@ executable using `--tool photo|video|audio`; the Photo shell can also start
 Video or Audio directly. The Video and Audio MVPs are implemented in
 `ui/media_window.py` with `QMediaPlayer` playback, region selection,
 volume/fade controls where applicable, and safe local FFmpeg exports in
-`core/media.py`. They are not full multitrack/project editors.
+`core/media.py`. They also use a shared `ui/trim_timeline.py` visual in/out widget
+  with draggable markers and precise numeric synchronization. Clicking the
+  timeline moves the playhead without editing the selected range; parent
+  export validators still own the FFmpeg time selection. They are not full
+  multitrack/project editors.
 See [MEDIA_MVP.md](MEDIA_MVP.md). The older descriptive bullets below
 document the preceding Photo-only UI milestone; phrases such as "planned" or
 "disabled" in those historical milestones no longer describe the new
