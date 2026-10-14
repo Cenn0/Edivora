@@ -1,6 +1,6 @@
 # Model decisions and provenance
 
-Checked on 2026-10-12. "Local inference is technically possible" is not a hardware certification or a release-quality claim.
+Historical model research originally checked on 2026-10-12. **Current `main` source (0.3.0a1)** uses pinned **U2NETP** for Photo and one Video still frame, plus pinned **Silero VAD v6.2.1 ONNX** for Audio speech-activity regions ([media implementation](MEDIA_PROJECTS_AI.md)). The older verified photo ZIP includes **U2NETP only**. The optional expanded model-profile proposal in [PR #17](https://github.com/Cenn0/Edivora/pull/17) is **not part of `main` or a released download**. "Local inference is technically possible" is not hardware certification, GPU support, proven quality or release approval.
 
 ## Initial model: U2NETP
 

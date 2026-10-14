@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStackedWidget, QVBoxLayout, QWidget,
 )
 
+from ..branding import app_icon
 from ..core import (
     MAX_IMAGE_PIXELS, MAX_MASK_STROKES, ImageDocument, MaskStroke, adjust_image,
     crop_image, export_image, load_image, load_project, paint_alpha_strokes,
@@ -152,7 +153,8 @@ class EditorWindow(QMainWindow):
         header = QHBoxLayout(top_bar)
         header.setContentsMargins(14, 6, 14, 6)
         header.setSpacing(8)
-        brand_mark = QLabel("✦")
+        brand_mark = QLabel()
+        brand_mark.setPixmap(app_icon().pixmap(32, 32))
         brand_mark.setObjectName("brandMark")
         brand_mark.setAccessibleName("Edivora")
         header.addWidget(brand_mark)

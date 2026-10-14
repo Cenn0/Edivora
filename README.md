@@ -1,154 +1,84 @@
-# Edivora – lokale Foto-, Video- und Audiobearbeitung
+![Edivora – Create simply. Stay local.](src/local_ai_photo_editor/assets/edivora-wordmark.svg)
 
-**Entwicklungsstand (noch nicht als Windows-Paket veröffentlicht):** Der neue Edivora-Launcher eröffnet drei unabhängige Werkzeuge für Foto, Video und Audio. Beim Programmstart werden Foto, Video und Audio angezeigt; man kann **ein einzelnes, zwei oder alle drei Werkzeuge parallel** in getrennten Fenstern öffnen. Video und Audio besitzen jetzt außerdem **eine einfache Mehrclip-Timeline (bis 24 Clips), speicherbare .edvp/.edap-Projekte und lokale modellgestützte KI-Aktionen** neben den bisherigen Schnitt- und Exportfunktionen. Dokumentation und Grenzen: **[Video-/Audio-MVP und Launcher](docs/MEDIA_MVP.md)**.
+# Edivora
 
-Der bereits **veröffentlichte Download `v0.1.0-alpha.1` ist dagegen weiterhin die ältere reine Foto-Testalpha**, ohne Video-/Audio-MVP und ohne neuen Launcher. Die nachstehenden Prüfergebnisse und Downloadlinks gelten **nur** für diese unveränderte Testalpha; eine neue EXE ist erst nach erfolgreichem Windows-Build des Entwicklungsstands als CI-Artefakt verfügbar.
+**Language:** Deutsch (dieses README) · [English README](README.en.md)
 
-**Geprüfte portable Testalpha für Windows x64.** Das vollständige portable ZIP enthält die Anwendung, ihre Laufzeit und das Standardmodell. Eine separate Python-, CUDA- oder Modellserver-Einrichtung gehört nicht zum vorgesehenen Start. Die Alpha ist **unsigniert** und noch keine stabile Endnutzer-Version.
+**Foto, Video und Audio einfach bearbeiten – mit ausgewählten lokalen KI-Funktionen.** Edivora wird als kostenloses Open-Source-Werkzeug für gelegentliche Bearbeitung entwickelt; **das GitHub-Repository ist derzeit privat**, eine öffentliche Veröffentlichung der aktuellen Suite steht noch aus. Für die Bearbeitung sind weder Konto noch Modellserver oder Cloud-Verarbeitung vorgesehen. Die Oberfläche ist auf **Deutsch und Englisch** verfügbar.
 
-Bestätigt sind **69 erfolgreiche Windows-Tests** sowie echte KI-Ausführung und eine funktionierende deutsche und englische Oberfläche sowohl aus dem Quellcode als auch aus der kompilierten Anwendung. Der Pakettest umfasst außerdem Bildimport und PNG/JPEG/WebP-Export nach dem Start der Oberfläche. **Separate Offline-Prüfung:** KI-Worker und Oberfläche bestanden auch die Prüfung des heruntergeladenen Pakets mit gesperrtem ausgehendem Netzwerkzugriff der Anwendung auf Windows Server 2022. Nachweise und Grenzen stehen im [Verifikationsprotokoll](docs/VERIFICATION.md); Aufnahmen der geprüften Paketoberfläche gibt es auf [Deutsch](docs/screenshots/ui-smoke-de.png) und [Englisch](docs/screenshots/ui-smoke-en.png).
+![Edivora Photo, Video und Audio](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
-## Start in drei Schritten
+> **Wichtig: Quellcode ist nicht gleich Download.** Das auf GitHub veröffentlichte **[v0.1.0-alpha.1-Paket](https://github.com/Cenn0/Edivora/releases/tag/v0.1.0-alpha.1)** ist eine ältere, unsignierte **Foto-Testalpha**. Foto-, Video- und Audio-Launcher, Mehrclip-Timelines sowie Projektdateien gehören zum **neueren Entwicklungsstand (0.3.0a1 im Quellcode auf `main`)**. Für diese Suite gibt es noch keine entsprechend freigegebene Windows-Veröffentlichung. Die erste Windows-11-Clean-Machine-Abnahme und Redistribution-Prüfungen stehen aus.
 
-1. **[Download](https://github.com/Cenn0/LocalAiPhotoEditor/releases/download/v0.1.0-alpha.1/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip)**: Lade `LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip` herunter. [Informationen zur Vorabversion](https://github.com/Cenn0/LocalAiPhotoEditor/releases/tag/v0.1.0-alpha.1).
-2. **Entpacke das gesamte ZIP** in einen lokalen Ordner. Das Archiv enthält den obersten Ordner `LocalAiPhotoEditor/` mit der Anwendung und allen benötigten Unterordnern.
-3. Öffne den entpackten Ordner `LocalAiPhotoEditor` und starte darin `LocalAiPhotoEditor.exe`. Öffne ein Foto, wähle eine Bearbeitung und exportiere das Ergebnis unter einem neuen Dateinamen.
+## Was kann Edivora?
 
-Die Prüfsumme des Downloads steht im separaten Release-Asset `SHA256SUMS.txt` derselben Vorabveröffentlichung.
+| Bereich | Im aktuellen Quellcode umgesetzt | Wichtige Grenze |
+| --- | --- | --- |
+| **Foto** | JPEG/PNG/WebP öffnen und exportieren; Licht/Farbe, Looks, Zuschneiden, Spiegeln, Drehen, Bildgröße, Hintergrundgestaltung; Vorschau, Vorher/Nachher, Undo/Redo; lokale U2NETP-Motivauswahl und manuelle Alphamasken-Korrektur; **`.laip`**-Projekte | Kein RAW/HDR, keine Ebenen oder generative Textbearbeitung; Freistellmasken sind nicht immer perfekt |
+| **Video** | Clips importieren, auf **einer** Timeline anordnen (bis 24), teilen, duplizieren, trimmen und Lautstärke einstellen; **`.edvp`** speichern/öffnen; lokale KI-Freistellung **eines Videostandbilds** als PNG; MP4-Export | Keine Mehrspurmontage, Übergänge, Untertitel oder KI-Verarbeitung eines ganzen Videos; Export auf 720p/30 fps MPEG-4 Part 2 + AAC vereinheitlicht |
+| **Audio** | Clips auf **einer** Timeline anordnen (bis 24), trimmen, teilen und mit Lautstärke/Fades/Pegelausgleich exportieren; **`.edap`** speichern/öffnen; lokale Silero-VAD-KI schlägt Sprachabschnitte vor; WAV/MP3-Export | Kein Mehrspurmix, keine Transkription, keine Rauschunterdrückungs-KI; Sprachabschnitte sind nur ein zu prüfender Vorschlag |
 
-Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte Testrechner verwendet Windows Server 2022. Eine vollständige Abnahme auf einer frischen Windows-11-Installation ohne Entwicklungswerkzeuge steht noch aus.
+Der **Launcher** kann Foto, Video und Audio einzeln, zwei gemeinsam oder alle drei gleichzeitig in **unabhängigen Prozessen** starten. Vorschau und Bearbeitung der Medien-Timeline beziehen sich auf den gewählten Clip; erst der Export setzt die Reihenfolge zusammen. Das Original wird dabei nicht überschrieben.
 
-## Funktionen der Alpha
+**KI bedeutet nicht automatisch Generierung:** U2NETP erstellt Motivmasken für Foto/ein Videostandbild; Silero VAD erkennt Sprachaktivität in Audio. Klassische Korrekturen, Fades und Filter sind keine generativen KI-Modelle. KI-Berechnung läuft lokal über **ONNX Runtime CPU**, soweit für die jeweilige Funktion dokumentiert. Für GPU-/CUDA-/DirectML-Betrieb existiert derzeit **keine projektseitig verifizierte Unterstützung**. Fehlende Modelle werden zur Laufzeit **nicht** heruntergeladen.
 
-- JPEG-, PNG- und WebP-Fotos öffnen.
-- Helligkeit, Kontrast und Farbsättigung mit einer Vorschau einstellen und anschließend anwenden.
-- Fotos drehen, zuschneiden und ihre Größe ändern.
-- Den Hintergrund mit einem mitgelieferten lokalen KI-Modell entfernen.
-- Original und Ergebnis vergleichen; Änderungen rückgängig machen oder wiederholen.
-- PNG, JPEG oder WebP exportieren; die Oberfläche auf Deutsch oder Englisch verwenden.
+## Direkt ausprobieren: veröffentlichte Foto-Testalpha
 
-**Die Originaldatei bleibt geschützt.** Der Export verlangt ein anderes Ziel. PNG und WebP können Transparenz erhalten; bei JPEG werden transparente Stellen weiß. Die Ausgabe übernimmt keine EXIF-, GPS- oder Kommentardaten des Eingabebildes und enthält ein sRGB-Farbprofil.
+1. **[Windows-x64-ZIP v0.1.0-alpha.1 laden](https://github.com/Cenn0/Edivora/releases/download/v0.1.0-alpha.1/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip)** und den Hash anhand von [SHA256SUMS.txt](https://github.com/Cenn0/Edivora/releases/download/v0.1.0-alpha.1/SHA256SUMS.txt) prüfen.
+2. **Vollständig entpacken**; die EXE benötigt die mitgelieferten Unterordner.
+3. **`LocalAiPhotoEditor/LocalAiPhotoEditor.exe`** starten, ein Foto öffnen, bearbeiten und unter einem **anderen** Dateinamen exportieren.
 
-## Edivora: drei Werkzeuge, gemeinsamer Start im Entwicklungsstand
+Diese historische Alpha bietet **nur die Grundfunktionen des Fotoeditors und die KI-Hintergrundentfernung**. Sie enthält **keinen** Edivora-Launcher, keine Medieneditoren und keine neuen Projekt-/Motivwerkzeuge.
 
-Die neue, noch **nicht im älteren Release enthaltene** Qt-Oberfläche verwendet das [gemeinsame Designsystem](docs/DESIGN_SYSTEM.md). Ein eigener Launcher zeigt die drei Werkzeuge mit Direktstart und Mehrfachauswahl:
+![Historische Foto-Testalpha (Deutsch)](docs/screenshots/ui-smoke-de.png)
 
-- **Foto:** bisheriger Editor mit lokalen KI-Motivfunktionen, Projektdateien, Vorschau und Bearbeitungshistorie.
-- **Video-MVP:** Clips importieren und durch Ziehen anordnen, duplizieren, teilen und zuschneiden, als MP4 exportieren, Reihenfolge als **.edvp-Projekt** sichern. Die **lokale KI** kann den Hintergrund eines ausgewählten **einzelnen Standbilds** entfernen und das Ergebnis als PNG speichern.
-- **Audio-MVP:** Clips importieren, anordnen, teilen, mit individueller Lautstärke versehen, mit optionaler Gesamt-Normalisierung und Fades als WAV/MP3 exportieren, als **.edap-Projekt** sichern. Eine **lokale Silero-VAD-KI** erkennt auf Wunsch Sprachabschnitte und schlägt daraus neue Schnittbereiche vor.
+*Screenshot des tatsächlich geprüften älteren Foto-Alphapakets – **kein** Screenshot der neuen Edivora-Mediensuite.*
 
-**Start aus dem Quellcode** (nach `pip install -e .`):
+Die Alpha wurde auf **Windows Server 2022** automatisiert getestet (damals 69 Tests, echte CPU-Inferenz sowie UI-/Bildexport- und Offline-Paketprüfungen). Daraus folgt **keine** nachgewiesene Freigabe für alle Windows-11-Geräte. Details: [Verifikation des historischen Releases](docs/VERIFICATION.md).
 
-```powershell
-python -m local_ai_photo_editor                  # Launcher
-python -m local_ai_photo_editor --tool photo      # nur Foto
-python -m local_ai_photo_editor --tool video      # nur Video
-python -m local_ai_photo_editor --tool audio      # nur Audio
-```
+## Aktuellen Entwicklungsstand aus dem Quellcode starten
 
-Im vollständigen späteren Windows-Build wird statt Python dieselbe `LocalAiPhotoEditor.exe` doppelt angeklickt. Von dort startet sie die ausgewählten Werkzeuge als separate Prozesse; die EXE benötigt ihren mitgelieferten DLL-, Modell- und FFmpeg-Ordner. Python und FFmpeg müssen auf dem Zielsystem **nicht separat installiert** werden. Das Foto-Menü erlaubt außerdem den parallelen Start der beiden Medienwerkzeuge.
-
-Video und Audio bleiben **bewusst MVPs**: Die Reihenfolge ist **eine Spur ohne Übergänge**, keine professionelle Mehrspur-Zeitleiste. Die Vorschau spielt jeweils den gewählten Clip ab; die gesamte Reihenfolge wird beim Export zusammengesetzt. Projektdateien **referenzieren** Originalmedien, statt diese einzubetten. Die KI transkribiert nicht, und die Video-KI bearbeitet **nur ein Standbild**, nicht einen kompletten Videoclip. Undo/Redo für die Medien-Timeline, kontinuierliche Gesamtvorschau, umfassende Codec-Unterstützung und automatische Projektwiederherstellung fehlen noch. [Neues Clip-/Projekt-/KI-Konzept](docs/MEDIA_PROJECTS_AI.md) · [Bestehendes Medien-MVP](docs/MEDIA_MVP.md).
-
-Die neue Windows-Paketprüfung und die Lizenz-/Windows-11-Freigabe sind noch offen. **Das oben verlinkte veröffentlichte ZIP bleibt die alte Foto-Testalpha**.
-
-## Neu im Quellstand: KI-Motivwerkzeuge
-
-Unter **KI-Motivwerkzeuge** oder mit **Strg+Umschalt+E** erkennt die lokale KI zunächst das Motiv. Danach kannst du den **vorhandenen Hintergrund unscharf machen**, das **Motiv aufhellen**, den **Hintergrund abdunkeln** oder **nur das Motiv farbig lassen**. Auch **auf das erkannte Motiv zuschneiden** und **mit Vorschau freistellen** stehen im selben Dialog bereit.
-
-Du brauchst für die Hintergrund-Unschärfe kein zweites Hintergrundfoto. Die Erkennung läuft einmal pro geöffnetem KI-Bearbeitungsbereich; beim Wechseln der Effekte wird dieselbe Auswahl weiterverwendet. Über **KI-Auswahl anzeigen** lässt sich die Auswahl als violette Markierung kontrollieren. Stärke, weiche Kante und beim Zuschnitt der Rand sind einstellbar. Erst **Übernehmen** legt einen rückgängig machbaren Schritt an; **Abbrechen** verwirft die Vorschau.
-
-**Was daran KI ist:** Das bereits mitgelieferte U2NETP-Modell erkennt die Motivbereiche. Die anschließenden Effekte sind lokale Bildoperationen. Es gibt kein neues Modell, keine zusätzliche Einrichtung und keine generative Rekonstruktion. Die Auswahl kann weiterhin Fehler machen, insbesondere an Haaren, Glas und ähnlichen Vorder-/Hintergrundfarben. Farb- und Hintergrundeffekte erhalten die ursprüngliche Transparenz; Freistellen und Zuschneiden verändern sie beziehungsweise die Bildgröße gezielt.
-
-**Bereitstellung:** Diese Erweiterung gehört zum neueren Entwicklungsstand, **nicht zum oben verlinkten `v0.1.0-alpha.1`-ZIP**. Details, Prüfablauf und Grenzen: [Lokale KI-Motivwerkzeuge](docs/AI_SUBJECT_TOOLS.md).
-
-## Neu im Quellstand: Mehr Werkzeuge, einfach bedienbar
-
-Unter **Weitere Werkzeuge** oder mit **Strg+E** öffnet sich ein gemeinsamer Bearbeitungsbereich mit vier übersichtlichen Reitern:
-
-| Bereich | Möglichkeiten |
-| --- | --- |
-| **Licht & Farbe** | Sanfter Verbesserungsvorschlag, heller/dunkler, dunkle Stellen aufhellen, helle Stellen abdunkeln, wärmere/kühlere Farben, Farbstärke, Kontrast und Details schärfen. |
-| **Looks** | Natürlich, Kräftig, Sanft, Warm, Schwarz-Weiß und Sepia mit einstellbarer Stärke; Bildränder weich abdunkeln. |
-| **Ausschnitt** | Feste Formate 1:1, 4:3, 3:2, 16:9, 4:5 und 9:16, Ausschnitt verschieben, horizontal/vertikal spiegeln und in 90°-Schritten drehen. |
-| **Hintergrund** | Nach dem Freistellen eine Farbe oder ein eigenes lokales Foto einsetzen; nur das gewählte Hintergrundfoto weichzeichnen. |
-
-Du siehst zuerst eine **Vorschau**, kannst den vorherigen Stand vergleichen und einzelne Regler, einen Bereich oder alles zurücksetzen. Erst **Übernehmen** legt einen neuen, rückgängig machbaren Bearbeitungsschritt an. **Abbrechen** lässt den bisherigen Stand unverändert. Die Berechnung in voller Bildgröße läuft in einem abbrechbaren Hintergrund-Thread.
-
-Die Regler haben verständliche Beschriftungen, kurze Erklärungen und sichtbare Werte. Es werden keine zusätzlichen Modelle, Konten oder Server benötigt. „Sanft verbessern“ ist eine klassische Bildkorrektur, keine generative KI. Ein Hintergrund lässt sich nur ersetzen, wenn das Bild bereits transparente Stellen enthält.
-
-**Wichtig:** Auch diese Werkzeuge sind **Quellcodefunktionen nach `v0.1.0-alpha.1`**, nicht Bestandteil des oben verlinkten alten ZIPs. Kleine Unterschiede zwischen verkleinerter Vorschau und voller Auflösung sind möglich. Projektdateien speichern die angenommenen Bildstände, nicht nachträglich editierbare Einstellungsebenen. Anleitung, Umsetzung und Grenzen: [Geführte Bildbearbeitung](docs/EDITING_TOOLS.md).
-
-## Neu im Quellstand nach v0.1.0-alpha.1: Bearbeitungsprojekte
-
-Der neue Quellstand kann Bearbeitungen als **lokale `.laip`-Projektdatei** speichern und später wieder öffnen. Gesichert werden das unveränderte Original, der angenommene Bearbeitungsstand und die noch im Verlauf verfügbaren Undo/Redo-Bilder. Über **Datei → Projekt speichern (Strg+S)** und **Datei → Projekt öffnen** kannst du die Bearbeitung fortsetzen. Ein Projekt kann auch in das Fenster gezogen werden.
-
-Beim Speichern bleibt die ursprüngliche Fotodatei unverändert; das Projekt benötigt keinen Modellserver und legt keine ursprünglichen absoluten Bilddateipfade ab. Nach dem erneuten Öffnen wird zum Schutz des unbekannten Originalpfads nur der Export auf einen **neuen Dateinamen** erlaubt. Die genauen Formatgrenzen und Sicherheitsprüfungen stehen unter [Projektdateiformat](docs/PROJECT_FORMAT.md).
-
-**Wichtig:** Diese Entwicklung ist **noch nicht Bestandteil** des bereits veröffentlichten portablen `v0.1.0-alpha.1`-ZIPs. Bis CI- und Paketprüfungen erfolgreich abgeschlossen sind, ist sie als Quellcodefunktion zu betrachten. Die weiter unten beschriebenen Alpha-Nachweise gelten nur für den veröffentlichten Paketstand.
-
-## Neu im Quellstand: Manuelle Maskenkorrektur
-
-Im neueren Quellstand kannst du nach der lokalen KI-Freistellung fehlende Motivteile **wieder sichtbar machen** oder verbliebene Hintergrundreste mit einem Pinsel **transparent entfernen**. Pinselgröße und weiche Kante sind einstellbar. Die Änderungen werden zuerst nur in einer Vorschau gezeigt. Pinselzüge lassen sich dort einzeln zurücknehmen; erst „Korrektur übernehmen“ legt einen neuen Undo/Redo-Schritt an.
-
-Die Korrektur verändert **nur die Transparenz (Alpha)**, nicht die RGB-Farben. Sie generiert keine fehlenden Bilddetails und entfernt keine Hintergrundfarbsäume aus Haaren. Bei bereits vor der KI vorhandener Transparenz kann „Wiederherstellen“ Bereiche stärker sichtbar machen als ursprünglich. Details und technische Grenzen: [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md).
-
-**Bereitstellung:** Diese Funktion und die Projektdateien sind im neuesten Quellcode implementiert, **nicht** im veröffentlichten `v0.1.0-alpha.1`-ZIP. Aktuelle Testnachweise für diese Funktionen sind von denen der veröffentlichten Vorabversion zu unterscheiden.
-
-## Das lokale Standardmodell
-
-**U2NETP** erkennt den Vordergrund und erstellt eine Freistellmaske. Das kompakte Modell läuft über **ONNX Runtime auf der CPU** und wird im vollständigen Paket mitgeliefert. Beim Laden werden seine festgelegte Dateigröße und sein SHA-256 geprüft. Die App lädt fehlende Modelle nicht selbst nach.
-
-Die Maske verändert die Transparenz, während die ursprünglichen RGB-Pixel erhalten bleiben. Gesicht oder Kleidung werden nicht neu gezeichnet. Gerade bei Haaren, Fell, Glas und ähnlichen Vorder- und Hintergrundfarben können fehlerhafte Ränder oder fehlende Bildbereiche entstehen. Es gibt noch keine veröffentlichte Qualitätsmessung. Herkunft, Prüfsummen, Lizenzabgrenzung und spätere Modellkandidaten stehen in [MODELS.md](docs/MODELS.md).
-
-Die Anwendung hat keine Konten, Cloud-Anbindung, Analyseberichte oder automatischen Laufzeit-Updates. KI-Aufträge laufen in einem eigenen lokalen Prozess. Das Herstellen und Herunterladen des vollständigen Pakets benötigt Internetzugriff; die Bildbearbeitung ist für den lokalen Betrieb ausgelegt.
-
-Temporäre Auftragsdateien liegen lokal. Nach einem erzwungenen Prozess- oder Systemabbruch können Reste zurückbleiben. Wählst du einen synchronisierten Ordner als Exportziel, kann dessen Synchronisierungsdienst die Datei übertragen.
-
-## Technologie und Architektur
-
-| Baustein | Aufgabe |
-| --- | --- |
-| Python 3.12 | Anwendungslogik und Verbindung der Komponenten |
-| PySide6 6.12 / Qt Widgets | Desktopoberfläche auf Deutsch und Englisch |
-| Pillow und NumPy | Bildimport, Farbverarbeitung, Anpassungen und Export |
-| ONNX Runtime CPU + U2NETP | Lokale Hintergrundentfernung und Motivauswahl |
-| Nuitka 4.2.2 | Vollständiges Windows-Paket mit eingebundener Laufzeit |
-
-Die Bildlogik ist von Oberfläche und KI getrennt. Ein eigener KI-Prozess hält die Oberfläche bedienbar und ermöglicht den Abbruch eines Auftrags. Python und Qt halten diese erste Version in einer Anwendungssprache; der Vergleich mit Tauri/Rust und C# sowie die Gründe für diese Wahl stehen im [Projektkonzept](docs/CONCEPT.md). Die konkrete Aufteilung beschreibt die [Architektur](docs/ARCHITECTURE.md).
-
-## Ehrliche Grenzen
-
-- Unterstützt werden passende **8-Bit-Einzelbilder bis 40 Millionen Pixel**. RAW-, 16-Bit-, animierte und mehrseitige Dateien gehören nicht zur Alpha.
-- Die EXIF-Ausrichtung wird berücksichtigt. Gültige eingebettete Farbprofile werden nach sRGB umgerechnet; ungültige oder nicht unterstützte Profile werden abgelehnt. RGB-, Graustufen- und Palettenbilder ohne Profil gelten als sRGB. CMYK und LAB benötigen ein gültiges eingebettetes Profil.
-- Der Verlauf liegt im Arbeitsspeicher und ist begrenzt. Große Fotos behalten weniger rückgängig machbare Schritte; das Original bleibt während der Bearbeitung verfügbar.
-- Die veröffentlichte Alpha bietet weder Projektdateien, manuelle Maskenkorrektur, die geführten Werkzeuge noch die neuen KI-Motiveffekte. Diese Funktionen sind im neueren Entwicklungsstand implementiert; Ebenen, Bearbeitung durch Textanweisungen und generatives Entfernen einzelner Objekte fehlen weiterhin.
-- GPU-Betrieb, Mindest-RAM, garantierte Geschwindigkeit, macOS- und Linux-Pakete sind noch nicht freigegeben. Signierung, umfassende Bedienprüfungen und die frische Windows-11-Abnahme bleiben offen.
-
-## Am Quellcode arbeiten
-
-Für die Entwicklung mit Python 3.12 im Repository-Hauptverzeichnis unter Windows:
+**Voraussetzung:** Python **3.12** und zum **Vorbereiten** der beiden gepinnten KI-Modelle Internetzugriff. Das eigentliche Programm verwendet später keine Modell-Downloads.
 
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -e .
 .venv\Scripts\python tools\prepare_model.py
+.venv\Scripts\python tools\prepare_voice_model.py
 .venv\Scripts\python -m local_ai_photo_editor
 ```
 
-Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. `prepare_model.py` ist ein Werkzeug für Entwicklung und Paketvorbereitung; die Anwendung ruft es nicht auf. Direkte Abhängigkeiten sind in [pyproject.toml](pyproject.toml) festgelegt. Prüfkommandos und die unterschiedlichen Aussagen von Unit-, Modell- und Pakettests stehen in [VERIFICATION.md](docs/VERIFICATION.md).
+Der letzte Befehl öffnet den Launcher. Einzelne Werkzeuge starten mit:
 
-## Dokumentation und Lizenz
+```powershell
+.venv\Scripts\python -m local_ai_photo_editor --tool photo
+.venv\Scripts\python -m local_ai_photo_editor --tool video
+.venv\Scripts\python -m local_ai_photo_editor --tool audio
+```
 
-- [Konzept, Zielgruppe und Technologievergleich](docs/CONCEPT.md)
-- [Architektur und Modulgrenzen](docs/ARCHITECTURE.md)
-- [KI-Modell, Herkunft und Grenzen](docs/MODELS.md)
-- [Lokale KI-Motivwerkzeuge](docs/AI_SUBJECT_TOOLS.md)
-- [Geführte Bildbearbeitung: Licht, Looks, Ausschnitt und Hintergrund](docs/EDITING_TOOLS.md)
-- [Lokale Bearbeitungsprojekte (.laip)](docs/PROJECT_FORMAT.md)
-- [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md)
-- [Prüfergebnisse und offene Nachweise](docs/VERIFICATION.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Drittkomponenten und Lizenzhinweise](THIRD_PARTY_NOTICES.md)
+**Im aktuellen Entwicklungsbuild** ist der Einstieg weiterhin `LocalAiPhotoEditor.exe`, trotz Edivora-Name und Logo. Das portable Windows-Buildsystem erstellt einen **kompletten Ordner**, keine einzeln verschiebbare Onefile-EXE. Der neue Name `Edivora.exe` wird nicht als schon ausgeliefert behauptet. [Ausführliche Einstiegsanleitung](docs/GETTING_STARTED.md).
 
-Der Anwendungscode steht unter **Apache-2.0**. Bibliotheken und Modelle behalten ihre jeweiligen Lizenzen. Die Lizenz des U-2-Net-Quellprojekts und die Herkunft des separat bereitgestellten ONNX-Artefakts werden in den Modell- und Dritthinweisen ausdrücklich getrennt betrachtet.
+## Lokal – mit bewusst dokumentierten Grenzen
+
+- **Keine Konten, Laufzeit-Telemetrie oder Cloud-KI.** Die App lädt Medien und Modelle nicht zu externen Diensten hoch. Build-/Entwicklungswerkzeuge können gepinnte Abhängigkeiten und Modelle herunterladen. Ein Export in einen vom Nutzer gewählten Cloud-Sync-Ordner bleibt dessen Verantwortung.
+- **Originalschutz:** Fotoexporte und FFmpeg-Medienexporte schreiben in eine neue Ausgabedatei und sperren erkannten Originalpfad-/Symlink-/Hardlink-Überschreibungen. Vor dem Ersetzen anderer Dateien wird nachgefragt; temporäre Reste können nach einem Absturz verbleiben.
+- **Projektdateien unterscheiden sich:** `.laip` enthält Foto-Bildstände und Verlauf; `.edvp/.edap` sind kleine JSON-Projekte und enthalten **keine Medienkopien**. Außerhalb des Projektordners referenzierte Medien können mit **absoluten lokalen Pfaden** gespeichert werden; beim Teilen können dadurch Ordnernamen sichtbar werden. Defekte/verschobene Quellen können das Wiederöffnen verhindern.
+- **Mediendateien sind nicht vertrauenswürdig:** Die eingebundenen nativen Decoder sind keine Sicherheits-Sandbox. Die Umverteilungsrechte für FFmpeg/Qt/Modelle müssen vor breiter Veröffentlichung gesondert geklärt werden.
+
+## Für Mitwirkende und KI-gestützte Entwicklung
+
+Der Hauptcode verwendet **Python 3.12**, **PySide6/Qt Widgets**, **Pillow/NumPy**, **ONNX Runtime CPU** und **FFmpeg** für Video-/Audioexport. Verantwortungen: `ui/` für Oberflächen und Übersetzungen, `core/` für fachliche Operationen und Dateivalidierung, `ai/` für geprüfte Modelladapter; der Inferenz- und Encoderbetrieb erfolgt in separaten Prozessen.
+
+```powershell
+$env:PYTHONPATH = "src"
+.venv\Scripts\python -m unittest discover -s tests -v
+.venv\Scripts\python -m compileall -q src tests tools
+```
+
+**Für KI-Coding-Assistenten:** Beginne mit [AGENTS.md](AGENTS.md) und dem [Entwicklungsleitfaden](docs/CONTRIBUTING.md). Lies Architektur, Projektschemata und Sicherheitsregeln, bevor du Funktionen veränderst. Neue Modelle, Laufzeit-Netzwerkzugriffe und Release-Behauptungen benötigen explizite Prüfung; ein grüner Unit-Test beweist weder ein lauffähiges Windows-Paket noch KI-Qualität.
+
+## Dokumentation
+
+**[Dokumentationsübersicht](docs/README.md)** · [Erste Schritte](docs/GETTING_STARTED.md) · [Architektur](docs/ARCHITECTURE.md) · [Foto-/Medienprojekte und lokale KI](docs/MEDIA_PROJECTS_AI.md) · [Modellgrenzen](docs/MODELS.md) · [UI-/UX-Designsystem](docs/DESIGN_SYSTEM.md) · [Edivora-Branding](docs/BRAND.md) · [Roadmap](docs/ROADMAP.md) · [Verifikationsstand](docs/VERIFICATION.md) · [Beitragen](docs/CONTRIBUTING.md)
+
+**Lizenz:** Anwendungscode **Apache-2.0** ([LICENSE](LICENSE)). Externe Bibliotheken, Modelle und FFmpeg haben eigene Bedingungen und gegebenenfalls offene Redistributionspflichten; siehe [Drittanbieterhinweise](THIRD_PARTY_NOTICES.md). Der Projektname ist keine Zusicherung einer registrierten Marke.

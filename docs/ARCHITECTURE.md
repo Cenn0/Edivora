@@ -1,6 +1,6 @@
 # Architecture
 
-Decision date: 2026-10-12. Status: accepted for the initial alpha. Native and downloaded-package checks passed on Windows Server 2022, including actual model inference, the DE/EN UI and image import/export under an outbound network block for the application. Exact evidence is recorded in [VERIFICATION.md](VERIFICATION.md); clean Windows 11 acceptance and hardware support remain unverified.
+**Entscheidungsgrundlage:** 12.10.2026, ursprünglich für die Foto-Testalpha. Der aktuelle `main`-Quellcode (0.3.0a1, 14.10.2026) enthält zusätzlich Launcher, Video-/Audio-Sequenzen, Projektdateien und lokale Medien-KI. **Die früheren Windows-Server-2022-Paket- und Offline-Nachweise in [VERIFICATION.md](VERIFICATION.md) gelten ausschließlich für das alte Foto-Release `v0.1.0-alpha.1`, nicht automatisch für diese neue Suite.** Clean-Windows-11-Abnahme, Hardware-/Codec-Matrix und Redistribution-Freigabe der neuen Medienkomponenten sind offen.
 
 ## Entwicklungserweiterung: Audio-/Video-Sequenzen und ONNX
 
@@ -15,7 +15,7 @@ ohne den bestehenden Foto-Worker oder dessen `.laip`-Format zu ersetzen:
   Effekte und Schutz vor Überschreiben von Originaldateien
 - `ui/sequence_window.py`: Qt-Clip-Liste mit Drag&Drop/Sortieren, ausgewählte
   Einzelclip-Vorschau, Projektkommandos, QProcess-Render und lokale KI-Aktionen
-- `ai/voice.py`: überprüftes Silero-ONNX für lokale Spracherkennung im
+- `ai/voice.py`: überprüftes Silero-ONNX für lokale Sprachaktivitätserkennung (VAD) im
   getrennten Prozess mit 15-Minuten-Analysegrenze; kein Speech-to-Text
 - `ai/video_frame.py`: U2NETP-Vordergrundsegmentierung **eines** aktuellen
   Videobildes und PNG-Export; keine zeitliche Stabilisierung eines Videos
@@ -29,6 +29,10 @@ Ordnernamen offenlegen. Projekt-Fingerprints prüfen Dateigröße und Kopf-/Ende
 nicht die vollständige Datei. Medien-Formate werden auf Basis von FFmpeg und
 Qt Multimedia neu kodiert. Die Datenmodell-/Dateigrenzen sind in
 [MEDIA_PROJECTS_AI.md](MEDIA_PROJECTS_AI.md) dokumentiert.
+
+## Marke und lokale Assets
+
+Die Produktidentität heißt **Edivora**. Vier lokal versionierte SVGs liegen in `src/local_ai_photo_editor/assets/`. `branding.py` rendert das gemeinsame App-Icon über QtSvg für die Fenster; `tools/brand_assets.py` leitet daraus ein Windows-ICO für den Build ab. `tools/build_windows.py` bindet das SVG-Verzeichnis und das Icon in das neue Entwicklungspaket ein. Es gibt **keinen CDN-Aufruf oder Runtime-Fontdownload**. Der historische veröffentlichte Foto-Build und sein EXE-Name bleiben unverändert. Die technische Python-Paketkennung `local_ai_photo_editor` und bestehende Projektschemata werden nicht umbenannt; mehr dazu in [BRAND.md](BRAND.md).
 
 ## Stack
 
