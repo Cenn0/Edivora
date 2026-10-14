@@ -2,6 +2,7 @@
 
 **Status:** proposed design specification, 14 October 2026. **Not implemented by this document.**  
 **Scope:** existing Photo editor and future Video/Audio workspaces.  
+**Clickable preview:** [open the standalone layout prototype](prototypes/edivora-shell.html) in a local browser after saving it as an HTML file. It is an interactive design demonstration, not a functioning editor.  
 **Dependencies under review:** [task-first Photo PR #10](https://github.com/Cenn0/LocalAiPhotoEditor/pull/10) and [Edivora branding PR #11](https://github.com/Cenn0/LocalAiPhotoEditor/pull/11). These are **open PRs**, not features already on `main`. Follow the approved brand assets when #11 is merged.
 
 ## 1. Product experience
