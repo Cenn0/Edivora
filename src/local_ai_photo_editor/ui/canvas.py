@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .theme import COLORS
+
 import math
 
 from PIL import Image
@@ -30,10 +32,10 @@ class PhotoCanvas(QWidget):
         self._brush_points: list[QPointF] | None = None
         self._brush_hover: QPointF | None = None
         self._checker = QPixmap(24, 24)
-        self._checker.fill(QColor("#343841"))
+        self._checker.fill(QColor(COLORS["elevated"]))
         painter = QPainter(self._checker)
-        painter.fillRect(0, 0, 12, 12, QColor("#424752"))
-        painter.fillRect(12, 12, 12, 12, QColor("#424752"))
+        painter.fillRect(0, 0, 12, 12, QColor(COLORS["border"]))
+        painter.fillRect(12, 12, 12, 12, QColor(COLORS["border"]))
         painter.end()
         self.setMinimumSize(300, 300)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -192,7 +194,7 @@ class PhotoCanvas(QWidget):
     def paintEvent(self, event: object) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#15181e"))
+        painter.fillRect(self.rect(), QColor(COLORS["stage"]))
         if self._image.isNull():
             self._paint_empty(painter)
             return
@@ -200,7 +202,7 @@ class PhotoCanvas(QWidget):
         painter.drawTiledPixmap(rect, self._checker)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         painter.drawImage(rect, self._image)
-        painter.setPen(QPen(QColor("#535966"), 1))
+        painter.setPen(QPen(QColor(COLORS["border"]), 1))
         painter.drawRect(rect)
         if self._selection is not None:
             selection = QRectF(
@@ -214,7 +216,7 @@ class PhotoCanvas(QWidget):
             outside.addRect(rect)
             outside.addRect(selection)
             painter.fillPath(outside, QColor(0, 0, 0, 135))
-            painter.setPen(QPen(QColor("#d8cdff"), 2))
+            painter.setPen(QPen(QColor(COLORS["selection"]), 2))
             painter.drawRect(selection)
             painter.setPen(QPen(QColor(255, 255, 255, 90), 1))
             for part in (1 / 3, 2 / 3):
@@ -249,7 +251,7 @@ class PhotoCanvas(QWidget):
     def _paint_empty(self, painter: QPainter) -> None:
         center = QPointF(self.width() / 2, self.height() / 2 - 70)
         icon = QRectF(center.x() - 42, center.y() - 32, 84, 64)
-        painter.setPen(QPen(QColor("#858096"), 2))
+        painter.setPen(QPen(QColor(COLORS["muted"]), 2))
         painter.drawRoundedRect(icon, 10, 10)
         painter.drawEllipse(QPointF(icon.left() + 22, icon.top() + 20), 5, 5)
         mountain = QPainterPath(QPointF(icon.left() + 10, icon.bottom() - 12))
@@ -262,12 +264,12 @@ class PhotoCanvas(QWidget):
         font.setPointSize(18)
         font.setBold(True)
         painter.setFont(font)
-        painter.setPen(QColor("#e6e7ec"))
+        painter.setPen(QColor(COLORS["text"]))
         painter.drawText(QRectF(16, center.y() + 52, self.width() - 32, 36), Qt.AlignmentFlag.AlignCenter, translate(self._language, "empty_title"))
         font.setPointSize(10)
         font.setBold(False)
         painter.setFont(font)
-        painter.setPen(QColor("#a6a9b5"))
+        painter.setPen(QColor(COLORS["secondary"]))
         painter.drawText(QRectF(16, center.y() + 92, self.width() - 32, 28), Qt.AlignmentFlag.AlignCenter, translate(self._language, "empty_hint"))
-        painter.setPen(QColor("#777e90"))
+        painter.setPen(QColor(COLORS["muted"]))
         painter.drawText(QRectF(16, center.y() + 126, self.width() - 32, 28), Qt.AlignmentFlag.AlignCenter, translate(self._language, "empty_formats"))
