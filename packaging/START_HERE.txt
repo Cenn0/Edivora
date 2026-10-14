@@ -1,4 +1,4 @@
-Edivora - Foto, Video und Audio (Entwicklungsstand 0.2.0 alpha)
+Edivora - Foto, Video und Audio (Entwicklungsstand 0.3.0 alpha)
 
 STARTEN
 1. Das gesamte ZIP in einen lokalen Ordner entpacken.
@@ -13,6 +13,20 @@ Zum direkten Start per Kommandozeile:
   LocalAiPhotoEditor.exe --tool photo
   LocalAiPhotoEditor.exe --tool video
   LocalAiPhotoEditor.exe --tool audio
+
+NEU IM MEDIA-MVP
+- Bis zu 24 Clips pro Audio-/Videoprojekt in einer einfachen Spur;
+  per Drag & Drop/Schaltflaeche sortieren, teilen und duplizieren.
+- Video-Projekt speichern/oeffnen: .edvp
+- Audio-Projekt speichern/oeffnen: .edap
+  Diese Dateien verweisen auf lokale Quellmedien, statt sie einzubetten.
+  Dateien aus anderen Ordnern koennen als absolute Pfade gespeichert werden.
+- Audio: Lokale KI erkennt bei Bedarf Sprachabschnitte; erst nach
+  Bestaetigung werden daraus Schnittbereiche.
+- Video: Lokale KI kann nur das AKTUELLE STANDBILD freistellen und als
+  separate PNG-Datei speichern; keine ganze Video-KI-Bearbeitung.
+- Projekt speichern ist NICHT dasselbe wie Datei exportieren.
+- Media-Projekte sind noch kein Mehrspur-Editor und haben kein Undo/Redo.
 
 ENTHALTENE FUNKTIONEN
 - Foto: bestehender Photo-Editor, Bildbearbeitung, lokale KI-Motivauswahl.
