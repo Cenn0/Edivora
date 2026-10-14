@@ -263,6 +263,7 @@ class MediaWindow(QMainWindow):
         bottom = QHBoxLayout(footer)
         bottom.setContentsMargins(14, 8, 14, 8)
         self.status = QLabel()
+        self.status.setTextFormat(Qt.TextFormat.PlainText)
         self.status.setObjectName("status")
         self.status.setWordWrap(True)
         bottom.addWidget(self.status, 1)
