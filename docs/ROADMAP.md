@@ -1,5 +1,30 @@
 # Roadmap
 
+## Media suite MVP — new source milestone (not in the legacy photo-only alpha)
+
+- Implemented in development source: one Edivora launcher executable that starts
+  the Photo, Video or Audio workspace separately; any two or all three
+  can run at once.
+- Video MVP: file import and Qt playback, single start/end range, volume/mute,
+  MP4 export through local FFmpeg with original-file protection.
+- Audio MVP: file import and Qt playback, non-interactive waveform preview,
+  single start/end range, volume, loudness normalization and fades,
+  WAV/MP3 export.
+- Shared German/English visual language and task labels. Source and packaged
+  Windows smoke checks exercise Qt window construction and synthetic FFmpeg exports.
+
+**Acceptance still open:** Windows packaged source & frozen CI green on the exact
+revision, real-world import/playback/export with representative codecs,
+licence review of distributed FFmpeg/Qt components, fresh Windows 11
+usability and offline-network acceptance, and completion of the first
+new Edivora distribution. Building code is not evidence of a release.
+
+**Later:** interactive video timeline and audio waveform editing, multitrack,
+reversible native media-project format, H.264-quality/performance matrix,
+and genuinely local AI for speech/subtitles/audio enhancement. Detailed MVP
+contract: [MEDIA_MVP.md](MEDIA_MVP.md).
+
+
 ## 0.1 alpha — local editing and bundled background removal
 
 - Import JPEG/PNG/WebP, honour EXIF orientation and colour profiles, protect the original.
