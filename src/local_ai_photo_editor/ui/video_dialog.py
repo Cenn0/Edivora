@@ -17,7 +17,7 @@ from ..core.video_adjustments import PRESETS, VideoAdjustments
 from ..core.video_job import VideoJob, install_restored_clip, validate_destination
 from .canvas import PhotoCanvas
 from .icons import IconButton, icon
-from .responsive import ElideLabel, WrappedCheckBox, fit_initial_window
+from .responsive import ElideLabel, VerticalScrollArea, WrappedCheckBox, fit_initial_window
 from .theme import stylesheet
 from .video_jobs import RestorationRunner
 from .video_strings import text
@@ -158,7 +158,7 @@ class VideoEnhancementDialog(QDialog):
         return label
 
     def _page(self, title: str) -> QVBoxLayout:
-        scroll = QScrollArea()
+        scroll = VerticalScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         page = QWidget()
