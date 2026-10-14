@@ -8,6 +8,7 @@ Diese Dokumentation beschreibt zwei **unterschiedliche** Softwarestände: das ve
 
 ## Anwenden
 
+- [Privates Edivora 0.3.0 Test-Prerelease (Windows x64)](https://github.com/Cenn0/Edivora/releases/tag/v0.3.0-alpha.1) – nur mit Repo-Zugriff, ohne öffentliche Lizenz-/Windows-11-Freigabe
 - [Erste Schritte – Installation, Arbeitsabläufe, Projekte und Fehlerhilfe](GETTING_STARTED.md)
 - [Video-/Audio-Launcher und aktuelle MVP-Funktionen](MEDIA_MVP.md)
 - [Mehrclip-Projekte, lokale Medien-KI und technische Einschränkungen](MEDIA_PROJECTS_AI.md)
