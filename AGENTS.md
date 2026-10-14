@@ -1,6 +1,6 @@
-# localAiPhotoEditor contributor rules
+# Edivora contributor rules
 
-- Read `README.md`, `docs/ARCHITECTURE.md`, and `docs/ROADMAP.md` before changing the application.
+- Read `README.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md` and `docs/BRAND.md` before changing the application.
 - Preserve local processing: application runtime must not upload photos, prompts, metadata, or diagnostics, and must not contact model hosts. Downloads belong in explicit build-time tooling.
 - Never overwrite the imported source image. Export to a different file and write atomically.
 - Project archives are untrusted input: retain exact ZIP member allowlists, strict size/pixel/format limits, checksums, history validation and atomic replacement. Never extract archive paths or persist original absolute source paths. Reopened projects must not overwrite pre-existing image exports where the original path is unknown.
@@ -9,6 +9,7 @@
 - Run inference outside the UI process. Preserve cancellation, bounded input sizes, and cleanup of temporary job data.
 - Load only the bundled, checksum-pinned ONNX model. Never introduce pickle model loading, downloaded executable Python code, or `trust_remote_code=True`.
 - A mocked test does not prove model quality, native installation, or GPU compatibility. Report exactly which checks ran and which remain blocked.
+- Public product name: **Edivora**. Keep the legacy Python package `local_ai_photo_editor` and the v1 `.laip` format identifier unchanged for compatibility. Edivora Video/Audio are roadmap items, not present functionality. Follow `docs/BRAND.md` for identity assets.
 - Keep user-facing strings in the UI's translation dictionary, with German and English available. Use plain labels describing tasks rather than model parameters.
 - Run `PYTHONPATH=src python -m unittest discover -s tests -v` and `python -m compileall -q src tests tools` after substantive changes. Run the real-model and packaged smoke checks when changing inference or packaging.
 - Do not commit private photos, generated build outputs, model binaries, credentials, or account administration instructions.

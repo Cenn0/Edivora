@@ -2,7 +2,7 @@
 
 STRINGS = {
     "de": {
-        "app_tagline": "Deine Fotos. Auf deinem Computer.",
+        "app_tagline": "Einfach kreativ. Alles lokal.",
         "local_badge": "Lokal & ohne Konto",
         "open": "Foto öffnen",
         "open_project": "Projekt öffnen",
@@ -121,7 +121,7 @@ STRINGS = {
         "canvas_accessible": "Fotovorschau und Auswahl zum Zuschneiden",
     },
     "en": {
-        "app_tagline": "Your photos. On your computer.",
+        "app_tagline": "Create simply. Stay local.",
         "local_badge": "Local & no account",
         "open": "Open photo",
         "open_project": "Open project",

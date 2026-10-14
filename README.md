@@ -1,8 +1,18 @@
-# localAiPhotoEditor
+# Edivora
+
+<p align="center">
+  <img src="src/local_ai_photo_editor/assets/edivora-wordmark.svg" width="600" alt="Edivora – Create simply. Stay local." />
+</p>
+
+**Einfach kreativ. Alles lokal.** Edivora wird eine übersichtliche Desktop-Werkzeugsammlung für **Fotos, Videos und Audio** mit sinnvoll integrierter lokaler KI. Die Bedienung soll auch ohne professionelle Bild- oder Schnittkenntnisse verständlich bleiben.
+
+**Aktueller Funktionsumfang:** Edivora Photo, ein lokaler Fotoeditor. **Geplant, noch nicht implementiert:** Edivora Video und Edivora Audio. Der KI-Betrieb bleibt lokal; nicht jeder klassische Effekt ist eine KI-Funktion.
+
+![Edivora: Photo available in source; Video and Audio planned](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
 Ein einfacher Fotoeditor mit lokaler KI: Foto öffnen, bearbeiten, den Hintergrund entfernen und eine neue Bilddatei speichern. Deine Fotos bleiben dabei auf deinem Computer.
 
-**Geprüfte portable Testalpha für Windows x64.** Das vollständige portable ZIP enthält die Anwendung, ihre Laufzeit und das Standardmodell. Eine separate Python-, CUDA- oder Modellserver-Einrichtung gehört nicht zum vorgesehenen Start. Die Alpha ist **unsigniert** und noch keine stabile Endnutzer-Version.
+**Historische, vor der Umbenennung veröffentlichte Windows-Testalpha:** Die Links und der ausführbare Dateiname der Veröffentlichung `v0.1.0-alpha.1` heißen weiterhin `LocalAiPhotoEditor`. Das ist **noch kein Edivora-Paket**. **Geprüfte portable Testalpha für Windows x64.** Das vollständige portable ZIP enthält die Anwendung, ihre Laufzeit und das Standardmodell. Eine separate Python-, CUDA- oder Modellserver-Einrichtung gehört nicht zum vorgesehenen Start. Die Alpha ist **unsigniert** und noch keine stabile Endnutzer-Version.
 
 Bestätigt sind **69 erfolgreiche Windows-Tests** sowie echte KI-Ausführung und eine funktionierende deutsche und englische Oberfläche sowohl aus dem Quellcode als auch aus der kompilierten Anwendung. Der Pakettest umfasst außerdem Bildimport und PNG/JPEG/WebP-Export nach dem Start der Oberfläche. **Separate Offline-Prüfung:** KI-Worker und Oberfläche bestanden auch die Prüfung des heruntergeladenen Pakets mit gesperrtem ausgehendem Netzwerkzugriff der Anwendung auf Windows Server 2022. Nachweise und Grenzen stehen im [Verifikationsprotokoll](docs/VERIFICATION.md); Aufnahmen der geprüften Paketoberfläche gibt es auf [Deutsch](docs/screenshots/ui-smoke-de.png) und [Englisch](docs/screenshots/ui-smoke-en.png).
 
@@ -102,7 +112,7 @@ Die Bildlogik ist von Oberfläche und KI getrennt. Ein eigener KI-Prozess hält 
 
 ## Am Quellcode arbeiten
 
-Für die Entwicklung mit Python 3.12 im Repository-Hauptverzeichnis unter Windows:
+Für die Entwicklung mit Python 3.12 im Repository-Hauptverzeichnis unter Windows (der interne Python-Modulname bleibt aus Kompatibilitätsgründen `local_ai_photo_editor`):
 
 ```powershell
 python -m venv .venv
@@ -123,7 +133,8 @@ Unter Linux/macOS lautet der Interpreterpfad `.venv/bin/python`. `prepare_model.
 - [Lokale Bearbeitungsprojekte (.laip)](docs/PROJECT_FORMAT.md)
 - [Manuelle Maskenkorrektur](docs/MASK_REFINEMENT.md)
 - [Prüfergebnisse und offene Nachweise](docs/VERIFICATION.md)
-- [Roadmap](docs/ROADMAP.md)
+- [Produktname, Logos und visuelle Identität](docs/BRAND.md)
+- [Roadmap: Foto jetzt, Video und Audio später](docs/ROADMAP.md)
 - [Drittkomponenten und Lizenzhinweise](THIRD_PARTY_NOTICES.md)
 
 Der Anwendungscode steht unter **Apache-2.0**. Bibliotheken und Modelle behalten ihre jeweiligen Lizenzen. Die Lizenz des U-2-Net-Quellprojekts und die Herkunft des separat bereitgestellten ONNX-Artefakts werden in den Modell- und Dritthinweisen ausdrücklich getrennt betrachtet.

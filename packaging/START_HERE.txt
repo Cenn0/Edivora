@@ -1,8 +1,10 @@
-localAiPhotoEditor - Entwicklungsversion 0.1.0 alpha
+Edivora Photo - Entwicklungsversion 0.1.0 alpha
+Das Produkt Edivora soll spaeter auch Video und Audio bearbeiten koennen.
+Diese Entwicklungsversion bearbeitet ausschliesslich Fotos.
 
 STARTEN
 1. Das gesamte ZIP-Archiv in einen normalen lokalen Ordner entpacken.
-2. LocalAiPhotoEditor.exe doppelt anklicken.
+2. Edivora.exe doppelt anklicken.
 3. Foto oeffnen, bearbeiten und als neue Datei exportieren.
 
 Alle Unterordner gehoeren zum Programm. Die EXE nicht einzeln verschieben.
@@ -22,4 +24,5 @@ BEDIENUNG
 
 Die Anwendung verwendet Qt/PySide6 und weitere quelloffene Komponenten.
 Lizenztexte: third-party-licenses/ und THIRD_PARTY_NOTICES.md.
-Projekt und Quellcode: https://github.com/Cenn0/LocalAiPhotoEditor
+Projekt und Quellcode (noch unter historischem Repositorynamen):
+https://github.com/Cenn0/LocalAiPhotoEditor

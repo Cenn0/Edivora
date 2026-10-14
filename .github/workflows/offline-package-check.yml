@@ -56,7 +56,7 @@ jobs:
               throw 'Unexpected artifact count; refusing an incomplete artifact inventory.'
             }
             $artifacts = @($listing.artifacts | Where-Object {
-              $_.name -eq 'LocalAiPhotoEditor-windows-x64-alpha' -and -not $_.expired
+              $_.name -in @('Edivora-windows-x64-alpha', 'LocalAiPhotoEditor-windows-x64-alpha') -and -not $_.expired
             })
             if ($artifacts.Count -ne 1) {
               throw 'Expected exactly one unexpired checked portable artifact.'
@@ -281,7 +281,9 @@ jobs:
 
           try {
             $source = Get-Content -Raw (Join-Path $env:EVIDENCE_PATH 'source-artifact.json') | ConvertFrom-Json
-            $appPath = (Resolve-Path (Join-Path $env:PACKAGE_PATH 'LocalAiPhotoEditor.exe')).Path
+            # Historical checked artifacts keep their original executable; new ones are Edivora-branded.
+            $expectedExe = if ($source.artifact_name -eq 'Edivora-windows-x64-alpha') { 'Edivora.exe' } else { 'LocalAiPhotoEditor.exe' }
+            $appPath = (Resolve-Path (Join-Path $env:PACKAGE_PATH $expectedExe)).Path
             $buildInfo = Get-Content -Raw (Join-Path $env:PACKAGE_PATH 'build-info.json') | ConvertFrom-Json
             if ($buildInfo.commit -ne $source.head_sha) { throw 'Package commit does not match the selected successful run.' }
             Copy-Item (Join-Path $env:PACKAGE_PATH 'build-info.json') (Join-Path $env:EVIDENCE_PATH 'build-info.json')

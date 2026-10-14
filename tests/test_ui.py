@@ -51,6 +51,15 @@ class EditorWindowTests(unittest.TestCase):
         self.window.show()
         self.app.processEvents()
 
+    def test_window_has_edivora_identity_and_icon(self) -> None:
+        from PySide6.QtWidgets import QLabel
+
+        self.assertEqual(self.window.findChild(QLabel, "appName").text(), "Edivora")
+        self.assertIn("Edivora", self.window.windowTitle())
+        self.assertFalse(self.window.windowIcon().isNull())
+        self.assertFalse(self.window.windowIcon().pixmap(32, 32).isNull())
+        self.assertEqual(self.window.findChild(QLabel, "brandMark").accessibleName(), "Edivora")
+
     def tearDown(self) -> None:
         if self.window.is_busy:
             self.window.cancel_background_removal()

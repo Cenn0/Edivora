@@ -90,13 +90,13 @@ jobs:
         shell: pwsh
         run: |
           Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
-          $appPath = (Resolve-Path 'dist/LocalAiPhotoEditor/LocalAiPhotoEditor.exe').Path
+          $appPath = (Resolve-Path 'dist/Edivora/Edivora.exe').Path
           $workerOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-worker'
           $worker = Start-Process -FilePath $appPath -ArgumentList "--smoke-test `"$workerOutput`"" -WorkingDirectory $env:RUNNER_TEMP -PassThru -Wait
           if ($worker.ExitCode -ne 0) { throw "Packaged worker failed: $($worker.ExitCode)" }
       - name: Verify subject selection inside the compiled worker
         if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
-        run: python tools/verify_subject_tools.py test-results/frozen-subject --executable dist/LocalAiPhotoEditor/LocalAiPhotoEditor.exe
+        run: python tools/verify_subject_tools.py test-results/frozen-subject --executable dist/Edivora/Edivora.exe
       - name: Open packaged GUI from a temporary working directory
         if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
         env:
@@ -105,18 +105,18 @@ jobs:
         run: |
           Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
           $env:QT_QPA_PLATFORM = 'windows'
-          $appPath = (Resolve-Path 'dist/LocalAiPhotoEditor/LocalAiPhotoEditor.exe').Path
+          $appPath = (Resolve-Path 'dist/Edivora/Edivora.exe').Path
           $guiOutput = Join-Path $env:GITHUB_WORKSPACE 'test-results/frozen-gui'
           $gui = Start-Process -FilePath $appPath -ArgumentList "--ui-smoke-test `"$guiOutput`"" -WorkingDirectory $env:RUNNER_TEMP -PassThru -Wait
           if ($gui.ExitCode -ne 0) { throw "Packaged GUI failed: $($gui.ExitCode)" }
       - name: Add successful runtime verification to the portable package
         run: |
-          Copy-Item -Recurse test-results dist/LocalAiPhotoEditor/verification
+          Copy-Item -Recurse test-results dist/Edivora/verification
       - name: Upload checked portable alpha
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: LocalAiPhotoEditor-windows-x64-alpha
-          path: dist/LocalAiPhotoEditor/
+          name: Edivora-windows-x64-alpha
+          path: dist/Edivora/
           if-no-files-found: error
           retention-days: 14
       - name: Upload verification evidence
@@ -127,8 +127,8 @@ jobs:
           path: |
             test-results/
             build/nuitka-report.xml
-            dist/LocalAiPhotoEditor/build-info.json
-            dist/LocalAiPhotoEditor/third-party-licenses/
+            dist/Edivora/build-info.json
+            dist/Edivora/third-party-licenses/
           if-no-files-found: warn
           retention-days: 14
       - name: Preserve failed runtime package for diagnosis
@@ -136,6 +136,6 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: diagnostic-package-windows-x64
-          path: dist/LocalAiPhotoEditor/
+          path: dist/Edivora/
           if-no-files-found: error
           retention-days: 3

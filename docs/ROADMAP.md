@@ -1,4 +1,4 @@
-# Roadmap
+# Edivora roadmap
 
 ## 0.1 alpha — local editing and bundled background removal
 
@@ -41,6 +41,28 @@ Acceptance: no implicit network access, no account/API key, reliable failure rec
 - Add an installer if it demonstrably simplifies delivery; the tested portable package remains a valid distribution format.
 
 No signing certificate is assumed to be available during initial development. Signing is a stable-release requirement, not a prerequisite for a clearly labelled test-alpha artifact.
+
+## Future Edivora media toolset (not implemented)
+
+**Edivora Photo** remains the priority until a reproducible, signed, clean-machine release is available. The following are **proposals**, not existing features or delivery commitments.
+
+### Edivora Video
+
+- Beginner workflow: import, trim, split, reorder clips, add titles and transitions, preview and export with understandable presets.
+- Architecture: a non-destructive timeline and audio/video synchronization rather than reusing still-image snapshots as a video document model.
+- Optional, locally validated AI features such as transcription/subtitles or scene assistance only after testing model licenses, latency, memory budgets and real hardware.
+- Evaluate FFmpeg/libav and codecs, redistribution obligations, Windows packaging and format support before promising individual container/codec combinations.
+
+### Edivora Audio
+
+- Beginner workflow: open a recording, cut, fade, adjust level, listen to a non-destructive preview and export.
+- Architecture: waveform caches, time-based tracks and cancellable processing with accessible scrubbing/playback.
+- Evaluate optional offline noise reduction and speech models separately; a generic video/audio AI claim requires model-specific evidence.
+- Avoid automatic normalization that clips audio or changes loudness unexpectedly; preview and explicit apply/revert remain mandatory.
+
+### Shared foundations
+
+The existing Python/Qt photo editor does **not** imply that one editing engine is suitable for all media. Share brand, task-oriented navigation, model management, import/export conventions, privacy contracts and translations; keep image, timeline and waveform domain logic modular. Benchmark video frame throughput, decoder compatibility, memory/storage use and UI responsiveness before making language/engine decisions. Preserve a local-first runtime, no account requirement and clear labels for installed features versus planned modules.
 
 ## Later, after measured demand
 

@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QPushButton, QScrollArea, QSlider, QSpinBox, QVBoxLayout, QWidget,
 )
 
+from ..branding import APP_NAME, PHOTO_EDITOR_TITLE, app_icon
 from ..core import (
     MAX_IMAGE_PIXELS, MAX_MASK_STROKES, ImageDocument, MaskStroke, adjust_image,
     crop_image, export_image, load_image, load_project, paint_alpha_strokes,
@@ -106,7 +107,8 @@ class EditorWindow(QMainWindow):
         self._preview_timer = QTimer(self)
         self._preview_timer.setSingleShot(True)
         self._preview_timer.timeout.connect(self._show_preview)
-        self.setWindowTitle("localAiPhotoEditor")
+        self.setWindowTitle(PHOTO_EDITOR_TITLE)
+        self.setWindowIcon(app_icon())
         self.setMinimumSize(900, 660)
         self.resize(1180, 820)
         self.setAcceptDrops(True)
@@ -188,9 +190,16 @@ class EditorWindow(QMainWindow):
         outer.setContentsMargins(24, 18, 24, 16)
         outer.setSpacing(18)
         header = QHBoxLayout()
+        header.setSpacing(12)
+        brand_mark = QLabel()
+        brand_mark.setObjectName("brandMark")
+        brand_mark.setPixmap(app_icon().pixmap(54, 54))
+        brand_mark.setFixedSize(54, 54)
+        brand_mark.setAccessibleName(APP_NAME)
+        header.addWidget(brand_mark)
         identity = QVBoxLayout()
         identity.setSpacing(4)
-        name = QLabel("localAiPhotoEditor")
+        name = QLabel(APP_NAME)
         name.setObjectName("appName")
         identity.addWidget(name)
         identity.addWidget(self._label("app_tagline", "muted"))
