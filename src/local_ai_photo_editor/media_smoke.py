@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import subprocess
+import time
 import traceback
 
 from .core.media import MediaExport, commit_export, ffmpeg_executable
@@ -71,6 +72,19 @@ def media_smoke_test(directory: Path, compiled_executable: str | None = None) ->
         for name, window in windows:
             window.show()
             app.processEvents()
+            if name in {"video", "audio"}:
+                media = source_video if name == "video" else source_audio
+                window.open_path(media)
+                deadline = time.monotonic() + 12
+                while window.duration_ms <= 0 and time.monotonic() < deadline:
+                    app.processEvents()
+                    time.sleep(0.04)
+                if window.duration_ms <= 0:
+                    raise RuntimeError(
+                        f"Qt Multimedia failed to determine duration for synthetic {name}; "
+                        "packaged playback backend may be missing."
+                    )
+                report[f"{name}_qt_duration_ms"] = window.duration_ms
             screenshot = directory / f"{name}.png"
             if not window.grab().save(str(screenshot), "PNG") or screenshot.stat().st_size < 100:
                 raise RuntimeError(f"Qt shell capture failed: {name}")
