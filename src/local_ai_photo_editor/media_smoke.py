@@ -194,6 +194,24 @@ def media_smoke_test(directory: Path, compiled_executable: str | None = None) ->
             raise RuntimeError("Local video-frame AI did not create the PNG.")
         report["ai_frame_bytes"] = extracted.stat().st_size
 
+        report["phase"] = "extra_ai_tiers"
+        from .ai.background import remove_background
+        from .ai.catalog import model_installed
+        from .ai.transcribe import transcribe
+        for tier in ("u2netp", "isnet-general-use", "silero-vad", "whisper-tiny"):
+            if not model_installed(tier, verify=True):
+                raise RuntimeError(f"Missing or corrupt packaged AI model: {tier}")
+        frame = _synthetic_photo()
+        strong = remove_background(frame, model_id="isnet-general-use")
+        if strong.size != frame.size or strong.mode != "RGBA":
+            raise RuntimeError("Higher-detail IS-Net inference produced invalid pixels.")
+        report["isnet_real_inference"] = "ok"
+        words = transcribe(source_audio, "audio", 100, 1500, "de", ffmpeg=ffmpeg)
+        if not isinstance(words, list):
+            raise RuntimeError("Whisper transcription did not return a segment list.")
+        report["whisper_real_inference"] = "ok"
+        report["whisper_segments"] = len(words)
+
         report["phase"] = "complete"
         report["status"] = "ok"
         return 0
