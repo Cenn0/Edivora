@@ -46,8 +46,11 @@ class SubjectSelectionJob(QObject):
             self._directory = Path(tempfile.mkdtemp(prefix="localai-selection-"))
             image.save(self._directory / "input.png", format="PNG")
             self._size = image.size
+            from .model_settings import get_preference
+            from ..ai.catalog import TASK_IMAGE
             (self._directory / "request.json").write_text(
-                json.dumps({"version": 1, "operation": "select_subject"}), encoding="utf-8")
+                json.dumps({"version": 1, "operation": "select_subject",
+                            "model": get_preference(TASK_IMAGE)}), encoding="utf-8")
             program, arguments = worker_command(self._directory)
             process = QProcess(self)
             self._process = process
