@@ -14,24 +14,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
-      - name: Apply verified matching dialog inspector change
+      - name: Apply exact locally tested dialog update
         shell: bash
         run: |
           python3 - <<'PY'
-          import base64, hashlib, os, pathlib, subprocess, zlib
-          encoded = 'eNqVkt9v2jAQx9/zV9wjiCT0BwyEtKnQIW1TpRao6GNk4gtcZ+zIvkDpXz8nWWBd+1DyEMfnj+/u+71IyjKIojUxiK6zaVeZVKhEUJJvDJsEJbGx3YK6O5JoEklCmXWcH2B1Fh6QlvgC16Inh4OrOF5d9/r9qyFcXlx86fWCKIrOrB90Op1ze7i5gehyEA6gU739NrNmC3GcGotxTQv5XDjeomYHtM2NZXiYTxfTx0UIy5IYn4Dgg/vPZtXcq/BfZhUCacdCqcSi862hTFJFeQg7oUgKxkT6OGnBZHSTMxV6J04tlMpuq1ADUGr08fyn30wKZqN9Mf8dRDXkC+YeYeox025NSXxDuxQhXCkxV5jvJ2g+nviXkJISNOSBN7x5K9n5jZB53PJFqiZfJDWKTWKDW2KD6X/K8U3uD2mNfxQaHbIHJzfDT2KHde+Vj5NS+0RvsWdWxJr4804wvXs+8Pq+FXiw+kSjhXj2mqN0KnWI71e/W/tGb12h4F0DwWubAaVCk6gDouMYMkF2tsOVRZCEyscORVV2DZE32C29NrvxMEUPAqiJpGrfIKvMDs51moHnXfn7431GLzFYof8RHKN7G2hV7FS2Hq0BX4I/jCWXo3mJuVE2AejKD20Zhz/Fzrtx2ovDu4+y/7JWWouFdSlfVt/AAv/eYE='
-          encoded = encoded.replace('C+YeYeox', 'C+Yeox').replace('ORVV2D', 'ORVZ2D')
-          # Verify exact local patch bytes; a transcription mismatch fails closed.
-          encoded = encoded.replace('ORVZ2D', 'ORV2D') if False else encoded
-          patch = zlib.decompress(base64.b64decode(encoded, validate=True))
-          assert len(patch) == 1099
-          assert hashlib.sha256(patch).hexdigest() == 'dfab467b97ab9f0d099961313e3a6e56a788c9a6c277111de3b05290574dc4c6'
-          target = pathlib.Path(os.environ['RUNNER_TEMP']) / 'dialog-viewport.patch'
-          target.write_bytes(patch)
-          subprocess.run(['git','apply','--check','--index',str(target)], check=True)
-          subprocess.run(['git','apply','--index',str(target)], check=True)
+          import hashlib, pathlib
+          p = pathlib.Path('src/local_ai_photo_editor/ui/video_dialog.py')
+          before = p.read_bytes()
+          assert hashlib.sha256(before).hexdigest() == '57a25c13abded07ebb7fbab71ae17bc6a89ae53d4332b4cf013ea264701c5ab6'
+          after = before.replace(b'from .responsive import ElideLabel, WrappedCheckBox, fit_initial_window', b'from .responsive import ElideLabel, VerticalScrollArea, WrappedCheckBox, fit_initial_window').replace(b'        scroll = QScrollArea()', b'        scroll = VerticalScrollArea()')
+          assert hashlib.sha256(after).hexdigest() == '961955592773fb4df79ad1a7a769738509c22276a14ce74a285f6eaad8302ee7'
+          p.write_bytes(after)
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/local_ai_photo_editor/ui/video_dialog.py
           git commit -m 'fix: reuse viewport-bound layout in video enhancement tabs'
           git push origin HEAD:refs/heads/feat/responsive-suite-video-restoration
