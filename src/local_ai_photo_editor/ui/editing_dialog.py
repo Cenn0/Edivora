@@ -16,6 +16,8 @@ from ..core.editing import load_image
 from ..core.recipes import (ASPECTS, LOOKS, EditRecipe, RenderCancelled, auto_levels,
                             output_size, render_recipe)
 from .theme import stylesheet
+from .icons import IconButton, icon
+from .responsive import fit_initial_window
 from .canvas import PhotoCanvas
 from .editing_strings import text
 
@@ -75,10 +77,11 @@ class EditingDialog(QDialog):
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self._render_preview)
         self.setWindowTitle(self._t("dialog_title"))
-        self.setMinimumSize(800, 560)
+        self.setMinimumSize(640, 480)
         self.resize(1080, 720)
         self.setStyleSheet(stylesheet())
         self._build()
+        fit_initial_window(self, (1080, 720))
         self.tabs.setCurrentIndex(_SECTIONS.index(section))
         self._refresh_controls()
         self._render_preview()
@@ -105,7 +108,7 @@ class EditingDialog(QDialog):
         return label
 
     def _button(self, key: str, callback) -> QPushButton:
-        button = QPushButton(self._t(key))
+        button = IconButton(self._t(key), key=key)
         button.clicked.connect(callback)
         return button
 
@@ -131,7 +134,7 @@ class EditingDialog(QDialog):
         value.setObjectName("sliderValue")
         header.addWidget(value)
         reset = QToolButton()
-        reset.setText("↺")
+        reset.setIcon(icon("reset"))
         reset.setAccessibleName(self._t("reset_control", name=self._t(key)))
         reset.setToolTip(reset.accessibleName())
         header.addWidget(reset)
@@ -169,7 +172,7 @@ class EditingDialog(QDialog):
         content = QHBoxLayout()
         preview = QVBoxLayout()
         self.canvas = PhotoCanvas()
-        self.canvas.setMinimumSize(340, 280)
+        self.canvas.setMinimumSize(180, 140)
         self.canvas.set_language(self.language)
         preview.addWidget(self.canvas, 1)
         self.status = QLabel()
@@ -182,7 +185,7 @@ class EditingDialog(QDialog):
         preview.addWidget(self.compare_button)
         content.addLayout(preview, 1)
         self.tabs = QTabWidget()
-        self.tabs.setMinimumWidth(365)
+        self.tabs.setMinimumWidth(285)
         self.tabs.setMaximumWidth(420)
         self.tabs.setUsesScrollButtons(True)
         self.tabs.setAccessibleName(self._t("tools_title"))
@@ -232,6 +235,8 @@ class EditingDialog(QDialog):
         self.reset_section_button = self._button("reset_section", self.reset_section)
         self.reset_all_button = self._button("reset_all", self.reset_all)
         footer.addWidget(self.reset_section_button)
+        self.reset_section_button.setCompact(True)
+        self.reset_all_button.setCompact(True)
         footer.addWidget(self.reset_all_button)
         footer.addStretch()
         self.cancel_button = self._button("cancel", self.reject)

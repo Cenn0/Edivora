@@ -12,6 +12,7 @@ from pathlib import Path
 import uuid
 
 from .media import AUDIO_OUTPUTS, protects_source
+from .video_adjustments import EXPORT_SIZES
 from .media_project import MediaSequence
 
 VIDEO_WIDTH = 1280
@@ -27,9 +28,12 @@ def _seconds(value: int) -> str:
 class SequenceExport:
     sequence: MediaSequence
     destination: Path
+    video_profile: str = "hd"
 
     def validated(self) -> "SequenceExport":
         seq = self.sequence.validated()
+        if type(self.video_profile) is not str or self.video_profile not in EXPORT_SIZES:
+            raise ValueError("Invalid export size profile.")
         output = Path(self.destination).expanduser().absolute()
         allowed = {".mp4"} if seq.kind == "video" else AUDIO_OUTPUTS
         if output.suffix.lower() not in allowed or not output.parent.is_dir():
@@ -58,10 +62,11 @@ class SequenceExport:
             raise ValueError("Refusing to overwrite a source via a temporary destination.")
 
         clips = self.sequence.clips
+        width, height = EXPORT_SIZES[self.video_profile]
         # Inputs always appear before filter_complex. The explicit protocol
         # allowlist blocks protocol fetches from nested media playlists too.
         args = ["-nostdin", "-hide_banner", "-loglevel", "error", "-nostats",
-                "-filter_complex_threads", "2", "-threads", "2"]
+                "-filter_complex_threads", "2", "-threads", "2", "-progress", "pipe:1"]
         for clip in clips:
             args += [
                 "-protocol_whitelist", "file,pipe,data",
@@ -80,10 +85,12 @@ class SequenceExport:
             if self.sequence.kind == "video":
                 filters.append(
                     f"[{i}:v:0]trim=start={begin}:end={end},setpts=PTS-STARTPTS,"
-                    f"fps={VIDEO_FPS},scale={VIDEO_WIDTH}:{VIDEO_HEIGHT}:"
-                    "force_original_aspect_ratio=decrease,"
-                    f"pad={VIDEO_WIDTH}:{VIDEO_HEIGHT}:(ow-iw)/2:(oh-ih)/2,"
-                    f"setsar=1,format=yuv420p[v{i}]"
+                    f"fps={VIDEO_FPS},scale={width}:{height}:"
+                    "force_original_aspect_ratio=decrease:force_divisible_by=2,"
+                    "setsar=1,format=yuv420p,"
+                    + (",".join(clip.video_adjustments.filters()) + ","
+                       if clip.video_adjustments.has_effect else "")
+                    + f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2[v{i}]"
                 )
             if i in silent_indices:
                 stream, trim = f"[{silent_indices[i]}:a:0]", f"duration={length}"

@@ -1,5 +1,21 @@
 # Architecture
 
+## 0.4 extension (development)
+
+`core/video_adjustments.py` owns validated per-clip recipes and fixed FFmpeg
+filters; `core/video_job.py` owns bounded requests and atomic derived outputs.
+Media projects write version 2, read version 1/2, and media history stores up to
+60 immutable reference/settings states. `ui/media_shell.py`, `icons.py` and
+`responsive.py` share compact, accessible window layouts. `ui/video_dialog.py`
+and `video_jobs.py` orchestrate explicit real-frame comparison and acceptance.
+`ai/restoration.py` validates fixed DnCNN bytes and tiled CPU inference;
+`ai/video_restoration.py` streams short clips through owned native processes.
+`ai/process_owner.py` handles cancellation and Windows Job Object / parent
+lifetime; this is not a security sandbox. Build-only PTH-to-ONNX conversion lives
+in `tools/prepare_restoration_model.py`, never in application startup.
+[Precise limits and source/standalone verification](VIDEO_RESTORATION.md).
+
+
 **Entscheidungsgrundlage:** 12.10.2026, ursprünglich für die Foto-Testalpha. Der aktuelle `main`-Quellcode (0.3.0a1, 14.10.2026) enthält zusätzlich Launcher, Video-/Audio-Sequenzen, Projektdateien und lokale Medien-KI. **Die früheren Windows-Server-2022-Paket- und Offline-Nachweise in [VERIFICATION.md](VERIFICATION.md) gelten ausschließlich für das alte Foto-Release `v0.1.0-alpha.1`, nicht automatisch für diese neue Suite.** Clean-Windows-11-Abnahme, Hardware-/Codec-Matrix und Redistribution-Freigabe der neuen Medienkomponenten sind offen.
 
 ## Entwicklungserweiterung: Audio-/Video-Sequenzen und ONNX

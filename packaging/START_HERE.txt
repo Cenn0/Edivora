@@ -1,4 +1,4 @@
-Edivora - Foto, Video und Audio (Entwicklungsstand 0.3.0 alpha)
+Edivora - Foto, Video und Audio (Entwicklungsstand 0.4.0 alpha)
 
 STARTEN (NUR NEUER ENTWICKLUNGSBUILD)
 1. Gesamten Build-Ordner entpacken, nicht nur die EXE verschieben.
@@ -41,3 +41,9 @@ WICHTIG
   beachten. Anleitung: docs/GETTING_STARTED.md und docs/MEDIA_MVP.md.
 
 Quellcode: https://github.com/Cenn0/Edivora
+
+NEU IN 0.4: Direkter Launcher bleibt offen. Video: Bild -> Bild verbessern.
+Klassische Farbkorrekturen sind keine KI. DnCNN entrauscht kurze Abschnitte
+bis 30 Sekunden / 720p / 30 fps lokal auf der CPU. Keine zuverlaessige
+Umkehr eingebrannter Filter. Details: docs/VIDEO_RESTORATION.md.
+Neue Medienprojekte: Schema 2; alte 0.3-Programme koennen sie nicht lesen.

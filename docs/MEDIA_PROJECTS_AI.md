@@ -1,5 +1,15 @@
 # Edivora 0.3 source MVP – Clips, editable media projects and offline AI
 
+## 0.4 superseding changes
+
+The 0.4 source adds per-clip video correction recipes, HD/Full HD sequence export,
+real short-clip DnCNN denoising, media Undo/Redo and strict project schema 2 with
+schema-1 reading. Ordinary playback still shows the original. The 0.3 limits
+below describe that earlier baseline; in particular, “no whole-video AI” no
+longer describes the bounded 0.4 denoising workflow. [Current behavior and
+compatibility](VIDEO_RESTORATION.md).
+
+
 Status: **implemented in the current `main` source (0.3.0a1)**; **not** present in the published photo-only `v0.1.0-alpha.1` ZIP and **not** a separately accepted Windows suite.
 A passing Windows Server CI build is not clean Windows 11 or licensing approval.
 

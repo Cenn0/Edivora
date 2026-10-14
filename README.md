@@ -8,13 +8,27 @@
 
 ![Edivora Photo, Video und Audio](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
-> **Wichtig: Quellcode ist nicht gleich Download.** Das auf GitHub veröffentlichte **[v0.1.0-alpha.1-Paket](https://github.com/Cenn0/Edivora/releases/tag/v0.1.0-alpha.1)** ist eine ältere, unsignierte **Foto-Testalpha**. Foto-, Video- und Audio-Launcher, Mehrclip-Timelines sowie Projektdateien gehören zum **neueren Entwicklungsstand (0.3.0a1 im Quellcode auf `main`)**. Die aktuelle Suite wird ausschließlich als private, unsignierte Testalpha angeboten; eine breite öffentliche Windows-Veröffentlichung ist nicht freigegeben. Die erste Windows-11-Clean-Machine-Abnahme und Redistribution-Prüfungen stehen aus.
+> **Wichtig: Quellcode ist nicht gleich Download.** Das auf GitHub veröffentlichte **[v0.1.0-alpha.1-Paket](https://github.com/Cenn0/Edivora/releases/tag/v0.1.0-alpha.1)** ist eine ältere, unsignierte **Foto-Testalpha**. Foto-, Video- und Audio-Launcher, Mehrclip-Timelines sowie Projektdateien gehören zum **0.3-Entwicklungsstand; die Weiterentwicklung 0.4.0a1 ist unten gesondert beschrieben**. Die aktuelle Suite wird ausschließlich als private, unsignierte Testalpha angeboten; eine breite öffentliche Windows-Veröffentlichung ist nicht freigegeben. Die erste Windows-11-Clean-Machine-Abnahme und Redistribution-Prüfungen stehen aus.
 
-## Aktuellen Entwicklungsstand als Windows-Testversion herunterladen
+## Neu im Entwicklungsstand 0.4.0a1
 
-**[Sofort herunterladen: geprüfter Windows-x64-Testbuild (GitHub Actions)](https://github.com/Cenn0/Edivora/actions/runs/38636053924/artifacts/11928373456)** · [Erfolgreicher Pakettest](https://github.com/Cenn0/Edivora/actions/runs/38636053924)
+**Launcher ohne Auswahlkästchen:** Foto, Video und Audio direkt öffnen; der Launcher bleibt offen. Mehr lokale Vektor-Icons, kompakte Werkzeugleisten und anpassbare Vorschauflächen. Video-/Audio-Einstellungen sind in Reiter aufgeteilt; lange Bedienbereiche scrollen statt abgeschnitten zu werden. Mindestgröße: **640 × 480 logische Pixel**.
 
-Dieser bereits erfolgreich durchgelaufene Build aus PR #18 enthält **denselben Edivora-Anwendungscode wie der Merge auf `main`** (Logo, Launcher, Foto/Video/Audio, lokale KI); nachträgliche Änderungen betreffen nur Dokumentation und den Release-Workflow. Er ist **14 Tage ab Erstellung** als Actions-Artefakt verfügbar und erfordert Zugriff auf das private Repository. Das Archiv enthält die Dateien der Anwendung; **den gesamten Inhalt gemeinsam in einen Ordner entpacken und `LocalAiPhotoEditor.exe` darin starten**. Die unten genannten dauerhaften Release-Links funktionieren erst nach erfolgreicher neuer Main-Paketprüfung.
+**Video verbessern:** Helligkeit, Kontrast, Farbstärke, Wärme, Grün/Magenta, klassische Rauschglättung und Schärfe; anpassbare Vorlagen und echter Vorher-/Nachher-Bildvergleich. Korrekturen werden je Clip im Projekt gespeichert und beim Export angewandt. Die normale Abspielvorschau zeigt weiterhin die Quelle. HD- und Full-HD-Export stehen zur Auswahl.
+
+**Echte lokale KI-Entrauschung:** DnCNN verarbeitet einen gewählten Abschnitt bis **30 Sekunden**, maximal **720p / 30 fps**, auf der CPU. Stärke und Vorschau sind einstellbar; erst nach Bestätigung wird eine separate MP4 erstellt. Das kann langsam sein und Details glätten oder flimmern. **Kein universeller KI-Filterentferner:** Eingebrannte Filter können nur teilweise abgeschwächt werden; verlorene Originaldetails werden nicht zuverlässig wiederhergestellt.
+
+**Video und Audio:** Rückgängig/Wiederholen mit bis zu 60 Zuständen. Neue `.edvp/.edap`-Dateien verwenden Schema 2; Schema 1 wird weiterhin gelesen. Alte Versionen können Schema 2 nicht öffnen.
+
+[Bedienung, Grenzen und Modellnachweise](docs/VIDEO_RESTORATION.md) · [Änderungsübersicht 0.4](docs/RELEASE_NOTES_RESPONSIVE_SUITE.md)
+
+## Windows-Testdownloads und Versionsgrenzen
+
+**Bisheriger 0.3-Build – ohne die neuen 0.4-Funktionen:**
+
+**[Windows-x64-Testbuild 0.3 (GitHub Actions)](https://github.com/Cenn0/Edivora/actions/runs/38636053924/artifacts/11928373456)** · [Erfolgreicher Pakettest](https://github.com/Cenn0/Edivora/actions/runs/38636053924)
+
+Dieser bereits erfolgreich durchgelaufene Build aus PR #18 enthält **den Edivora-Anwendungscode des damaligen 0.3-Merges auf `main`** (Logo, Launcher, Foto/Video/Audio, lokale KI); nachträgliche Änderungen betreffen nur Dokumentation und den Release-Workflow. Er ist **14 Tage ab Erstellung** als Actions-Artefakt verfügbar und erfordert Zugriff auf das private Repository. Das Archiv enthält die Dateien der Anwendung; **den gesamten Inhalt gemeinsam in einen Ordner entpacken und `LocalAiPhotoEditor.exe` darin starten**. Die unten genannten dauerhaften Release-Links funktionieren erst nach erfolgreicher neuer Main-Paketprüfung.
 
 **[Windows x64: Edivora 0.3.0 Alpha 1 als ZIP herunterladen](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/Edivora-0.3.0-alpha.1-windows-x64.zip)** · [SHA-256-Prüfsumme](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/SHA256SUMS.txt) · [Testbuild und Hinweise](https://github.com/Cenn0/Edivora/releases/tag/v0.3.0-alpha.1) · [Build-Nachweise](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/BUILD_PROVENANCE.json)
 
@@ -27,12 +41,12 @@ Dies ist ein **privates, unsigniertes Prerelease** für Personen mit Zugriff auf
 | Bereich | Im aktuellen Quellcode umgesetzt | Wichtige Grenze |
 | --- | --- | --- |
 | **Foto** | JPEG/PNG/WebP öffnen und exportieren; Licht/Farbe, Looks, Zuschneiden, Spiegeln, Drehen, Bildgröße, Hintergrundgestaltung; Vorschau, Vorher/Nachher, Undo/Redo; lokale U2NETP-Motivauswahl und manuelle Alphamasken-Korrektur; **`.laip`**-Projekte | Kein RAW/HDR, keine Ebenen oder generative Textbearbeitung; Freistellmasken sind nicht immer perfekt |
-| **Video** | Clips importieren, auf **einer** Timeline anordnen (bis 24), teilen, duplizieren, trimmen und Lautstärke einstellen; **`.edvp`** speichern/öffnen; lokale KI-Freistellung **eines Videostandbilds** als PNG; MP4-Export | Keine Mehrspurmontage, Übergänge, Untertitel oder KI-Verarbeitung eines ganzen Videos; Export auf 720p/30 fps MPEG-4 Part 2 + AAC vereinheitlicht |
+| **Video** | Clips importieren, auf **einer** Timeline anordnen (bis 24), teilen, duplizieren, trimmen und Lautstärke einstellen; **`.edvp`** speichern/öffnen; lokale KI-Freistellung **eines Videostandbilds** als PNG; MP4-Export | Keine Mehrspurmontage, Übergänge oder Untertitel; Bildkorrekturen und kurze KI-Entrauschung siehe 0.4 oben. Export HD/Full HD, 30 fps, MPEG-4 Part 2 + AAC |
 | **Audio** | Clips auf **einer** Timeline anordnen (bis 24), trimmen, teilen und mit Lautstärke/Fades/Pegelausgleich exportieren; **`.edap`** speichern/öffnen; lokale Silero-VAD-KI schlägt Sprachabschnitte vor; WAV/MP3-Export | Kein Mehrspurmix, keine Transkription, keine Rauschunterdrückungs-KI; Sprachabschnitte sind nur ein zu prüfender Vorschlag |
 
 Der **Launcher** kann Foto, Video und Audio einzeln, zwei gemeinsam oder alle drei gleichzeitig in **unabhängigen Prozessen** starten. Vorschau und Bearbeitung der Medien-Timeline beziehen sich auf den gewählten Clip; erst der Export setzt die Reihenfolge zusammen. Das Original wird dabei nicht überschrieben.
 
-**KI bedeutet nicht automatisch Generierung:** U2NETP erstellt Motivmasken für Foto/ein Videostandbild; Silero VAD erkennt Sprachaktivität in Audio. Klassische Korrekturen, Fades und Filter sind keine generativen KI-Modelle. KI-Berechnung läuft lokal über **ONNX Runtime CPU**, soweit für die jeweilige Funktion dokumentiert. Für GPU-/CUDA-/DirectML-Betrieb existiert derzeit **keine projektseitig verifizierte Unterstützung**. Fehlende Modelle werden zur Laufzeit **nicht** heruntergeladen.
+**KI bedeutet nicht automatisch Generierung:** U2NETP erstellt Motivmasken für Foto/ein Videostandbild; Silero VAD erkennt Sprachaktivität in Audio; DnCNN entrauscht einzelne RGB-Frames eines kurzen Videos. Klassische Korrekturen, Fades und Filter sind keine generativen KI-Modelle. KI-Berechnung läuft lokal über **ONNX Runtime CPU**, soweit für die jeweilige Funktion dokumentiert. Für GPU-/CUDA-/DirectML-Betrieb existiert derzeit **keine projektseitig verifizierte Unterstützung**. Fehlende Modelle werden zur Laufzeit **nicht** heruntergeladen.
 
 ## Direkt ausprobieren: veröffentlichte Foto-Testalpha
 
@@ -50,13 +64,16 @@ Die Alpha wurde auf **Windows Server 2022** automatisiert getestet (damals 69 Te
 
 ## Aktuellen Entwicklungsstand aus dem Quellcode starten
 
-**Voraussetzung:** Python **3.12** und zum **Vorbereiten** der beiden gepinnten KI-Modelle Internetzugriff. Das eigentliche Programm verwendet später keine Modell-Downloads.
+**Voraussetzung:** Python **3.12** und zum **Vorbereiten** der drei gepinnten KI-Modelle Internetzugriff. Das eigentliche Programm verwendet später keine Modell-Downloads.
 
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -e .
 .venv\Scripts\python tools\prepare_model.py
 .venv\Scripts\python tools\prepare_voice_model.py
+.venv\Scripts\python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+.venv\Scripts\python -m pip install onnx==1.23.2
+.venv\Scripts\python tools\prepare_restoration_model.py
 .venv\Scripts\python -m local_ai_photo_editor
 ```
 

@@ -24,6 +24,9 @@ from ..core.media import (
 )
 from .media_strings import text
 from .theme import stylesheet
+from .icons import IconButton, icon
+from .responsive import fit_initial_window
+from .media_shell import build_media_shell, resize_media_shell
 from .trim_timeline import TrimTimeline
 
 
@@ -55,7 +58,7 @@ class MediaWindow(QMainWindow):
         self._wave_pixmap: QPixmap | None = None
         self._status_key = "ready"
         self._status_values: dict[str, object] = {}
-        self.setMinimumSize(850, 620)
+        self.setMinimumSize(640, 480)
         self.resize(1270, 800)
         self.setAcceptDrops(True)
         self.setStyleSheet(stylesheet())
@@ -71,6 +74,7 @@ class MediaWindow(QMainWindow):
         self.player.errorOccurred.connect(self._playback_error)
         self._translate()
         self._update_enabled()
+        fit_initial_window(self, (1270, 800))
 
     def _t(self, key: str, **kwargs: object) -> str:
         return text(self.language, key, **kwargs)
@@ -85,7 +89,7 @@ class MediaWindow(QMainWindow):
         return label
 
     def _button(self, key: str, callback: Callable, style: str = "") -> QPushButton:
-        button = QPushButton()
+        button = IconButton(key=key)
         if style:
             button.setObjectName(style)
         button.clicked.connect(callback)
@@ -99,200 +103,11 @@ class MediaWindow(QMainWindow):
         return check
 
     def _build_ui(self) -> None:
-        central = QWidget(self)
-        self.setCentralWidget(central)
-        root = QVBoxLayout(central)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
+        build_media_shell(self)
 
-        header = QFrame()
-        header.setObjectName("topBar")
-        top = QHBoxLayout(header)
-        top.setContentsMargins(18, 9, 18, 9)
-        mark = QLabel()
-        mark.setPixmap(app_icon().pixmap(32, 32))
-        mark.setAccessibleName("Edivora")
-        mark.setObjectName("brandMark")
-        top.addWidget(mark)
-        brand = self._label("suite", "appName")
-        top.addWidget(brand)
-        title = self._label(self.kind, "workspaceName")
-        top.addWidget(title)
-        top.addStretch()
-        badge = self._label("local", "localBadge")
-        top.addWidget(badge)
-        self.open_button = self._button("open", self.open_file)
-        top.addWidget(self.open_button)
-        self.export_button = self._button("export", self.export_file, "primary")
-        top.addWidget(self.export_button)
-        self.language_combo = QComboBox()
-        self.language_combo.addItem("Deutsch", "de")
-        self.language_combo.addItem("English", "en")
-        self.language_combo.currentIndexChanged.connect(self._switch_language)
-        top.addWidget(self.language_combo)
-        root.addWidget(header)
-
-        content = QSplitter(Qt.Orientation.Horizontal)
-        content.setChildrenCollapsible(False)
-        root.addWidget(content, 1)
-
-        stage = QFrame()
-        stage.setObjectName("previewFrame")
-        stage_layout = QVBoxLayout(stage)
-        stage_layout.setContentsMargins(18, 18, 18, 18)
-        stage_layout.setSpacing(8)
-        self.file_label = self._label(f"empty_{self.kind}", "sectionTitle", wrap=True)
-        stage_layout.addWidget(self.file_label)
-        if self.kind == "video":
-            self.video_surface = QVideoWidget(stage)
-            self.video_surface.setMinimumHeight(190)
-            self.player.setVideoOutput(self.video_surface)
-            stage_layout.addWidget(self.video_surface, 1)
-            self.wave_label = None
-        else:
-            waveform_frame = QFrame()
-            waveform_frame.setObjectName("previewFrame")
-            waveform_layout = QVBoxLayout(waveform_frame)
-            waveform_layout.setContentsMargins(12, 12, 12, 12)
-            self.wave_label = self._label("preview", "sectionTitle")
-            self.wave_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.wave_label.setMinimumHeight(190)
-            waveform_layout.addWidget(self.wave_label)
-            stage_layout.addWidget(waveform_frame, 1)
-
-        player_row = QHBoxLayout()
-        self.play_button = self._button("play", self.toggle_play)
-        self.stop_button = self._button("stop", self.stop_playback)
-        player_row.addWidget(self.play_button)
-        player_row.addWidget(self.stop_button)
-        self.time_label = QLabel(clock(0) + " / " + clock(0))
-        self.time_label.setObjectName("muted")
-        player_row.addStretch()
-        player_row.addWidget(self.time_label)
-        stage_layout.addLayout(player_row)
-        # The range bar is also the seek control: no competing second slider.
-        # It shows the whole file plus current selected in/out markers.
-        self.timeline = TrimTimeline(stage)
-        self.timeline.rangeChanged.connect(self._timeline_changed)
-        self.timeline.seekRequested.connect(self._seek_from_timeline)
-        stage_layout.addWidget(self.timeline)
-        stage_layout.addWidget(self._label("timeline_hint", "muted", wrap=True))
-        content.addWidget(stage)
-
-        controls = QScrollArea()
-        controls.setObjectName("inspectorScroll")
-        controls.setWidgetResizable(True)
-        controls.setMinimumWidth(315)
-        controls.setMaximumWidth(470)
-        inspector = QWidget()
-        inspector.setObjectName("toolsPanel")
-        form_outer = QVBoxLayout(inspector)
-        form_outer.setContentsMargins(14, 18, 18, 18)
-        form_outer.setSpacing(14)
-        form_outer.addWidget(self._label("steps", "sectionTitle"))
-
-        range_card = QFrame()
-        range_card.setObjectName("toolCard")
-        range_layout = QVBoxLayout(range_card)
-        range_layout.setContentsMargins(14, 14, 14, 14)
-        range_layout.addWidget(self._label("trim", "sectionTitle"))
-        range_layout.addWidget(self._label("trim_hint", "muted", wrap=True))
-        range_form = QFormLayout()
-        self.start_spin = QDoubleSpinBox()
-        self.end_spin = QDoubleSpinBox()
-        for spin in (self.start_spin, self.end_spin):
-            spin.setDecimals(3)
-            spin.setSingleStep(0.25)
-            spin.setSuffix(" s")
-            spin.valueChanged.connect(self._selection_changed)
-        range_form.addRow(self._label("start_time"), self.start_spin)
-        range_form.addRow(self._label("end_time"), self.end_spin)
-        range_layout.addLayout(range_form)
-        markers = QHBoxLayout()
-        self.mark_start_button = self._button("mark_start", self._mark_start_at_playhead, "quiet")
-        self.mark_end_button = self._button("mark_end", self._mark_end_at_playhead, "quiet")
-        markers.addWidget(self.mark_start_button)
-        markers.addWidget(self.mark_end_button)
-        range_layout.addLayout(markers)
-        self.reset_range_button = self._button("reset_range", self._reset_range, "quiet")
-        range_layout.addWidget(self.reset_range_button)
-        form_outer.addWidget(range_card)
-
-        audio_card = QFrame()
-        audio_card.setObjectName("toolCard")
-        audio_layout = QVBoxLayout(audio_card)
-        audio_layout.setContentsMargins(14, 14, 14, 14)
-        audio_layout.addWidget(self._label("audio", "sectionTitle"))
-        self.volume_title = self._label("volume")
-        audio_layout.addWidget(self.volume_title)
-        volume_row = QHBoxLayout()
-        self.volume = QSlider(Qt.Orientation.Horizontal)
-        self.volume.setRange(0, 200)
-        self.volume.setValue(100)
-        self.volume.valueChanged.connect(self._volume_changed)
-        volume_row.addWidget(self.volume)
-        self.volume_label = QLabel("100 %")
-        self.volume_label.setObjectName("sliderValue")
-        volume_row.addWidget(self.volume_label)
-        audio_layout.addLayout(volume_row)
-
-        if self.kind == "video":
-            self.mute = self._check("mute", self._mute_changed)
-            audio_layout.addWidget(self.mute)
-            self.normalize = None
-            self.fade_in = None
-            self.fade_out = None
-        else:
-            self.mute = None
-            self.normalize = self._check("normalize", lambda _: self._update_enabled())
-            audio_layout.addWidget(self.normalize)
-            fade_form = QFormLayout()
-            self.fade_in = QDoubleSpinBox()
-            self.fade_out = QDoubleSpinBox()
-            for spin in (self.fade_in, self.fade_out):
-                spin.setDecimals(1)
-                spin.setRange(0, 60)
-                spin.setSingleStep(0.5)
-                spin.setSuffix(" s")
-                spin.valueChanged.connect(self._selection_changed)
-            fade_form.addRow(self._label("fade_in"), self.fade_in)
-            fade_form.addRow(self._label("fade_out"), self.fade_out)
-            audio_layout.addLayout(fade_form)
-        form_outer.addWidget(audio_card)
-
-        export_card = QFrame()
-        export_card.setObjectName("toolCard")
-        export_layout = QVBoxLayout(export_card)
-        export_layout.setContentsMargins(14, 14, 14, 14)
-        export_layout.addWidget(self._label(f"export_hint_{self.kind}", "muted", wrap=True))
-        self.export_second = self._button("export", self.export_file, "primary")
-        export_layout.addWidget(self.export_second)
-        form_outer.addWidget(export_card)
-        form_outer.addWidget(self._label("codec_hint", "muted", wrap=True))
-        form_outer.addStretch()
-        controls.setWidget(inspector)
-        content.addWidget(controls)
-        content.setSizes([900, 370])
-
-        footer = QFrame()
-        footer.setObjectName("bottomBar")
-        bottom = QHBoxLayout(footer)
-        bottom.setContentsMargins(14, 8, 14, 8)
-        self.status = QLabel()
-        self.status.setTextFormat(Qt.TextFormat.PlainText)
-        self.status.setObjectName("status")
-        self.status.setWordWrap(True)
-        bottom.addWidget(self.status, 1)
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 0)
-        self.progress.setMaximumWidth(100)
-        self.progress.hide()
-        bottom.addWidget(self.progress)
-        self.cancel_button = self._button("cancel", self.cancel_export)
-        self.cancel_button.hide()
-        bottom.addWidget(self.cancel_button)
-        root.addWidget(footer)
-        self._set_status("ready")
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        resize_media_shell(self)
 
     def _switch_language(self) -> None:
         self.language = str(self.language_combo.currentData() or "de")
@@ -316,6 +131,13 @@ class MediaWindow(QMainWindow):
         self.timeline.setAccessibleName(self._t("timeline_title"))
         self.timeline.setAccessibleDescription(self._t("timeline_accessible"))
         self._playback_changed(self.player.playbackState())
+        self.language_combo.setAccessibleName(self._t("language"))
+        self.volume.setAccessibleName(self._t("volume"))
+        for control, key in ((self.start_spin, "start_time"), (self.end_spin, "end_time")):
+            control.setAccessibleName(self._t(key))
+        for index, key in self._inspector_tab_keys:
+            self.inspector_tabs.setTabText(index, self._t(key))
+        resize_media_shell(self)
 
     def _set_status(self, key: str, **values: object) -> None:
         self._status_key = key
@@ -441,7 +263,12 @@ class MediaWindow(QMainWindow):
             spin.setValue(0)
             spin.blockSignals(False)
         self._set_status("duration_wait")
-        self.player.setSource(QUrl.fromLocalFile(str(file)))
+        url = QUrl.fromLocalFile(str(file))
+        # Qt ignores setSource with the same URL. Clear it first so duplicate
+        # clips, undo/redo, and reopening a file receive fresh metadata.
+        if self.player.source() == url:
+            self.player.setSource(QUrl())
+        self.player.setSource(url)
         if self.kind == "audio":
             self._render_waveform(file)
         self._update_enabled()
@@ -470,6 +297,7 @@ class MediaWindow(QMainWindow):
                 self.player.pause()
 
     def _playback_changed(self, state: QMediaPlayer.PlaybackState) -> None:
+        self.play_button.setIcon(icon("pause" if state == QMediaPlayer.PlaybackState.PlayingState else "play"))
         self.play_button.setText(self._t(
             "pause" if state == QMediaPlayer.PlaybackState.PlayingState else "play"
         ))
