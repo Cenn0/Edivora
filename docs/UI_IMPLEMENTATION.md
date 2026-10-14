@@ -16,7 +16,7 @@ Für Video-/Audio-Projekte speichert die UI nur **Quellreferenzen und Bearbeitun
 ## Navigation, Aussehen und Marke
 
 - Gemeinsame dunkle Farbpalette: `ui/theme.py`; deutscher und englischer UI-Text in passenden `*_strings.py`-Modulen.
-- Die Produktmarke **Edivora** wird als lokale SVG-Datei in Launcher-/Foto-Kopfzeile und als Anwendungsicon eingebunden (`branding.py`, `assets/edivora-mark.svg`). `tools/brand_assets.py` rendert das Windows-ICO **zur Buildzeit**. Keine externen Bilder/CDNs oder Fonts nötig.
+- Die Produktmarke **Edivora** wird als lokale SVG-Datei in Launcher-, Foto-, Video- und Audio-Kopfzeilen und als Anwendungsicon eingebunden (`branding.py`, `assets/edivora-mark.svg`). `tools/brand_assets.py` rendert das Windows-ICO **zur Buildzeit**. Keine externen Bilder/CDNs oder Fonts nötig.
 - Der Launcher startet **dieselbe** ausführbare Datei mit `--tool photo|video|audio` mehrfach. Der Medien-MVP ist keine einzelne Multitrack-App.
 - Die Fotoshell hält riskante Zustandsübergänge zurück: Unbestätigte Vorschauen dürfen nicht unbemerkt beim Wechseln der Navigation verloren gehen.
 - Vorher-Nachher, klare Labels, Übersetzungen und Tastaturalternativen wurden im Quellcode berücksichtigt. **Vollständige Accessibility-, DPI- und Screenreader-Abnahme** auf realer Hardware steht aus.

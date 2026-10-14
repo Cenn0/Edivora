@@ -15,7 +15,7 @@ Die SVGs liegen versioniert **im Repository**, nicht auf einem CDN. Sie enthalte
 | `edivora-wordmark.svg` | ![Edivora Wortmarke mit Motto](../src/local_ai_photo_editor/assets/edivora-wordmark.svg) | README, Projektstart und Dokumentation |
 | `edivora-banner.svg` | ![Edivora Foto-, Video- und Audiobereiche](../src/local_ai_photo_editor/assets/edivora-banner.svg) | Produktüberblick der aktuellen Quellcode-Suite |
 
-Dateipfade: `src/local_ai_photo_editor/assets/`. In der Quellcode-Oberfläche werden die SVG-Daten durch QtSvg lokal gerendert; beim **Windows-Build** erzeugt `tools/brand_assets.py` ein ICO aus demselben Logo. `tools/build_windows.py` bindet SVG-Ressourcen sowie das ICO in den Entwicklungsbuild ein. **Dies ist eine Implementierung, kein Nachweis eines erfolgreich getesteten neuen Windows-Pakets.**
+Dateipfade: `src/local_ai_photo_editor/assets/`. In den Kopfzeilen des Launchers und aller drei Editoren werden die SVG-Daten durch QtSvg lokal gerendert; beim **Windows-Build** erzeugt `tools/brand_assets.py` ein ICO aus demselben Logo. `tools/build_windows.py` bindet SVG-Ressourcen sowie das ICO in den Entwicklungsbuild ein. **Dies ist eine Implementierung, kein Nachweis eines erfolgreich getesteten neuen Windows-Pakets.**
 
 ## Farben und Anwendung
 
