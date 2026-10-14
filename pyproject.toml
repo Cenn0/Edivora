@@ -26,7 +26,7 @@ edivora = "local_ai_photo_editor.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-local_ai_photo_editor = ["models/*.json", "models/*.onnx", "models/*.txt"]
+local_ai_photo_editor = ["models/*.json", "models/*.onnx", "models/*.txt", "assets/*.svg"]
 
 [tool.pyside6.deploy]
 title = "Edivora"

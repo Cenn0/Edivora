@@ -293,8 +293,10 @@ def ui_smoke_test(output_directory: Path) -> int:
         qt_details["library_paths_after_app"] = list(QCoreApplication.libraryPaths())
         qt_details["application_directory"] = QCoreApplication.applicationDirPath()
         qt_details["platform"] = app.platformName()
-        app.setApplicationName("localAiPhotoEditor")
-        app.setOrganizationName("localAiPhotoEditor")
+        from .branding import APP_NAME, app_icon
+        app.setApplicationName(APP_NAME)
+        app.setOrganizationName(APP_NAME)
+        app.setWindowIcon(app_icon())
         quit_on_last_window_closed = app.quitOnLastWindowClosed()
         # Exit only after the window and its children have been destroyed.
         app.setQuitOnLastWindowClosed(False)
@@ -608,8 +610,10 @@ def main(argv: list[str] | None = None) -> int:
 
     _configure_bundled_qt_plugins()
     app = QApplication(sys.argv[:1])
-    app.setApplicationName("Edivora")
-    app.setOrganizationName("Edivora")
+    from .branding import APP_NAME, app_icon
+    app.setApplicationName(APP_NAME)
+    app.setOrganizationName(APP_NAME)
+    app.setWindowIcon(app_icon())
     if mode == "launcher":
         from .ui.launcher import LauncherWindow
         window = LauncherWindow(launch_tool)
