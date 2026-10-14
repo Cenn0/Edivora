@@ -15,13 +15,14 @@ import uuid
 from PySide6.QtCore import QProcess, QSignalBlocker, Qt, QUrl
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QAbstractItemView, QFileDialog, QFrame, QHBoxLayout, QLabel,
+    QAbstractItemView, QFileDialog, QFrame, QHBoxLayout, QLabel, QInputDialog,
     QListWidget, QListWidgetItem, QMessageBox, QPushButton, QVBoxLayout,
     QWidget,
 )
 
-from ..ai.models import available as image_model_available
+from ..ai.catalog import TASK_IMAGE, TASK_TRANSCRIBE, choose_model
 from ..ai.voice import model_available as voice_model_available
+from .model_settings import get_preference
 from ..core.media import MIN_SELECTION_MS, ffmpeg_executable, validate_source
 from ..core.media_project import (
     MAX_CLIPS, MediaClip, MediaSequence, PROJECT_EXTENSIONS,
@@ -143,6 +144,10 @@ class SequenceWindow(MediaWindow):
         self.ai_button.setObjectName("quickAiAction")
         self.ai_button.clicked.connect(self.start_local_ai)
         project_layout.addWidget(self.ai_button)
+        self.transcribe_button = QPushButton()
+        self.transcribe_button.setObjectName("quickAiAction")
+        self.transcribe_button.clicked.connect(self.start_transcription)
+        project_layout.addWidget(self.transcribe_button)
 
         QShortcut(QKeySequence("Ctrl+Shift+O"), self, activated=self.open_media_project)
         QShortcut(QKeySequence("Ctrl+S"), self, activated=self.save_media_project)
@@ -165,6 +170,7 @@ class SequenceWindow(MediaWindow):
         self.clip_heading.setText(key("clip_lane"))
         self.project_heading.setText(key("project_title"))
         self.ai_button.setText(key("ai_voice" if self.kind == "audio" else "ai_video_frame"))
+        self.transcribe_button.setText(key("ai_transcribe"))
         self.clip_list.setAccessibleName(key("clip_lane"))
         self.clip_list.setToolTip(key("clip_tip"))
         self._refresh_clips()
@@ -209,11 +215,28 @@ class SequenceWindow(MediaWindow):
         self.up_button.setEnabled(ready and idx is not None and idx > 0)
         self.down_button.setEnabled(ready and idx is not None and idx < len(self.clips) - 1)
         self.clip_list.setEnabled(not busy)
-        self.ai_button.setEnabled(
-            ready and (voice_model_available() if self.kind == "audio" else image_model_available())
-        )
+        if self.kind == "audio":
+            segmentation_available = voice_model_available()
+        else:
+            try:
+                segmentation_available = choose_model(
+                    TASK_IMAGE, get_preference(TASK_IMAGE)
+                ) is not None
+            except (OSError, ValueError):
+                segmentation_available = False
+        self.ai_button.setEnabled(ready and segmentation_available)
+        try:
+            speech_available = choose_model(
+                TASK_TRANSCRIBE, get_preference(TASK_TRANSCRIBE)
+            ) is not None
+        except (OSError, ValueError):
+            speech_available = False
+        self.transcribe_button.setEnabled(ready and speech_available)
         self.ai_button.setToolTip(
             self._t("ai_ready" if self.ai_button.isEnabled() else "ai_unavailable")
+        )
+        self.transcribe_button.setToolTip(
+            self._t("ai_ready" if self.transcribe_button.isEnabled() else "ai_unavailable")
         )
 
     def _can_render(self) -> bool:
@@ -636,11 +659,16 @@ class SequenceWindow(MediaWindow):
         return media_job_command(operation, directory)
 
     def start_local_ai(self) -> None:
+        self._start_ai_operation("voice" if self.kind == "audio" else "frame")
+
+    def start_transcription(self) -> None:
+        self._start_ai_operation("transcribe")
+
+    def _start_ai_operation(self, operation: str) -> None:
         idx = self._selected_index()
         if idx is None or self._is_busy() or not self._capture_selected():
             return
         clip = self.clips[idx]
-        operation = "voice" if self.kind == "audio" else "frame"
         target: Path | None = None
         if operation == "voice":
             if not voice_model_available():
@@ -649,16 +677,61 @@ class SequenceWindow(MediaWindow):
             if clip.length_ms > 15 * 60 * 1000:
                 QMessageBox.information(self, self._t("ai_voice"), self._t("ai_voice_limit"))
                 return
-            payload = {"source": str(clip.source.resolve()),
-                       "start_ms": clip.start_ms, "end_ms": clip.end_ms}
-        else:
-            if not image_model_available():
-                QMessageBox.warning(self, self._t("error"), self._t("ai_unavailable"))
+            payload = {
+                "source": str(clip.source.resolve()),
+                "start_ms": clip.start_ms, "end_ms": clip.end_ms,
+            }
+        elif operation == "transcribe":
+            from ..ai.transcribe import MAX_TRANSCRIBE_MS
+            if clip.length_ms > MAX_TRANSCRIBE_MS:
+                QMessageBox.information(
+                    self, self._t("ai_transcribe"), self._t("ai_transcribe_limit")
+                )
+                return
+            language_labels = ("Deutsch", "English")
+            label, accepted = QInputDialog.getItem(
+                self, self._t("ai_transcribe"), self._t("ai_language"),
+                list(language_labels), 0 if self.language == "de" else 1, False,
+            )
+            if not accepted:
+                return
+            language = "de" if label == "Deutsch" else "en"
+            default = clip.source.with_name(clip.source.stem + "-transkript.txt")
+            selected, selected_filter = QFileDialog.getSaveFileName(
+                self, self._t("ai_transcribe"), str(default),
+                "Text (*.txt);;SubRip (*.srt)",
+            )
+            if not selected:
+                return
+            target = Path(selected)
+            if not target.suffix:
+                target = target.with_suffix(
+                    ".srt" if "srt" in selected_filter else ".txt"
+                )
+            if target.exists() and QMessageBox.question(
+                self, self._t("ai_transcribe"), self._t("overwrite"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            ) != QMessageBox.StandardButton.Yes:
+                return
+            payload = {
+                "source": str(clip.source.resolve()), "kind": self.kind,
+                "start_ms": clip.start_ms, "end_ms": clip.end_ms,
+                "language": language, "destination": str(target),
+                "model": get_preference(TASK_TRANSCRIBE),
+            }
+        elif operation == "frame":
+            selected_model = get_preference(TASK_IMAGE)
+            try:
+                if choose_model(TASK_IMAGE, selected_model) is None:
+                    raise FileNotFoundError("No local segmentation model.")
+            except (OSError, ValueError) as exc:
+                QMessageBox.warning(self, self._t("error"), str(exc))
                 return
             picked, _ = QFileDialog.getSaveFileName(
-                self, self._t("ai_video_frame"), str(clip.source.with_suffix("").with_name(
-                    clip.source.stem + "-ai-frame.png"
-                )), "PNG (*.png)"
+                self, self._t("ai_video_frame"),
+                str(clip.source.with_name(clip.source.stem + "-ai-frame.png")),
+                "PNG (*.png)",
             )
             if not picked:
                 return
@@ -671,9 +744,13 @@ class SequenceWindow(MediaWindow):
                 QMessageBox.StandardButton.No,
             ) != QMessageBox.StandardButton.Yes:
                 return
-            payload = {"source": str(clip.source.resolve()),
-                       "at_ms": min(self.player.position(), clip.duration_ms),
-                       "destination": str(target)}
+            payload = {
+                "source": str(clip.source.resolve()),
+                "at_ms": min(self.player.position(), clip.duration_ms),
+                "destination": str(target), "model": selected_model,
+            }
+        else:
+            raise ValueError("Unsupported local AI task.")
         folder = tempfile.TemporaryDirectory(prefix="edivora-media-ai-")
         workdir = Path(folder.name)
         (workdir / "request.json").write_text(json.dumps(payload), encoding="utf-8")
@@ -756,6 +833,8 @@ class SequenceWindow(MediaWindow):
                     self.clips[idx:idx + 1] = proposed
                     self._mark_changed()
                     self._preview_clip(proposed[0])
+            elif operation == "transcribe":
+                self._set_status("ai_transcribe_done", name=str(result["name"]))
             else:
                 self._set_status("ai_frame_done", name=str(result["name"]))
         except (OSError, ValueError, RuntimeError, TypeError, KeyError) as exc:
