@@ -2,6 +2,14 @@
 
 **Stand:** 14.10.2026, aktuellere Quellcodeentwicklung auf Basis des gemergten Media-MVP. Dieses Dokument ersetzt weder einen erfolgreichen Windows-Build noch einen auf einem sauberen Windows-11-System geprüften Release. Das veröffentlichte `v0.1.0-alpha.1` ist weiterhin nur der ältere Fotoeditor.
 
+> **Nachfolger:** Die aktuelle Entwicklungsstufe erweitert das ursprüngliche
+> **Ein-Datei-MVP** um Mehrclip-Sequenzen, verlinkte `.edvp/.edap`-Projekte
+> und zwei echte lokale ONNX-KI-Aktionen. Dieses Dokument beschreibt
+> weitgehend den **vorherigen MVP-Funktionsstand**. Der neue vollständige
+> Umfang und seine Grenzen stehen in [MEDIA_PROJECTS_AI.md](MEDIA_PROJECTS_AI.md).
+> Aussagen weiter unten wie „eine Datei“, „kein Projektformat“ und „keine
+> Video-/Audio-KI“ sind damit als historische MVP-Abgrenzung zu lesen.
+
 ## Ein Programm, drei voneinander unabhängige Fenster
 
 `Edivora.exe` (im jetzigen Windows-Build weiterhin `LocalAiPhotoEditor.exe` genannt) öffnet ohne Argumente den **Edivora Launcher**. Die Startansicht zeigt Foto, Video und Audio mit jeweils einem **Öffnen**-Knopf und einer separaten Checkbox **Auswählen**. Mit **Ausgewählte Werkzeuge öffnen** können beliebige Kombinationen von einem, zwei oder drei verschiedenen Editoren gleichzeitig geöffnet werden. Der Launcher bleibt geöffnet und kann erneut Werkzeuge starten.
