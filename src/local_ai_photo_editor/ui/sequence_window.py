@@ -52,9 +52,15 @@ class SequenceWindow(MediaWindow):
         self._ai_action: str | None = None
         self._ai_target: Path | None = None
         self._ai_clip_id: str | None = None
+        self._ai_cancel_requested = False
         super().__init__(kind, compiled_executable)
         self._install_sequence_controls()
         self.player.hasAudioChanged.connect(self._audio_presence_changed)
+        self.player.errorOccurred.connect(self._sequence_preview_error)
+        if self.normalize is not None:
+            self.normalize.toggled.connect(lambda _: self._mark_changed())
+            self.fade_in.valueChanged.connect(lambda _: self._mark_changed())
+            self.fade_out.valueChanged.connect(lambda _: self._mark_changed())
         self._ui_ready = True
         self._update_enabled()
 
@@ -166,6 +172,22 @@ class SequenceWindow(MediaWindow):
     def _is_busy(self) -> bool:
         return super()._is_busy() or self._ai_process is not None
 
+    def _valid_selection(self) -> bool:
+        # Master audio fades affect the *assembled sequence*, not just the
+        # currently selected source clip. The sequence validator checks total.
+        if self.source is None or self.duration_ms <= 0:
+            return False
+        start = round(self.start_spin.value() * 1000)
+        end = round(self.end_spin.value() * 1000)
+        return 0 <= start < end <= self.duration_ms and end - start >= MIN_SELECTION_MS
+
+    def _sequence_preview_error(self, *_args: object) -> None:
+        if self._pending_new is not None or self._pending_existing is not None:
+            self._pending_new = None
+            self._pending_existing = None
+            self._loading = False
+            self._update_enabled()
+
     def _update_enabled(self) -> None:
         super()._update_enabled()
         if not getattr(self, "_ui_ready", False):
@@ -264,9 +286,7 @@ class SequenceWindow(MediaWindow):
                 item = QListWidgetItem(title)
                 item.setData(Qt.ItemDataRole.UserRole, clip.id)
                 item.setToolTip(f"{clip.source.name} · {clock(clip.length_ms)}")
-                item.setSizeHint(self.clip_list.sizeHintForIndex(self.clip_list.model().index(0, 0))
-                                 if False else item.sizeHint())
-                self.clip_list.addItem(item)
+                 self.clip_list.addItem(item)
                 if clip.id == self.active_id:
                     self.clip_list.setCurrentItem(item)
         self._update_project_heading()
@@ -664,6 +684,7 @@ class SequenceWindow(MediaWindow):
         self._ai_action = operation
         self._ai_target = target
         self._ai_clip_id = clip.id
+        self._ai_cancel_requested = False
         process.setProgram(program)
         process.setArguments(args)
         process.finished.connect(lambda code, status, p=process: self._ai_finished(p, code))
@@ -693,6 +714,9 @@ class SequenceWindow(MediaWindow):
         self.progress.hide()
         self.cancel_button.hide()
         try:
+            if self._ai_cancel_requested:
+                self._set_status("cancelled")
+                return
             if folder is None or code != 0:
                 raise RuntimeError(self._t("ai_media_error"))
             file = Path(folder.name) / "result.json"
@@ -735,7 +759,7 @@ class SequenceWindow(MediaWindow):
             else:
                 self._set_status("ai_frame_done", name=str(result["name"]))
         except (OSError, ValueError, RuntimeError, TypeError, KeyError) as exc:
-            if code != -9:
+            if not self._ai_cancel_requested:
                 QMessageBox.warning(self, self._t("error"), str(exc))
         finally:
             if folder is not None:
@@ -745,6 +769,7 @@ class SequenceWindow(MediaWindow):
     def cancel_export(self) -> None:
         if self._ai_process is not None:
             process = self._ai_process
+            self._ai_cancel_requested = True
             process.kill()
             process.waitForFinished(3000)
             if self._ai_process is process:
@@ -761,7 +786,7 @@ class SequenceWindow(MediaWindow):
             return
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        if self._dirty and not self._is_busy() and not self._confirm_unsaved():
+        if self._dirty and not self._confirm_unsaved():
             event.ignore()
             return
         if self._ai_process is not None:
