@@ -142,6 +142,7 @@ class EditorWindow(BaseEditorWindow):
             self._t("quick_more_hide" if self.more_tools_button.isChecked() else "quick_more_show")
         )
         self.more_tools_button.setToolTip(self._t("quick_more_hint"))
+        self.more_tools_button.setAccessibleDescription(self._t("quick_more_hint"))
 
     def _update_quick_hint(self) -> None:
         if self.is_busy:
@@ -171,9 +172,19 @@ class EditorWindow(BaseEditorWindow):
         if not hasattr(self, "quick_buttons"):
             return
         enabled = self._editable() and not self.crop_button.isChecked()
-        for control in (*self.quick_buttons, *self.editing_buttons, self.editing_action):
+        for control, hint in zip(
+            self.quick_buttons,
+            ("quick_improve_hint", "quick_crop_hint", "quick_blur_hint", "quick_cutout_hint"),
+        ):
             control.setEnabled(enabled)
-            control.setToolTip(self._t("quick_description" if enabled else "tools_unavailable"))
+            control.setToolTip(self._t(
+                hint if enabled else "quick_need_photo" if self.document is None
+                else "tools_unavailable"
+            ))
+            control.setAccessibleDescription(self._t(hint))
+        for control in (*self.editing_buttons, self.editing_action):
+            control.setEnabled(enabled)
+            control.setToolTip(self._t("tools_hint" if enabled else "tools_unavailable"))
         for control in (*self.subject_buttons, self.subject_action):
             control.setEnabled(enabled)
             control.setToolTip(self._t("subject_hint" if enabled else "tools_unavailable"))
