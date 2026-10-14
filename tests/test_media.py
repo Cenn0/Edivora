@@ -46,7 +46,7 @@ class MediaBackendTests(unittest.TestCase):
         job = MediaExport("video", self.source, self.output, 5000, 200, 4000, mute=True)
         args = job.ffmpeg_arguments(job.temp_output())
         self.assertIn("file,pipe,data", args)
-        self.assertIn(str(self.source), args)
+        self.assertIn(str(self.source.resolve()), args)
         self.assertIn("mpeg4", args)
         self.assertIn("-an", args)
         self.assertNotIn("-c:a", args)
