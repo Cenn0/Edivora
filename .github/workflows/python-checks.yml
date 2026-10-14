@@ -60,6 +60,11 @@ jobs:
           mkdir -p test-results
           set -o pipefail
           python -m unittest discover -s tests -v 2>&1 | tee test-results/unit-tests.txt
+      - name: Verify responsive layouts at 150 and 200 percent scale
+        shell: bash
+        run: |
+          QT_SCALE_FACTOR=1.5 python -m unittest discover -s tests -p test_responsive_suite.py -v
+          QT_SCALE_FACTOR=2 python -m unittest discover -s tests -p test_responsive_suite.py -v
       - name: Check Python compilation
         run: python -m compileall -q src tests tools
       - name: Capture German and English editing workspaces
