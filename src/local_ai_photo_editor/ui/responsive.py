@@ -1,8 +1,8 @@
 """Shared layout helpers. Logical pixels are scaled by Qt, never by manual DPI math."""
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt
-from PySide6.QtWidgets import QCheckBox, QLabel, QSizePolicy, QWidget
+from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt
+from PySide6.QtWidgets import QCheckBox, QLabel, QScrollArea, QSizePolicy, QWidget
 
 
 class ElideLabel(QLabel):
@@ -86,3 +86,40 @@ class WrappedCheckBox(QCheckBox):
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         self._caption.setGeometry(30, 0, max(0, self.width() - 30), self.height())
+
+
+class VerticalScrollArea(QScrollArea):
+    """Keep content in the actual viewport when a native scrollbar consumes width.
+
+    Word-wrapping pages can acquire a wider minimum size before a vertical bar
+    appears. A vertical-only inspector must reflow at the viewport's new width,
+    not keep that stale size and hide its right edge behind a disabled bar.
+    """
+    def __init__(self, parent=None) -> None:
+        self._fitting_width = False
+        super().__init__(parent)
+        self.setWidgetResizable(True)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+    def setWidget(self, widget: QWidget) -> None:
+        super().setWidget(widget)
+        self._fit_content_width()
+
+    def viewportEvent(self, event) -> bool:
+        result = super().viewportEvent(event)
+        if event.type() == QEvent.Type.Resize:
+            self._fit_content_width()
+        return result
+
+    def _fit_content_width(self) -> None:
+        widget = self.widget()
+        width = self.viewport().width()
+        if widget is None or self._fitting_width or width < 1:
+            return
+        self._fitting_width = True
+        try:
+            # This tracks the live viewport; it is not a hard-coded panel width.
+            if widget.minimumWidth() != width or widget.maximumWidth() != width:
+                widget.setFixedWidth(width)
+        finally:
+            self._fitting_width = False
