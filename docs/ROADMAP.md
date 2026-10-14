@@ -1,5 +1,28 @@
 # Roadmap
 
+## Nächster Entwicklungsschritt: Multi-Clip, Projekte, lokale Medien-KI
+
+Im Entwicklungsbranch umgesetzt, **noch nicht als veröffentlichter Endnutzer-
+Release freigegeben**:
+
+- Ordered single-lane Video-/Audio-Arrangement für bis zu 24 Clips, Ziehen zum
+  Sortieren, Teilen, Duplizieren, Löschen und clip-spezifischer Ausschnitt
+- Reversible Datendateien `.edvp/.edap` mit strikt validiertem JSON, relativen
+  bzw. absoluten lokalen Quelldateiverweisen und atomarem Projektspeichern
+- Gemeinsamer lokaler FFmpeg-Render als MP4 oder WAV/MP3 mit harter
+  Quellschutzgrenze, abbrechbarem Unterprozess und konsistenten Streams
+- **Echte lokale KI:** Silero v6.2.1 ONNX zum Erkennen von Sprachabschnitten
+  im Audioeditor (mit Bestätigung) und vorhandenes U2NETP-Modell zum
+  Freistellen eines einzelnen Video-Standbilds als PNG
+- Sprach-/Projekt-/Render- und Sicherheitsprüfungen; realer Modell- und
+  Windows-Paket-Smoke-Test als eigenständiges, ausstehendes Akzeptanzkriterium
+
+Noch offen: durchgehende Zusammenschnitt-Vorschau, Multitrack-Audio-/Video-
+Mischer, frei positionierbare Clips mit Überlappungen, Übergänge,
+Medien-Undo/Redo, Offline-Transkription, temporale Video-KI, Media-Relinking,
+vollständige FFmpeg-/Modell-Lizenzfreigabe und Clean-Windows-11-Abnahme.
+Details: [MEDIA_PROJECTS_AI.md](MEDIA_PROJECTS_AI.md).
+
 ## Media suite MVP — new source milestone (not in the legacy photo-only alpha)
 
 - Implemented in development source: one Edivora launcher executable that starts

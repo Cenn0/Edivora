@@ -555,6 +555,19 @@ def tool_command(tool: str) -> tuple[str, list[str]]:
     return sys.executable, ["-m", "local_ai_photo_editor", "--tool", tool]
 
 
+def media_job_command(operation: str, directory: str | Path) -> tuple[str, list[str]]:
+    """Run built-in, local AI workers in the same packaged application."""
+    if operation not in ("voice", "frame"):
+        raise ValueError("Unsupported media AI operation.")
+    executable = _compiled_executable()
+    command = ["--media-ai-job", operation, str(directory)]
+    if executable is not None:
+        return executable, command
+    if getattr(sys, "frozen", False):
+        return sys.executable, command
+    return sys.executable, ["-m", "local_ai_photo_editor", *command]
+
+
 def launch_tool(tool: str) -> bool:
     """Detach each editor so closing another editor or the hub is harmless."""
     from PySide6.QtCore import QProcess
@@ -568,6 +581,14 @@ def main(argv: list[str] | None = None) -> int:
     if len(args) == 2 and args[0] == "--worker":
         from .worker import run_job
         return run_job(Path(args[1]))
+    if len(args) == 3 and args[0] == "--media-ai-job":
+        if args[1] == "voice":
+            from .ai.voice import voice_worker
+            return voice_worker(Path(args[2]), _compiled_executable())
+        if args[1] == "frame":
+            from .ai.video_frame import frame_worker
+            return frame_worker(Path(args[2]), _compiled_executable())
+        return 2
     if len(args) == 2 and args[0] == "--smoke-test":
         return smoke_test(Path(args[1]))
     if len(args) == 2 and args[0] == "--ui-smoke-test":
@@ -596,8 +617,8 @@ def main(argv: list[str] | None = None) -> int:
         from .ui import EditorWindow
         window = EditorWindow()
     else:
-        from .ui.media_window import MediaWindow
-        window = MediaWindow(mode, _compiled_executable())
+        from .ui.sequence_window import SequenceWindow
+        window = SequenceWindow(mode, _compiled_executable())
     window.show()
     return app.exec()
 

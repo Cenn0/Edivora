@@ -17,6 +17,25 @@ The application's own code is licensed under Apache-2.0; see `LICENSE`. That lic
 
 The build copies available license, copying and notice files from installed distributions into `third-party-licenses/`, alongside an inventory of exact installed versions. The inventory also includes development/build tools; inclusion in that list does not mean all of those packages are shipped as executable application dependencies. The Nuitka compilation report records what is actually included.
 
+## Additional local AI model: Silero VAD 6.2.1
+
+The Audio editor can use the exact `snakers4/silero-vad@v6.2.1` ONNX
+voice activity model for speech/non-speech region proposals. Upstream:
+[Silero VAD project](https://github.com/snakers4/silero-vad/tree/v6.2.1)
+and [upstream MIT license](https://github.com/snakers4/silero-vad/blob/v6.2.1/LICENSE).
+The model's MIT copyright/license notice is included as
+`local_ai_photo_editor/models/SILERO_VAD_LICENSE.txt`. Build tooling retrieves
+the original ONNX asset **only during build**, checks 2,327,524 bytes and SHA-256
+`1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3`,
+and bundles it with the rest of the offline app. The runtime cannot fetch
+models. SHA-256 ensures artifact identity, **not** model accuracy, benign
+model content or final legal clearance.
+
+The Video editor's still-frame background cutout reuses the already-pinned
+U2NETP weights. Their redistribution/provenance gate remains unresolved;
+a passing FFmpeg/ONNX smoke test does not grant a new model license.
+Actual binary/license packaging must be reviewed before public distribution.
+
 ## Additional media-binary notice: NOT YET PUBLICATION-READY
 
 The Edivora video/audio MVP copies the `imageio-ffmpeg==0.6.0` wheel's

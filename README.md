@@ -1,6 +1,6 @@
 # Edivora – lokale Foto-, Video- und Audiobearbeitung
 
-**Entwicklungsstand (noch nicht als Windows-Paket veröffentlicht):** Der neue Edivora-Launcher eröffnet drei unabhängige Werkzeuge für Foto, Video und Audio. Beim Programmstart werden Foto, Video und Audio angezeigt; man kann **ein einzelnes, zwei oder alle drei Werkzeuge parallel** in getrennten Fenstern öffnen. Video und Audio besitzen eigene Editoren mit Wiedergabe, einer **visuellen Zeitleiste mit verschiebbaren Schnittmarken**, genauer Zeitangabe und lokalem Export. Dokumentation und Grenzen: **[Video-/Audio-MVP und Launcher](docs/MEDIA_MVP.md)**.
+**Entwicklungsstand (noch nicht als Windows-Paket veröffentlicht):** Der neue Edivora-Launcher eröffnet drei unabhängige Werkzeuge für Foto, Video und Audio. Beim Programmstart werden Foto, Video und Audio angezeigt; man kann **ein einzelnes, zwei oder alle drei Werkzeuge parallel** in getrennten Fenstern öffnen. Video und Audio besitzen jetzt außerdem **eine einfache Mehrclip-Timeline (bis 24 Clips), speicherbare .edvp/.edap-Projekte und lokale modellgestützte KI-Aktionen** neben den bisherigen Schnitt- und Exportfunktionen. Dokumentation und Grenzen: **[Video-/Audio-MVP und Launcher](docs/MEDIA_MVP.md)**.
 
 Der bereits **veröffentlichte Download `v0.1.0-alpha.1` ist dagegen weiterhin die ältere reine Foto-Testalpha**, ohne Video-/Audio-MVP und ohne neuen Launcher. Die nachstehenden Prüfergebnisse und Downloadlinks gelten **nur** für diese unveränderte Testalpha; eine neue EXE ist erst nach erfolgreichem Windows-Build des Entwicklungsstands als CI-Artefakt verfügbar.
 
@@ -34,8 +34,8 @@ Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte
 Die neue, noch **nicht im älteren Release enthaltene** Qt-Oberfläche verwendet das [gemeinsame Designsystem](docs/DESIGN_SYSTEM.md). Ein eigener Launcher zeigt die drei Werkzeuge mit Direktstart und Mehrfachauswahl:
 
 - **Foto:** bisheriger Editor mit lokalen KI-Motivfunktionen, Projektdateien, Vorschau und Bearbeitungshistorie.
-- **Video-MVP:** lokale Dateiwiedergabe, grafischer Schnittbereich mit verschiebbaren Anfangs-/Endmarken und Abspielkopf, Ton stummschalten/Lautstärke, MP4-Export.
-- **Audio-MVP:** lokale Wiedergabe mit Wellenformvorschau, derselbe grafische Schnittbereich, Lautstärke, optionale Normalisierung und Ein-/Ausblenden, WAV-/MP3-Export.
+- **Video-MVP:** Clips importieren und durch Ziehen anordnen, duplizieren, teilen und zuschneiden, als MP4 exportieren, Reihenfolge als **.edvp-Projekt** sichern. Die **lokale KI** kann den Hintergrund eines ausgewählten **einzelnen Standbilds** entfernen und das Ergebnis als PNG speichern.
+- **Audio-MVP:** Clips importieren, anordnen, teilen, mit individueller Lautstärke versehen, mit optionaler Gesamt-Normalisierung und Fades als WAV/MP3 exportieren, als **.edap-Projekt** sichern. Eine **lokale Silero-VAD-KI** erkennt auf Wunsch Sprachabschnitte und schlägt daraus neue Schnittbereiche vor.
 
 **Start aus dem Quellcode** (nach `pip install -e .`):
 
@@ -48,7 +48,9 @@ python -m local_ai_photo_editor --tool audio      # nur Audio
 
 Im vollständigen späteren Windows-Build wird statt Python dieselbe `LocalAiPhotoEditor.exe` doppelt angeklickt. Von dort startet sie die ausgewählten Werkzeuge als separate Prozesse; die EXE benötigt ihren mitgelieferten DLL-, Modell- und FFmpeg-Ordner. Python und FFmpeg müssen auf dem Zielsystem **nicht separat installiert** werden. Das Foto-Menü erlaubt außerdem den parallelen Start der beiden Medienwerkzeuge.
 
-Video und Audio sind **bewusst MVPs**: keine kombinierte Mehrspur-Zeitleiste, kein lokales Medien-Projektformat, kein Undo/Redo, keine Video-/Audio-KI, keine allgemeine Codec-Garantie und kein Ersatz für spezialisierte professionelle Editoren. Wiedergabe über Qt Multimedia und Export über FFmpeg haben unterschiedliche Format-/Codec-Fähigkeiten. Die neue Paket-/Lizenz- und Windows-11-Abnahme ist noch ausstehend. [Funktionen, Grenzen und Tests](docs/MEDIA_MVP.md).
+Video und Audio bleiben **bewusst MVPs**: Die Reihenfolge ist **eine Spur ohne Übergänge**, keine professionelle Mehrspur-Zeitleiste. Die Vorschau spielt jeweils den gewählten Clip ab; die gesamte Reihenfolge wird beim Export zusammengesetzt. Projektdateien **referenzieren** Originalmedien, statt diese einzubetten. Die KI transkribiert nicht, und die Video-KI bearbeitet **nur ein Standbild**, nicht einen kompletten Videoclip. Undo/Redo für die Medien-Timeline, kontinuierliche Gesamtvorschau, umfassende Codec-Unterstützung und automatische Projektwiederherstellung fehlen noch. [Neues Clip-/Projekt-/KI-Konzept](docs/MEDIA_PROJECTS_AI.md) · [Bestehendes Medien-MVP](docs/MEDIA_MVP.md).
+
+Die neue Windows-Paketprüfung und die Lizenz-/Windows-11-Freigabe sind noch offen. **Das oben verlinkte veröffentlichte ZIP bleibt die alte Foto-Testalpha**.
 
 ## Neu im Quellstand: KI-Motivwerkzeuge
 
