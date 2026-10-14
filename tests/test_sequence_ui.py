@@ -87,6 +87,7 @@ class SequencerQtTests(unittest.TestCase):
             w.close()
             w.deleteLater()
             self.app.processEvents()
+            self.QTest.qWait(150)  # allow Windows multimedia decoder threads to release file handles
 
     def test_clip_split_duplicate_and_selected_trim_are_independent(self) -> None:
         a = self.make_audio("a.wav", 450)
@@ -111,6 +112,7 @@ class SequencerQtTests(unittest.TestCase):
             w.close()
             w.deleteLater()
             self.app.processEvents()
+            self.QTest.qWait(150)  # allow Windows multimedia decoder threads to release file handles
 
     def test_ai_is_explicitly_disabled_without_bundled_model(self) -> None:
         from unittest.mock import patch
@@ -130,3 +132,4 @@ class SequencerQtTests(unittest.TestCase):
             w.close()
             w.deleteLater()
             self.app.processEvents()
+            self.QTest.qWait(150)  # allow Windows multimedia decoder threads to release file handles
