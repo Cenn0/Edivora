@@ -29,7 +29,27 @@ Die erste Zielplattform ist **Windows 11 x64**. Der dokumentierte automatisierte
 
 **Die Originaldatei bleibt geschützt.** Der Export verlangt ein anderes Ziel. PNG und WebP können Transparenz erhalten; bei JPEG werden transparente Stellen weiß. Die Ausgabe übernimmt keine EXIF-, GPS- oder Kommentardaten des Eingabebildes und enthält ein sRGB-Farbprofil.
 
-## Edivora: drei Werkzeuge, gemeinsamer Start im Entwicklungsstand
+## Neu: vier lokale KI-Modelle mit automatischer oder manueller Auswahl (0.4 Alpha)
+
+Foto, Video und Audio verwenden jetzt ein gemeinsames **KI-Modellmenü**.
+Standardmäßig wird das geeignetste **mitgelieferte** Modell pro Aufgabe anhand
+von freiem/gesamtem RAM und CPU-Kernen ausgewählt. Unter **KI-Modelle …**
+kannst du auf ein konkretes vorhandenes Modell umstellen.
+
+- **U2NETP:** leichte Freistellung für Fotos und einzelne Videoframes.
+- **IS-Net:** aufwendigere Freistellung bei ausreichendem RAM; nicht pauschal immer besser.
+- **Silero VAD:** erkennt Sprachabschnitte im Audioeditor.
+- **Whisper Tiny (mehrsprachig):** transkribiert Audio oder die Tonspur des
+  ausgewählten Videoclips lokal in TXT oder SRT. SRT-Zeiten sind zunächst
+  grobe 20-Sekunden-Blöcke, keine wortgenaue Untertitelung.
+
+**Wichtig:** Die Inferenz läuft aktuell über die CPU. Eine große Grafikkarte
+bedeutet nicht automatisch GPU-Beschleunigung. Es gibt **keine** Hintergrund-
+Downloads während der Bearbeitung. Die zusätzlichen Gewichte werden nur
+für den vollständigen Windows-Build vorbereitet; ein alter Release enthält
+sie nicht. [Vier Modelle, Voraussetzungen, genaue Grenzen und Sicherheit](docs/MODEL_PROFILES.md).
+
+
 
 Die neue, noch **nicht im älteren Release enthaltene** Qt-Oberfläche verwendet das [gemeinsame Designsystem](docs/DESIGN_SYSTEM.md). Ein eigener Launcher zeigt die drei Werkzeuge mit Direktstart und Mehrfachauswahl:
 
