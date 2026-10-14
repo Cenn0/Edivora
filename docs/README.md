@@ -1,5 +1,7 @@
 # Edivora – Dokumentation
 
+**Projektübersicht:** [Deutsch](../README.md) · [English](../README.en.md)
+
 ![Edivora Bildmarke](../src/local_ai_photo_editor/assets/edivora-mark.svg)
 
 Diese Dokumentation beschreibt zwei **unterschiedliche** Softwarestände: das veröffentlichte, historische Foto-Alpha-Paket **`v0.1.0-alpha.1`** und die neuere **Edivora-Suite im Quellcode (0.3.0a1)**. Die aktuelle Quellcode-Suite verfügt über Foto-, Video- und Audiobearbeitung, aber es liegt **keine entsprechend freigegebene neue Windows-Version** vor. Der alte Paketprüfnachweis darf nicht auf aktuelle Features übertragen werden.
