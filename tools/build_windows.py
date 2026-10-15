@@ -13,6 +13,7 @@ import sys
 
 from collect_licenses import collect
 from brand_assets import build_windows_icon
+from package_boundary import runtime_exclusion_arguments, verify_runtime_boundary
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -60,6 +61,9 @@ def main() -> int:
         "--include-module=PySide6.QtSvg",
         "--include-package=local_ai_photo_editor", "--include-package=onnxruntime.capi",
         "--include-package-data=onnxruntime", "--assume-yes-for-downloads",
+        # PyTorch and the ONNX converter are build tools, not the application's
+        # ONNX Runtime engine. Also guard developers' less-isolated environments.
+        *runtime_exclusion_arguments(),
         "--msvc=latest", "--lto=no", "--windows-console-mode=disable",
         "--output-filename=LocalAiPhotoEditor.exe", f"--output-dir={build}",
         f"--windows-icon-from-ico={icon_file}",
@@ -71,6 +75,7 @@ def main() -> int:
     compiled = build / "main.dist"
     if not (compiled / "LocalAiPhotoEditor.exe").is_file():
         raise RuntimeError("Nuitka did not produce the expected standalone executable.")
+    verify_runtime_boundary(build / "nuitka-report.xml", compiled)
     verified_model_bytes(compiled / "local_ai_photo_editor" / "models" / model_path().name)
     verified_voice_model(compiled / "local_ai_photo_editor" / "models" / voice_model_path().name)
     neural = compiled / "local_ai_photo_editor" / "models" / restoration_model_path().name
@@ -112,7 +117,7 @@ def main() -> int:
         ).hexdigest(),
         "media_engine": "imageio-ffmpeg 0.6.0 standalone binary",
         "media_license_review": "Required before wider redistribution",
-
+        "converter_packages_excluded": ["torch", "onnx"],
         "provider": "CPUExecutionProvider",
         "release_channel": "unsigned-development-alpha",
     }, indent=2), encoding="utf-8")
