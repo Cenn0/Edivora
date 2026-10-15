@@ -1,12 +1,15 @@
 """Local AI speech detection controls and bounded, meaningful segments."""
 from __future__ import annotations
 
+import subprocess
 import tempfile
 from pathlib import Path
 import unittest
 from unittest.mock import patch
 
 import numpy as np
+
+from local_ai_photo_editor.ai import voice
 
 from local_ai_photo_editor.ai.voice import (
     MAX_ANALYSIS_MS, VOICE_MODEL_SIZE, detect_speech, verified_voice_model,
@@ -39,6 +42,30 @@ class VoiceSegmentTests(unittest.TestCase):
             path.write_bytes(b"not a real model")
             with self.assertRaises(ValueError):
                 verified_voice_model(path)
+
+    def test_pcm_decoder_discards_stderr_and_checks_size_before_reading(self) -> None:
+        def mock_decoder(args, **kwargs):
+            self.assertIs(kwargs["stderr"], subprocess.DEVNULL)
+            self.assertIs(kwargs["stdin"], subprocess.DEVNULL)
+            self.assertNotEqual(kwargs["stdout"], subprocess.PIPE)
+            self.assertEqual(kwargs["timeout"], 120)
+            kwargs["stdout"].write(b"\\x01\\x00" * voice.FRAME_SAMPLES)
+            return subprocess.CompletedProcess(args, 0)
+
+        with patch.object(voice.subprocess, "run", side_effect=mock_decoder):
+            decoded = voice._read_pcm(Path("mocked.wav"), 0, 1000, "fake-ffmpeg")
+        self.assertEqual(len(decoded), voice.FRAME_SAMPLES)
+
+    def test_oversized_pcm_rejected_without_reading_into_memory(self) -> None:
+        def mock_decoder(args, **kwargs):
+            # Sparse file: no 29 MiB allocation required for the regression.
+            kwargs["stdout"].seek(voice.MAX_AUDIO_OUTPUT_BYTES + 1)
+            kwargs["stdout"].write(b"x")
+            return subprocess.CompletedProcess(args, 0)
+
+        with patch.object(voice.subprocess, "run", side_effect=mock_decoder):
+            with self.assertRaisesRegex(ValueError, "audio size"):
+                voice._read_pcm(Path("mocked.wav"), 0, 1000, "fake-ffmpeg")
 
     def test_voice_worker_fails_closed_on_untrusted_request(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
