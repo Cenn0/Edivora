@@ -210,6 +210,45 @@ class ProjectFileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             load_project(self.project)
 
+    def test_history_budget_is_rejected_before_any_png_decoding(self) -> None:
+        self.document.apply(Image.new("RGBA", (4, 3), "red"), "Edit")
+        save_project(self.document, self.project)
+
+        def lower_budget(content):
+            manifest = json.loads(content["manifest.json"])
+            manifest["history_budget_bytes"] = 0
+            content["manifest.json"] = json.dumps(manifest).encode("utf-8")
+
+        self._rewrite(lower_budget)
+        with patch.object(Image, "open", side_effect=AssertionError("Decoded before preflight")) as opened:
+            with self.assertRaisesRegex(ValueError, "history exceeds"):
+                load_project(self.project)
+            opened.assert_not_called()
+
+    def test_invalid_history_descriptor_is_rejected_before_png_decoding(self) -> None:
+        self.document.apply(Image.new("RGBA", (4, 3), "red"), "Edit")
+        save_project(self.document, self.project)
+
+        def bad_descriptor(content):
+            manifest = json.loads(content["manifest.json"])
+            manifest["undo"][0]["frame"]["height"] = 40_000_001
+            content["manifest.json"] = json.dumps(manifest).encode("utf-8")
+
+        self._rewrite(bad_descriptor)
+        with patch.object(Image, "open", side_effect=AssertionError("Decoded before preflight")) as opened:
+            with self.assertRaisesRegex(ValueError, "limited"):
+                load_project(self.project)
+            opened.assert_not_called()
+
+    def test_history_budget_at_exact_descriptor_byte_boundary_still_loads(self) -> None:
+        photo = Image.new("RGB", (2, 2), "black")
+        document = ImageDocument(photo, history_budget_bytes=12)
+        document.apply(Image.new("RGB", (2, 2), "red"), "Edit")
+        save_project(document, self.project)
+        restored = load_project(self.project)
+        self.assertEqual(restored.history_memory_bytes, 12)
+        self.assertTrue(restored.undo())
+
     def test_invalid_frame_dimensions_are_rejected_before_decode(self) -> None:
         save_project(self.document, self.project)
         def tamper_size(content):
