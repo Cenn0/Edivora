@@ -38,11 +38,22 @@ jobs:
         # 4.3 corrupts compiled-method storage during Qt signal connection.
         # Maintainer-confirmed regression: https://github.com/Nuitka/Nuitka/issues/4081
         run: python -m pip install -e . Nuitka==4.2.2
-      - name: Prepare pinned restoration model (build time only)
+      - name: Prepare pinned restoration model in an isolated build-only environment
+        shell: pwsh
         run: |
-          python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install onnx==1.23.2
-          python tools/prepare_restoration_model.py
+          $ErrorActionPreference = 'Stop'
+          $converterRoot = Join-Path $env:RUNNER_TEMP 'edivora-model-converter'
+          python -m venv $converterRoot
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to create converter environment' }
+          $converter = Join-Path $converterRoot 'Scripts/python.exe'
+          & $converter -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to install pinned PyTorch converter' }
+          & $converter -m pip install onnx==1.23.2 numpy==2.5.4 onnxruntime==1.31.0
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to install pinned ONNX conversion dependencies' }
+          & $converter tools/prepare_restoration_model.py
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned model conversion or CPU verification failed' }
+          python -c "import importlib.util; assert importlib.util.find_spec('torch') is None; assert importlib.util.find_spec('onnx') is None; import onnxruntime"
+          if ($LASTEXITCODE -ne 0) { throw 'Build-only converter packages leaked into the application environment' }
       - name: Core, adapter and Qt tests
         run: python -m unittest discover -s tests -v
       - name: Compile source
@@ -91,9 +102,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/local-ai-photo-editor-clcache
-          key: windows-2022-x64-python312-nuitka422-${{ hashFiles('pyproject.toml', 'tools/build_windows.py') }}-${{ github.sha }}
+          key: windows-2022-x64-python312-nuitka422-${{ hashFiles('pyproject.toml', 'tools/build_windows.py', 'tools/package_boundary.py') }}-${{ github.sha }}
           restore-keys: |
-            windows-2022-x64-python312-nuitka422-${{ hashFiles('pyproject.toml', 'tools/build_windows.py') }}-
+            windows-2022-x64-python312-nuitka422-${{ hashFiles('pyproject.toml', 'tools/build_windows.py', 'tools/package_boundary.py') }}-
       - name: Build standalone application
         id: standalone_build
         env:
