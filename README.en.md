@@ -2,25 +2,19 @@
 
 # Edivora
 
-**Simple, local photo, video and audio editing with selected on-device AI features.** Edivora is being developed as a free, open-source desktop toolkit with German and English UI. **The GitHub repository is currently private**, and the current suite has not been published as a public end-user release. No account, cloud model server or runtime model downloads are needed.
+**Simple, local photo, video and audio editing with selected on-device AI features.** Edivora is being developed as a free, open-source desktop toolkit with German and English UI. **The source repository is public**, but public redistribution of Windows binaries has not yet been cleared. No account, cloud model server or runtime model downloads are needed.
 
 **Language:** [Deutsch](README.md) · English (this page)
 
 ![Edivora Photo, Video and Audio](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
-> **Source code is not a product release.** The [published `v0.1.0-alpha.1` ZIP](https://github.com/Cenn0/Edivora/releases/tag/v0.1.0-alpha.1) contains the **older photo-only test alpha**, not the multi-tool launcher. The latest `main` source is the **0.3.0a1** three-workspace development baseline. A private, unsigned Windows test package is provided above; a fully accepted Windows 11 public release has **not** been approved. License/codec and clean-machine checks are pending.
+> **Public source code does not imply approved Windows binaries.** The current `main` branch contains the 0.3.0a1 Photo/Video/Audio development suite. The earlier photo-only `v0.1.0-alpha.1` is not equivalent. Previously downloadable binaries are being withdrawn pending redistribution clearance for Qt, FFmpeg and model weights.
 
-## Download the latest Windows development test build
+## Windows download status
 
-**[Download now: verified Windows x64 test build (GitHub Actions)](https://github.com/Cenn0/Edivora/actions/runs/38636053924/artifacts/11928373456)** · [Successful Windows package checks](https://github.com/Cenn0/Edivora/actions/runs/38636053924)
+**There is no currently approved publicly redistributable Windows ZIP.** Standalone builds include third-party binaries, Qt and model weights with separate legal terms. See [third-party notices](THIRD_PARTY_NOTICES.md), [roadmap](docs/ROADMAP.md) and [run from source](docs/GETTING_STARTED.md). Successful CI is not a license clearance or Windows 11 end-user certification.
 
-This completed PR #18 build contains **the same Edivora application code as the merge to `main`** (branding, launcher, Photo/Video/Audio and local AI); subsequent changes are limited to documentation and release automation. The private Actions artifact **expires 14 days after upload** and requires repository access. **Extract every file into the same local folder and launch `LocalAiPhotoEditor.exe` there.** The permanent release ZIP link below becomes available only after a separate successful `main` packaging run.
-
-**[Windows x64: Download Edivora 0.3.0 Alpha 1 (ZIP)](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/Edivora-0.3.0-alpha.1-windows-x64.zip)** · [SHA-256 checksum](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/SHA256SUMS.txt) · [Private prerelease notes](https://github.com/Cenn0/Edivora/releases/tag/v0.3.0-alpha.1) · [Build provenance](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/BUILD_PROVENANCE.json)
-
-This is a **private, unsigned prerelease** for authorized repository users, **not an officially accepted Windows 11 product release**. Publication is gated on a successful Windows CI package build; if the run is not green, no new release is published. Unlike the older photo alpha below, this build includes the launcher and all three editors.
-
-**Installation:** Download the ZIP and `SHA256SUMS.txt`, compare the ZIP SHA-256 using `Get-FileHash .\Edivora-0.3.0-alpha.1-windows-x64.zip -Algorithm SHA256` in PowerShell, extract **all** files and launch **`LocalAiPhotoEditor/LocalAiPhotoEditor.exe`**. The technical executable name is still historical; the UI is branded **Edivora**. Keep the complete Qt, model and FFmpeg directories. Python or Docker are not needed on the target computer. **Do not redistribute publicly:** FFmpeg/Qt/model licence review and fresh Windows 11 acceptance are not complete. [Release notes](docs/RELEASE_NOTES_TEST_SUITE.md) · [Windows CI builds](https://github.com/Cenn0/Edivora/actions/workflows/windows-alpha.yml).
+[Repository](https://github.com/Cenn0/Edivora) · [CI status](https://github.com/Cenn0/Edivora/actions) · [Contributing](docs/CONTRIBUTING.md)
 
 ## Current source capabilities
 
@@ -34,11 +28,9 @@ One **launcher** starts Photo, Video and Audio in separate independent windows; 
 
 **AI scope:** Current `main` uses local, pinned **U2NETP and Silero VAD ONNX CPU** models. Classic image/audio adjustments are **not generative AI**. No application-level CUDA/DirectML/other GPU deployment has been verified; automatic GPU support should not be inferred from a compatible card. The proposed expanded model profiles in PR #17 are **not on `main`**.
 
-## Download the historical photo alpha
+## Historical photo-only alpha
 
-The existing [Windows x64 test package](https://github.com/Cenn0/Edivora/releases/download/v0.1.0-alpha.1/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip) is **unsigned**. Verify its hash using [SHA256SUMS.txt](https://github.com/Cenn0/Edivora/releases/download/v0.1.0-alpha.1/SHA256SUMS.txt), unpack the **entire** ZIP and run `LocalAiPhotoEditor/LocalAiPhotoEditor.exe`. You can import a photo, make basic corrections, remove its background locally and export a copy. **Video, Audio and project files are not available in that ZIP.**
-
-The historical package passed 69 tests and actual CPU inference plus native/offline packaging checks on Windows Server 2022. These results do not verify the new suite or a clean Windows 11 install. [Exact historical evidence](docs/VERIFICATION.md).
+The retired `v0.1.0-alpha.1` contained only the old photo editor, not the launcher or video/audio tools. The previously measured 69 Windows Server 2022 tests and offline CPU inference are retained as historical evidence, not approval of new features. [Historical verification](docs/VERIFICATION.md).
 
 ## Run the latest development source
 
