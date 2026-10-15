@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 import json
+import os
 from pathlib import Path
 import tempfile
 import uuid
@@ -28,6 +29,7 @@ from ..core.media_project import (
     load_media_project, save_media_project,
 )
 from ..core.media_sequence import SequenceExport, commit_sequence_export
+from ..core.process_tree import kill_media_ai_process_group
 from .media_strings import text
 from .media_window import MediaWindow, clock
 
@@ -687,6 +689,10 @@ class SequenceWindow(MediaWindow):
         self._ai_cancel_requested = False
         process.setProgram(program)
         process.setArguments(args)
+        if os.name != "nt":
+            # Qt >= 6.7 creates the session *before exec*: no start/cancel race.
+            # Nested FFmpeg inherits this group, unlike detached processes.
+            process.setUnixProcessParameters(QProcess.UnixProcessFlag.CreateNewSession)
         process.finished.connect(lambda code, status, p=process: self._ai_finished(p, code))
         process.errorOccurred.connect(lambda err, p=process: self._ai_start_error(p, err))
         self.progress.setRange(0, 0)
@@ -770,8 +776,18 @@ class SequenceWindow(MediaWindow):
         if self._ai_process is not None:
             process = self._ai_process
             self._ai_cancel_requested = True
-            process.kill()
+            # On POSIX kill the verified new session, not just the Qt worker.
+            # On Windows the worker's kill-on-close Job Object owns FFmpeg.
+            try:
+                killed_group = kill_media_ai_process_group(int(process.processId()))
+            except OSError:
+                killed_group = False
+            if not killed_group:
+                process.kill()
             process.waitForFinished(3000)
+            if process.state() != QProcess.ProcessState.NotRunning:
+                # Do not destroy the job directory while a worker still runs.
+                return
             if self._ai_process is process:
                 self._ai_finished(process, -9)
             self._set_status("cancelled")
@@ -798,6 +814,9 @@ class SequenceWindow(MediaWindow):
                 event.ignore()
                 return
             self.cancel_export()
+            if self._ai_process is not None:
+                event.ignore()
+                return
         super().closeEvent(event)
         if event.isAccepted():
             # Qt Multimedia's Windows backend may otherwise retain an open
