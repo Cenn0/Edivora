@@ -28,6 +28,9 @@ MAX_FRAME_BYTES = 4 * MAX_IMAGE_PIXELS + 2 * 1024 * 1024
 MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_SNAPSHOTS = 8192
 MAX_LABELS = 100_000
+# Cap all retained project pixels (two base frames plus undo/redo); temporary
+# Pillow decode/normalization allocations are additional to this limit.
+MAX_PROJECT_RETAINED_BYTES = 512 * 1024 * 1024
 
 
 def _checked_label(value: object) -> str:
@@ -254,7 +257,7 @@ def load_project(path: str | Path) -> ImageDocument:
                 raise ValueError("Project history exceeds its stored memory budget.")
             # Both base images are independently limited to MAX_IMAGE_PIXELS;
             # include them in the overall retained-pixel accounting as well.
-            if originals_bytes + history_bytes > 2 * 4 * MAX_IMAGE_PIXELS + DEFAULT_HISTORY_BUDGET_BYTES:
+            if originals_bytes + history_bytes > MAX_PROJECT_RETAINED_BYTES:
                 raise ValueError("Project requires too much decoded image memory.")
 
             original = _read_frame(archive, manifest["original"], "frames/original.png")
