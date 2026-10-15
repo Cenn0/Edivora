@@ -1,4 +1,9 @@
-"""Real source/standalone regression evidence using generated media only."""
+"""Real source/standalone regression evidence using generated media only.
+
+Windows constrains top-level windows to the physical test desktop. Oversized
+client layouts are therefore tested as embedded widgets using the same native
+Qt platform; the evidence records this distinction, never as desktop acceptance.
+"""
 from __future__ import annotations
 
 from dataclasses import replace
@@ -9,6 +14,51 @@ from pathlib import Path
 import subprocess
 import time
 import traceback
+
+
+class _LayoutSurface:
+    """Test exact client sizes without mistaking desktop bounds for UI defects."""
+    def __init__(self, window):
+        self.window = window
+        self.flags = window.windowFlags()
+        self.host = None
+
+    def resize(self, width: int, height: int) -> str:
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QWidget
+        window = self.window
+        available = window.screen().availableGeometry()
+        # Reserve the same frame/taskbar margins as fit_initial_window. The
+        # native test remains an actual, fully on-screen top-level window.
+        room = (max(1, available.width() - 40), max(1, available.height() - 60))
+        native = width <= room[0] and height <= room[1]
+        if native:
+            if window.parentWidget() is not None:
+                window.setParent(None, self.flags)
+            if self.host is not None:
+                self.host.hide()
+            window.resize(width, height)
+            window.move(available.x() + 20, available.y() + 20)
+            window.show()
+            return "native-top-level"
+        if self.host is None:
+            self.host = QWidget()
+            self.host.setWindowTitle("Edivora layout verification surface")
+        self.host.resize(*room)
+        self.host.move(available.x() + 20, available.y() + 20)
+        if window.parentWidget() is not self.host:
+            window.setParent(self.host, Qt.WindowType.Widget)
+        window.move(0, 0)
+        window.resize(width, height)
+        self.host.show()
+        window.show()
+        return "embedded-native-client-layout"
+
+    def close(self) -> None:
+        if self.host is not None:
+            self.host.close()
+            self.host.deleteLater()
+            self.host = None
 
 
 def suite_smoke(output: Path, executable: str | None = None) -> int:
@@ -29,9 +79,10 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
     output.mkdir(parents=True, exist_ok=False)
     report = {"status": "running", "executable": executable, "qt": qVersion(),
               "platform": os.environ.get("QT_QPA_PLATFORM"), "scale": os.environ.get("QT_SCALE_FACTOR", "1"),
-              "scope": "synthetic source or standalone suite regression; not Windows 11 / quality / licence approval",
+              "scope": "synthetic source or standalone suite regression; native top-level windows where the desktop fits, embedded native-Qt client layouts otherwise; not Windows 11 / quality / licence approval",
               "layout_observations": []}
     windows = []
+    surfaces = {}
     app = QApplication.instance() or QApplication([])
     app.setQuitOnLastWindowClosed(False)
     ffmpeg = ffmpeg_executable(executable)
@@ -73,20 +124,25 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
         check(window.grab().save(str(output / (name + ".png"))), "Screenshot save failed.")
 
     def resize_and_check(window, name, language, width, height):
-        window.resize(width, height)
+        if window not in surfaces:
+            surfaces[window] = _LayoutSurface(window)
+        mode = surfaces[window].resize(width, height)
         QTest.qWait(100)
         def wh(size):
             return [size.width(), size.height()]
         observation = {"window": name, "language": language, "requested": [width, height],
                        "actual": wh(window.size()), "minimum": wh(window.minimumSize()),
                        "minimum_hint": wh(window.minimumSizeHint()),
-                       "maximum": wh(window.maximumSize()),
+                       "maximum": wh(window.maximumSize()), "mode": mode,
                        "available_screen": wh(window.screen().availableGeometry().size()),
                        "device_pixel_ratio": window.devicePixelRatioF()}
         report["layout_observations"].append(observation)
         if window.size() != QSize(width, height):
             capture(window, f"resize-failure-{name}-{language}-{width}x{height}")
         check(window.size() == QSize(width, height), f"Window did not resize: {observation}")
+        if mode == "native-top-level":
+            check(window.screen().availableGeometry().contains(window.frameGeometry()),
+                  f"Native window extends beyond the test desktop: {observation}")
 
     try:
         phase("verify_model")
@@ -205,6 +261,8 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
                 window._dirty = False
             window.close()
             window.deleteLater()
+        for surface in surfaces.values():
+            surface.close()
         app.processEvents()
         (output / "suite-smoke.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return code
