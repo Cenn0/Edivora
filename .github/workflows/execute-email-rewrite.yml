@@ -1,0 +1,44 @@
+name: Execute one-time Git author email history rewrite
+
+on:
+  push:
+    branches:
+      - maintenance/execute-commit-email-rewrite-20261015
+    paths:
+      - '.github/workflows/execute-email-rewrite.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: edivora-sensitive-history-cleanup
+  cancel-in-progress: false
+
+jobs:
+  rewrite:
+    if: github.repository == 'Cenn0/Edivora' && github.ref == 'refs/heads/maintenance/execute-commit-email-rewrite-20261015' && github.actor == 'Cenn0'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout reviewed cleanup script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Configure Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Execute verified history rewrite using GitHub Actions token
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh auth setup-git
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub token git auth failed' }
+          git config --global user.name 'Cenn0'
+          git config --global user.email '198997962+Cenn0@users.noreply.github.com'
+          & ./maintenance/Edivora_Commit_Email_Bereinigung.ps1 -Execute
+          if ($LASTEXITCODE -ne 0) { throw 'Edivora email rewrite failed' }
