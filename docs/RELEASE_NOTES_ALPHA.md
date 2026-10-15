@@ -1,6 +1,6 @@
 # LocalAiPhotoEditor 0.1.0 Alpha 1
 
-**Unsignierte, private Test-Alpha – keine stabile Endnutzer-Version.**
+**Historischer unsignierter Foto-Teststand (2026-10-13).** Diese Datei bleibt als Entwicklungsnachweis erhalten. Der Binärdownload wird bis zur abschließenden Prüfung der Rechte an mitgelieferten Fremdkomponenten zurückgezogen.
 
 Diese Vorabversion bündelt die lokale Windows-x64-Desktopanwendung, Python-/Qt-Laufzeit
 und das überprüfte U2NETP-ONNX-Modell. Für den vorgesehenen Start sind kein separates
@@ -33,9 +33,9 @@ wurden nicht abgenommen. Das U2NETP-Modell kann fehlerhafte Freistellmasken erze
 
 Die Rechte zur eigenständigen Weiterverteilung des separat bezogenen ONNX-Modellartefakts
 und alle Qt/LGPL-Lieferpflichten sind für eine **öffentliche Verteilung** noch abschließend
-zu prüfen. Diese Alpha bleibt deshalb vorerst im privaten Repository.
+zu prüfen. Das Repository ist mittlerweile öffentlich; das historische Binärpaket ist nicht als öffentlicher Download freigegeben.
 
-## Installation
+## Historischer Installationsablauf (Download ausgesetzt)
 
 1. `LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip` herunterladen und SHA-256
    mit `SHA256SUMS.txt` vergleichen.
