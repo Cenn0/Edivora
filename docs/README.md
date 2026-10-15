@@ -4,13 +4,13 @@
 
 ![Edivora Bildmarke](../src/local_ai_photo_editor/assets/edivora-mark.svg)
 
-Diese Dokumentation beschreibt zwei **unterschiedliche** Softwarestände: das veröffentlichte, historische Foto-Alpha-Paket **`v0.1.0-alpha.1`** und die neuere **Edivora-Suite im Quellcode (0.3.0a1)**. Die aktuelle Quellcode-Suite verfügt über Foto-, Video- und Audiobearbeitung, aber es liegt **keine entsprechend freigegebene neue Windows-Version** vor. Der alte Paketprüfnachweis darf nicht auf aktuelle Features übertragen werden.
+Diese Dokumentation beschreibt zwei **unterschiedliche** Softwarestände: das veröffentlichte, historische Foto-Alpha-Paket **`v0.1.0-alpha.1`** und die neuere **Edivora-Suite im Quellcode (0.4.0a1)**. Die aktuelle Quellcode-Suite verfügt über Foto-, Video- und Audiobearbeitung, aber es liegt **keine entsprechend freigegebene neue Windows-Version** vor. Der alte Paketprüfnachweis darf nicht auf aktuelle Features übertragen werden.
 
 ## Anwenden
 
 - **Öffentlicher Quellcode ohne freigegebenes Windows-Paket:** [Aus Quellcode starten](GETTING_STARTED.md) und [Lizenz-/Release-Gates](../THIRD_PARTY_NOTICES.md)
 - [Erste Schritte – Installation, Arbeitsabläufe, Projekte und Fehlerhilfe](GETTING_STARTED.md)
-- [Video-/Audio-Launcher und aktuelle MVP-Funktionen](MEDIA_MVP.md)
+- [Video-/Audio-Launcher und Grundlagen](MEDIA_MVP.md)
 - [Mehrclip-Projekte, lokale Medien-KI und technische Einschränkungen](MEDIA_PROJECTS_AI.md)
 - [Foto bearbeiten: Licht, Farbe, Looks und Hintergrund](EDITING_TOOLS.md)
 - [Foto-Motivwerkzeuge und KI-Auswahl](AI_SUBJECT_TOOLS.md)
