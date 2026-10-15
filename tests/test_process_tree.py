@@ -97,6 +97,29 @@ time.sleep(12)
                     else:
                         os.kill(child_pid, signal.SIGKILL)
 
+    @unittest.skipIf(os.name == "nt", "Qt Unix process parameters are POSIX-only")
+    def test_qt_launch_creates_worker_session_before_exec(self) -> None:
+        from PySide6.QtCore import QCoreApplication, QProcess
+        app = QCoreApplication.instance() or QCoreApplication([])
+        self.assertIsNotNone(app)
+        process = QProcess()
+        process.setUnixProcessParameters(QProcess.UnixProcessFlag.CreateNewSession)
+        process.setProgram(sys.executable)
+        process.setArguments([
+            "-u", "-c",
+            "import os;print(os.getpid(), os.getpgid(0), flush=True)",
+        ])
+        try:
+            process.start()
+            self.assertTrue(process.waitForFinished(5000))
+            pid, pgid = [int(value) for value in bytes(process.readAllStandardOutput()).split()]
+            self.assertEqual(pid, pgid)
+            self.assertEqual(process.exitCode(), 0)
+        finally:
+            if process.state() != QProcess.ProcessState.NotRunning:
+                process.kill()
+                process.waitForFinished(2000)
+
     @unittest.skipIf(os.name == "nt", "Unix process groups are not a Windows cancellation primitive")
     def test_never_signals_an_unrelated_process_group(self) -> None:
         with patch("os.getpgid", return_value=99999), patch("os.killpg") as kill:
