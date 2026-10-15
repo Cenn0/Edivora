@@ -152,6 +152,7 @@ def _frame_decoded_bytes(descriptor: object, filename: str) -> int:
 def _read_frame(archive: ZipFile, descriptor: object, filename: str) -> Image.Image:
     # Recheck in the point-of-use function for any internal caller.
     _frame_decoded_bytes(descriptor, filename)
+    width, height = descriptor["width"], descriptor["height"]
     info = archive.getinfo(filename)
     if info.file_size > MAX_FRAME_BYTES:
         raise ValueError("Project frame is too large.")
