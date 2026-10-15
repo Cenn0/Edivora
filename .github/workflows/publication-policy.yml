@@ -1,0 +1,37 @@
+name: Public release policy checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'README.md'
+      - 'README.en.md'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'SECURITY.md'
+      - 'docs/**'
+      - 'tests/test_publication_policy.py'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'README.md'
+      - 'README.en.md'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'SECURITY.md'
+      - 'docs/**'
+      - 'tests/test_publication_policy.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify release and public repository policy
+        run: python3 -m unittest discover -s tests -p test_publication_policy.py -v
