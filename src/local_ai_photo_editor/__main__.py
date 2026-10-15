@@ -584,20 +584,21 @@ def main(argv: list[str] | None = None) -> int:
         from .worker import run_job
         return run_job(Path(args[1]))
     if len(args) == 3 and args[0] == "--media-ai-job":
-        if args[1] not in {"voice", "frame"}:
+        if args[1] not in {"voice", "frame", "restore"}:
             return 2
+        if args[1] == "restore":
+            # Restoration's ProcessOwner installs its own Windows kill-on-close
+            # Job Object. Do not assign the worker to a second, independent job:
+            # that can fail on Windows and prevent all video previews.
+            from .ai.video_restoration import restoration_worker
+            return restoration_worker(Path(args[2]), _compiled_executable())
         from .core.process_tree import protect_media_ai_worker
-        protect_media_ai_worker()  # Fail closed before any nested FFmpeg starts.
+        protect_media_ai_worker()  # Voice/frame jobs own nested FFmpeg before launch.
         if args[1] == "voice":
             from .ai.voice import voice_worker
             return voice_worker(Path(args[2]), _compiled_executable())
-        if args[1] == "frame":
-            from .ai.video_frame import frame_worker
-            return frame_worker(Path(args[2]), _compiled_executable())
-        if args[1] == "restore":
-            from .ai.video_restoration import restoration_worker
-            return restoration_worker(Path(args[2]), _compiled_executable())
-        return 2
+        from .ai.video_frame import frame_worker
+        return frame_worker(Path(args[2]), _compiled_executable())
     if len(args) == 2 and args[0] == "--smoke-test":
         return smoke_test(Path(args[1]))
     if len(args) == 2 and args[0] == "--ui-smoke-test":
