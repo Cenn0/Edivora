@@ -1,6 +1,6 @@
-# Edivora 0.3.0 Alpha 1 – privater Windows-x64-Testbuild
+# Edivora 0.3.0 Alpha 1 – geplanter Windows-x64-Testbuild
 
-**Nicht für öffentliche Weiterverteilung.** Dieser Build ist eine **unsignierte Entwicklungsversion** für autorisierte Personen mit Zugriff auf das **private** GitHub-Repository. Er ist weder ein stabiler Windows-11-Release noch eine durchgehend lizenzrechtlich freigegebene Veröffentlichung.
+**Nicht für öffentliche Weiterverteilung.** Dieses Dokument beschreibt einen ursprünglich für ein privates Repository geplanten Testbuild. Das Repository ist inzwischen öffentlich, die Veröffentlichung des Binärpakets wegen offener Lizenzauflagen aber gesperrt. Er ist weder ein stabiler Windows-11-Release noch eine durchgehend lizenzrechtlich freigegebene Veröffentlichung.
 
 ## Enthalten
 
@@ -13,12 +13,12 @@
 
 ## Installation
 
-1. `Edivora-0.3.0-alpha.1-windows-x64.zip` und `SHA256SUMS.txt` aus diesem **privaten Prerelease** herunterladen.
+1. `Edivora-0.3.0-alpha.1-windows-x64.zip` und `SHA256SUMS.txt` erst nach ausdrücklicher Freigabe eines späteren Releases herunterladen.
 2. Auf Windows in PowerShell im Downloadordner die Prüfsumme mit `Get-FileHash .\Edivora-0.3.0-alpha.1-windows-x64.zip -Algorithm SHA256` berechnen und mit `SHA256SUMS.txt` vergleichen.
 3. Gesamtes ZIP entpacken und **`LocalAiPhotoEditor/LocalAiPhotoEditor.exe`** öffnen. Die technische EXE-Dateibezeichnung ist noch historisch, das Produkt in der Oberfläche heißt **Edivora**.
 4. Ein, zwei oder alle drei Werkzeuge wählen. Eingabemedien bleiben unverändert; **Projekt speichern** und **Ergebnis exportieren** sind unterschiedliche Funktionen.
 
-**Wichtig:** Die EXE darf nicht einzeln aus dem Ordner verschoben werden; Qt, Modelldateien und `media-tools/ffmpeg.exe` werden benötigt. Windows kann beim Start wegen fehlender Signatur warnen; Sicherheitsschutz nicht pauschal deaktivieren. Dateien nur aus dem privaten Repository mit geprüftem SHA-256 beziehen.
+**Wichtig:** Die EXE darf nicht einzeln aus dem Ordner verschoben werden; Qt, Modelldateien und `media-tools/ffmpeg.exe` werden benötigt. Windows kann beim Start wegen fehlender Signatur warnen; Sicherheitsschutz nicht pauschal deaktivieren. Dateien nur aus einem künftig ausdrücklich freigegebenen Release mit geprüftem SHA-256 beziehen.
 
 ## Technische Grenzen und Sicherheitsstatus
 

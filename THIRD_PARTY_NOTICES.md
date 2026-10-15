@@ -2,6 +2,14 @@
 
 The application's own code is licensed under Apache-2.0; see `LICENSE`. That license does not replace the terms for Python, Qt, native codecs, inference libraries, model weights, or the compiler runtime.
 
+## Public repository and binary release status (2026-10-15)
+
+The Edivora source repository is public under Apache-2.0. **The portable Windows binaries are not yet cleared for public redistribution.** Legacy release assets and Actions-built Windows packages are being withdrawn until the exact FFmpeg binary, Qt/PySide6 native modules and AI model weights meet all applicable rights, source-offer and notice obligations.
+
+A source-code license is not proof of the right to redistribute a separately hosted ONNX weight export or a particular codec executable. A checksum proves identity, not redistribution permission. A passing CI build does not grant legal clearance. For a future public release, record the exact distributed file inventory/SBOM, upstream sources, binary compile flags, corresponding-source provision, license/notice texts and reviewed model provenance, then perform real Windows acceptance checks.
+
+Models introduced by currently unmerged feature PRs (including IS-Net, Whisper and DnCNN) must undergo the same *artifact-specific* review before being publicly bundled.
+
 ## Components
 
 | Component | Purpose | Source and applicable notices |

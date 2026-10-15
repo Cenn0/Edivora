@@ -1,6 +1,6 @@
 # Edivora entwickeln und erweitern
 
-Edivora wird als **Open-Source-Desktopanwendung** mit lokaler Foto-, Video- und Audiobearbeitung entwickelt. **Das Repository ist zurzeit privat**; die unten beschriebenen Beitragswege beziehen sich auf Personen mit Repository-Zugriff, bis eine öffentliche Freigabe erfolgt. Beiträge von Menschen und Coding-Assistenten sind willkommen, solange **Datenschutz, Dateischutz, Versionierung und nachgewiesene Funktionalität** erhalten bleiben.
+Edivora wird als **Open-Source-Desktopanwendung** mit lokaler Foto-, Video- und Audiobearbeitung entwickelt. **Das Repository ist öffentlich.** Externe Beiträge erfolgen über Forks und Pull Requests; direkte Änderungen auf `main` sind kein vorgesehener Beitragsweg. Beiträge von Menschen und Coding-Assistenten sind willkommen, solange **Datenschutz, Dateischutz, Versionierung und nachgewiesene Funktionalität** erhalten bleiben.
 
 **Verbindlich:** [AGENTS.md](../AGENTS.md). Der produktive Entwicklungsstand ist nicht mit dem alten veröffentlichten Foto-Testpaket `v0.1.0-alpha.1` gleichzusetzen. Vor einer Änderung [README](../README.md), [Architektur](ARCHITECTURE.md), [Medienprojekte](MEDIA_PROJECTS_AI.md) und [Roadmap](ROADMAP.md) lesen.
 
@@ -56,8 +56,17 @@ Bei GUI-Änderungen zusätzlich Qt im Offscreen-Modus (nur soweit die Testumgebu
 
 Gib dem Assistenten den Repository-Link **und** die Anweisung, **AGENTS.md zuerst zu lesen**. Er soll `main` und offene PRs vergleichen, veränderliche Aussagen am Code prüfen, keine Funktionen aus ungemergten PRs als aktuell ausgeben, nur in einem separaten Branch arbeiten und Tests/Limitierungen dokumentieren. Reproduzierbare kleine PRs sind besser als ein großflächiger Rewrite ohne Nachweise.
 
-**Sicherheit / verantwortliche Veröffentlichung:** Keine Medienproben von Nutzern committen, keine geheimen Tokens oder internen Infrastrukturdaten veröffentlichen. Bei Sicherheitsschwachstellen zunächst den verantwortlichen Maintainer-Kanal verwenden, statt Ausnutzungsdetails in einem öffentlichen Issue zu posten.
+**Sicherheit / verantwortliche Veröffentlichung:** Keine Medienproben von Nutzern committen, keine geheimen Tokens oder internen Infrastrukturdaten veröffentlichen. Bei Sicherheitsschwachstellen [SECURITY.md](../SECURITY.md) beachten und keine Ausnutzungsdetails in öffentlichen Issues posten.
 
 ## Release-Gates
 
 Für ein neues verbreitetes Windows-Paket müssen Source- und Paket-Smoke, echter Offline-Modelltest, FFmpeg-Build-/Lizenzpflichten, Qt-/Modellumverteilung, realistische Codec-Tests und frische Windows-11-Abnahme separat belegt sein. Unsignierte Builds müssen als Teststände gekennzeichnet werden. [Historische Nachweise](VERIFICATION.md) dürfen nicht als Abnahme eines späteren Stands wiederverwendet werden.
+
+## Öffentliche Beiträge und Commit-Privatsphäre
+
+1. Vor einem neuen Issue oder PR bestehende offene und geschlossene Vorschläge prüfen.
+2. Repository forken, einen kleinen Feature-Branch anlegen, Tests und DE/EN-Übersetzungen ergänzen.
+3. [PR-Vorlage](../.github/pull_request_template.md) ausfüllen. Neue Modelle/Bibliotheken nur mit überprüften Lizenzrechten für die **konkreten Binärdateien** aufnehmen.
+4. Keine Zugangsdaten, privaten Medien, internen Hostnamen oder persönlichen E-Mail-Adressen committen. Für Sicherheitslücken gelten die Regeln in [SECURITY.md](../SECURITY.md).
+
+**Private Commit-Adresse des Repository-Inhabers:** `198997962+Cenn0@users.noreply.github.com`. Für lokale neue Commits `git config user.email '198997962+Cenn0@users.noreply.github.com'` setzen. Zusätzlich auf GitHub unter **Settings → Emails** die E-Mail-Privatsphäre und das Blockieren von Pushes mit persönlicher Adresse aktivieren. Diese Einstellungen ändern die historische Commit-Metadaten **nicht**.
