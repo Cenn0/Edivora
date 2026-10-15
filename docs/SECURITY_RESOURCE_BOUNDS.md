@@ -10,7 +10,7 @@ original/current and all undo/redo images), computing decoded 8-bit RGB/RGBA
 bytes from dimensions and mode. It rejects history exceeding the saved budget
 (up to 256 MiB) **before** calling Pillow to decode even the first frame.
 Each original/current frame has the existing 40 MP bound and both contribute
-to retained-pixel accounting.
+to retained-pixel accounting. The combined retained RGB/RGBA pixel cap is 512 MiB. Very large previously loadable archives may be rejected.
 
 The 256 MiB budget is for retained undo/redo pixels, **not** an OS memory
 quota. Pillow decoder allocations, temporary normalization copies, Python
