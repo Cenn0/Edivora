@@ -1,0 +1,73 @@
+name: Quarantine unapproved public Windows binaries
+
+on:
+  # One-time cleanup is also safe to repeat manually. Never executes for private repositories.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/public-binary-quarantine.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: public-binary-quarantine
+  cancel-in-progress: false
+
+jobs:
+  withdraw:
+    if: github.repository == 'Cenn0/Edivora' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Remove legacy release binaries pending redistribution clearance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=v0.1.0-alpha.1
+          if gh release view "$tag" >/dev/null 2>&1; then
+            for file in LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip SHA256SUMS.txt; do
+              if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.assets[].name' | grep -Fxq "$file"; then
+                gh release delete-asset "$tag" "$file" --yes
+                echo "Withdrawn legacy release asset: $file"
+              fi
+            done
+            gh release edit "$tag" \
+              --title "[WITHDRAWN] Historical photo-only Windows test alpha" \
+              --notes-file docs/RELEASE_NOTES_ALPHA.md
+          fi
+
+      - name: Remove previously uploaded portable and diagnostic Windows packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Public Actions artifacts are downloadable even if they were originally created while private.
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name == "LocalAiPhotoEditor-windows-x64-alpha" or .name == "diagnostic-package-windows-x64" or .name == "verification-windows") | .id' \
+            | sort -u > "${RUNNER_TEMP}/withdraw-ids.txt"
+          while IFS= read -r id; do
+            [[ "$id" =~ ^[0-9]+$ ]] || { echo "Invalid artifact id" >&2; exit 1; }
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id" > /dev/null
+            echo "Withdrawn public Actions artifact id $id"
+          done < "${RUNNER_TEMP}/withdraw-ids.txt"
+
+      - name: Verify no in-scope Windows binary artifacts remain
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          remaining=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name == "LocalAiPhotoEditor-windows-x64-alpha" or .name == "diagnostic-package-windows-x64" or .name == "verification-windows") | .id')
+          test -z "$remaining" || { echo "Unapproved binary artifacts remain: $remaining" >&2; exit 1; }
+          echo "No known Windows binary artifacts remain in the public Actions artifacts listing."
