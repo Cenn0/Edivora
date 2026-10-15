@@ -28,6 +28,9 @@ MAX_FRAME_BYTES = 4 * MAX_IMAGE_PIXELS + 2 * 1024 * 1024
 MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_SNAPSHOTS = 8192
 MAX_LABELS = 100_000
+# Cap all retained project pixels (two base frames plus undo/redo); temporary
+# Pillow decode/normalization allocations are additional to this limit.
+MAX_PROJECT_RETAINED_BYTES = 512 * 1024 * 1024
 
 
 def _checked_label(value: object) -> str:
@@ -128,7 +131,12 @@ def save_project(document: ImageDocument, path: str | Path) -> Path:
     return target
 
 
-def _read_frame(archive: ZipFile, descriptor: object, filename: str) -> Image.Image:
+def _frame_decoded_bytes(descriptor: object, filename: str) -> int:
+    """Validate the untrusted manifest descriptor without decoding its PNG.
+
+    The byte count is the retained 8-bit RGB/RGBA pixel allocation, not the
+    (potentially tiny) compressed PNG member size or transient Pillow overhead.
+    """
     if (
         not isinstance(descriptor, dict)
         or set(descriptor) != {"name", "sha256", "width", "height", "mode"}
@@ -141,6 +149,13 @@ def _read_frame(archive: ZipFile, descriptor: object, filename: str) -> Image.Im
         raise ValueError("Invalid project frame descriptor.")
     width, height = descriptor["width"], descriptor["height"]
     _validate_dimensions(width, height)
+    return width * height * (3 if descriptor["mode"] == "RGB" else 4)
+
+
+def _read_frame(archive: ZipFile, descriptor: object, filename: str) -> Image.Image:
+    # Recheck in the point-of-use function for any internal caller.
+    _frame_decoded_bytes(descriptor, filename)
+    width, height = descriptor["width"], descriptor["height"]
     info = archive.getinfo(filename)
     if info.file_size > MAX_FRAME_BYTES:
         raise ValueError("Project frame is too large.")
@@ -226,6 +241,25 @@ def load_project(path: str | Path) -> ImageDocument:
             if set(names) != expected:
                 raise ValueError("Project has missing or unexpected entries.")
 
+            # A PNG can be tiny on disk while decoding to hundreds of MiB.
+            # Reserve the *entire* retained history from validated descriptors
+            # before even decoding the original/current image. This is not a
+            # full RSS limit: Pillow/constructor transient copies are extra.
+            originals_bytes = (
+                _frame_decoded_bytes(manifest["original"], "frames/original.png")
+                + _frame_decoded_bytes(manifest["current"], "frames/current.png")
+            )
+            history_bytes = sum(
+                _frame_decoded_bytes(frame, name)
+                for _label, frame, name in (*undo, *redo)
+            )
+            if history_bytes > budget:
+                raise ValueError("Project history exceeds its stored memory budget.")
+            # Both base images are independently limited to MAX_IMAGE_PIXELS;
+            # include them in the overall retained-pixel accounting as well.
+            if originals_bytes + history_bytes > MAX_PROJECT_RETAINED_BYTES:
+                raise ValueError("Project requires too much decoded image memory.")
+
             original = _read_frame(archive, manifest["original"], "frames/original.png")
             current = _read_frame(archive, manifest["current"], "frames/current.png")
             undo_entries = [_HistoryEntry(_read_frame(archive, frame, name), label) for label, frame, name in undo]
@@ -233,8 +267,8 @@ def load_project(path: str | Path) -> ImageDocument:
 
         document = ImageDocument(original, history_budget_bytes=budget)
         consumed = sum(item.size_bytes for item in (*undo_entries, *redo_entries))
-        if consumed > budget:
-            raise ValueError("Project history exceeds its stored memory budget.")
+        if consumed != history_bytes:
+            raise ValueError("Decoded project frames differ from their validated sizes.")
         document._current = current
         document._labels = labels
         document._undo = deque(undo_entries)
