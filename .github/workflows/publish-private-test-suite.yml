@@ -52,9 +52,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor "$SOURCE_SHA" "$GITHUB_SHA"
-          if git diff --name-only "$SOURCE_SHA" "$GITHUB_SHA" | grep -Eq '^(src/|tests/|tools/|packaging/|pyproject\.toml$|THIRD_PARTY_NOTICES\.md$|AGENTS\.md$|\.github/workflows/windows-alpha\.yml$)'; then
-            echo 'A newer application revision exists; refusing a stale release.' >&2
+          # Every tracked change can influence release inputs or policy.
+          # Never allow an ancestor build, even for a main.py-only fix.
+          if [ "$SOURCE_SHA" != "$GITHUB_SHA" ] || [ "$SOURCE_SHA" != "$(git rev-parse HEAD)" ]; then
+            echo 'The Windows build does not match the checked-out main revision.' >&2
             exit 1
           fi
           python3 - <<'PY'
@@ -173,6 +174,13 @@ jobs:
           if gh release view "$RELEASE_TAG" --json tagName --jq .tagName >/dev/null 2>&1; then
             echo "Existing private prerelease; verify but never overwrite."
           else
+            # Query live main directly: workflow_run GITHUB_SHA may be older
+            # than a commit pushed while the packaging job was running.
+            current_main="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+            if [ "$SOURCE_SHA" != "$current_main" ]; then
+              echo 'Main advanced while preparing the release; refuse stale package.' >&2
+              exit 1
+            fi
             gh release create "$RELEASE_TAG" \
               release-files/Edivora-0.3.0-alpha.1-windows-x64.zip \
               release-files/SHA256SUMS.txt \
