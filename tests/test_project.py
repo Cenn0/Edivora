@@ -240,6 +240,25 @@ class ProjectFileTests(unittest.TestCase):
                 load_project(self.project)
             opened.assert_not_called()
 
+    def test_aggregate_base_and_history_memory_cap_precedes_decode(self) -> None:
+        self.document.apply(Image.new("RGBA", (4, 3), "red"), "One")
+        self.document.apply(Image.new("RGBA", (4, 3), "blue"), "Two")
+        save_project(self.document, self.project)
+
+        def make_large(content):
+            manifest = json.loads(content["manifest.json"])
+            for frame in (manifest["original"], manifest["current"]):
+                frame.update(width=10000, height=4000)  # 160 MB each
+            for item in manifest["undo"]:
+                item["frame"].update(width=7500, height=4000)  # 120 MB each
+            content["manifest.json"] = json.dumps(manifest).encode("utf-8")
+
+        self._rewrite(make_large)
+        with patch.object(Image, "open", side_effect=AssertionError("Decoded before preflight")) as opened:
+            with self.assertRaisesRegex(ValueError, "decoded image memory"):
+                load_project(self.project)
+            opened.assert_not_called()
+
     def test_history_budget_at_exact_descriptor_byte_boundary_still_loads(self) -> None:
         photo = Image.new("RGB", (2, 2), "black")
         document = ImageDocument(photo, history_budget_bytes=12)
