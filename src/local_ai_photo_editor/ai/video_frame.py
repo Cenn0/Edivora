@@ -41,7 +41,7 @@ def extract_ai_frame(source: Path, at_ms: int, destination: Path,
         ]
         subprocess.run(args, check=True, timeout=45,
                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                       stderr=subprocess.PIPE)
+                       stderr=subprocess.DEVNULL)
         with Image.open(still) as picture:
             if not 1 <= picture.width * picture.height <= 2_000_000:
                 raise ValueError("Selected frame exceeds the local AI bounds.")

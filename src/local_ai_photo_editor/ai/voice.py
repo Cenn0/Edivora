@@ -9,7 +9,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
-import time
+import tempfile
 
 import numpy as np
 
@@ -110,21 +110,26 @@ def _read_pcm(source: Path, start_ms: int, end_ms: int, binary: str) -> np.ndarr
         "-map", "0:a:0", "-ac", "1", "-ar", "16000",
         "-f", "s16le", "-acodec", "pcm_s16le", "pipe:1",
     ]
-    process = subprocess.Popen(
-        args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    try:
-        stdout, stderr = process.communicate(timeout=120)
-        if process.returncode != 0:
-            raise RuntimeError("Audio decoding failed: " + stderr[-400:].decode("utf-8", "replace"))
-        if len(stdout) < FRAME_SAMPLES * 2 or len(stdout) > MAX_AUDIO_OUTPUT_BYTES:
+    # FFmpeg can emit unlimited decoder diagnostics for malformed media.
+    # Discard stderr rather than retaining it; keep decoded PCM on disk
+    # until *after* its size has been checked (a PIPE/communicate pair would
+    # allocate the full output before the post-hoc size check).
+    with tempfile.TemporaryFile(mode="w+b") as pcm:
+        try:
+            subprocess.run(
+                args, check=True, timeout=120, stdin=subprocess.DEVNULL,
+                stdout=pcm, stderr=subprocess.DEVNULL,
+            )
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError("Audio decoding failed.") from exc
+        size = pcm.tell()
+        if size < FRAME_SAMPLES * 2 or size > MAX_AUDIO_OUTPUT_BYTES:
             raise ValueError("Decoded audio size is outside the safe voice-analysis range.")
-        return np.frombuffer(stdout[: len(stdout) // 2 * 2], dtype="<i2").astype(np.float32) / 32768
-    finally:
-        if process.poll() is None:
-            process.kill()
-            process.communicate()
+        pcm.seek(0)
+        stdout = pcm.read(MAX_AUDIO_OUTPUT_BYTES + 1)
+        if len(stdout) != size:
+            raise ValueError("Decoded audio length changed unexpectedly.")
+    return np.frombuffer(stdout[: len(stdout) // 2 * 2], dtype="<i2").astype(np.float32) / 32768
 
 
 def analyze_voice(source: Path, start_ms: int, end_ms: int,
