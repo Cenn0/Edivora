@@ -49,7 +49,7 @@ class VoiceSegmentTests(unittest.TestCase):
             self.assertIs(kwargs["stdin"], subprocess.DEVNULL)
             self.assertNotEqual(kwargs["stdout"], subprocess.PIPE)
             self.assertEqual(kwargs["timeout"], 120)
-            kwargs["stdout"].write(b"\\x01\\x00" * voice.FRAME_SAMPLES)
+            kwargs["stdout"].write(bytes.fromhex("0100") * voice.FRAME_SAMPLES)
             return subprocess.CompletedProcess(args, 0)
 
         with patch.object(voice.subprocess, "run", side_effect=mock_decoder):
