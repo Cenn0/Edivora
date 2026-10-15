@@ -6,15 +6,12 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import signal
 import subprocess
-import threading
 import time
 import traceback
 
 
 def suite_smoke(output: Path, executable: str | None = None) -> int:
-    from PIL import Image
     from PySide6.QtCore import QSize, qVersion
     from PySide6.QtTest import QTest
     from PySide6.QtWidgets import QApplication, QAbstractButton, QAbstractSpinBox, QComboBox, QScrollArea, QSlider
@@ -32,7 +29,8 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
     output.mkdir(parents=True, exist_ok=False)
     report = {"status": "running", "executable": executable, "qt": qVersion(),
               "platform": os.environ.get("QT_QPA_PLATFORM"), "scale": os.environ.get("QT_SCALE_FACTOR", "1"),
-              "scope": "synthetic source or standalone suite regression; not Windows 11 / quality / licence approval"}
+              "scope": "synthetic source or standalone suite regression; not Windows 11 / quality / licence approval",
+              "layout_observations": []}
     windows = []
     app = QApplication.instance() or QApplication([])
     app.setQuitOnLastWindowClosed(False)
@@ -73,6 +71,22 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
     def capture(window, name):
         QTest.qWait(50)
         check(window.grab().save(str(output / (name + ".png"))), "Screenshot save failed.")
+
+    def resize_and_check(window, name, language, width, height):
+        window.resize(width, height)
+        QTest.qWait(100)
+        def wh(size):
+            return [size.width(), size.height()]
+        observation = {"window": name, "language": language, "requested": [width, height],
+                       "actual": wh(window.size()), "minimum": wh(window.minimumSize()),
+                       "minimum_hint": wh(window.minimumSizeHint()),
+                       "maximum": wh(window.maximumSize()),
+                       "available_screen": wh(window.screen().availableGeometry().size()),
+                       "device_pixel_ratio": window.devicePixelRatioF()}
+        report["layout_observations"].append(observation)
+        if window.size() != QSize(width, height):
+            capture(window, f"resize-failure-{name}-{language}-{width}x{height}")
+        check(window.size() == QSize(width, height), f"Window did not resize: {observation}")
 
     try:
         phase("verify_model")
@@ -124,9 +138,7 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
                 window.language_combo.setCurrentIndex(0 if language == "de" else 1)
             for width, height in ((640, 480), (960, 540), (1280, 800), (1920, 1080)):
                 for name, window in zip(("launcher", "photo", "video", "audio"), windows):
-                    window.resize(width, height)
-                    QTest.qWait(20)
-                    check(window.size() == QSize(width, height), f"Window did not resize: {name}")
+                    resize_and_check(window, name, language, width, height)
                     if name == "launcher":
                         for button in launcher.quick_buttons.values():
                             visible(button, launcher)
@@ -160,8 +172,7 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
             wait(lambda: dialog.apply_button.isEnabled())
             check(dialog.ai.isEnabled(), "Bundled neural model was not discovered in the GUI.")
             for width, height in ((640, 480), (1280, 800)):
-                dialog.resize(width, height)
-                QTest.qWait(30)
+                resize_and_check(dialog, "video-improve", language, width, height)
                 for control in (dialog.preview_button, dialog.apply_button, dialog.cancel_button, dialog.compare):
                     visible(control, dialog)
                 for index in range(dialog.tabs.count()):
@@ -183,6 +194,7 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
         code = 0
     except Exception:
         report.update(status="error", traceback=traceback.format_exc())
+        print(report["traceback"], flush=True)
         code = 1
     finally:
         for window in reversed(windows):
