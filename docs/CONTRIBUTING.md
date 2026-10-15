@@ -70,3 +70,7 @@ Für ein neues verbreitetes Windows-Paket müssen Source- und Paket-Smoke, echte
 4. Keine Zugangsdaten, privaten Medien, internen Hostnamen oder persönlichen E-Mail-Adressen committen. Für Sicherheitslücken gelten die Regeln in [SECURITY.md](../SECURITY.md).
 
 **Private Commit-Adresse des Repository-Inhabers:** `198997962+Cenn0@users.noreply.github.com`. Für lokale neue Commits `git config user.email '198997962+Cenn0@users.noreply.github.com'` setzen. Zusätzlich auf GitHub unter **Settings → Emails** die E-Mail-Privatsphäre und das Blockieren von Pushes mit persönlicher Adresse aktivieren. Diese Einstellungen ändern die historische Commit-Metadaten **nicht**.
+
+## Video restoration and responsive suite changes
+
+Before touching the 0.4 pipeline, read [VIDEO_RESTORATION.md](VIDEO_RESTORATION.md). Run the new protocol, history, real-model, cancellation, UI and geometry regressions. `--suite-smoke-test <fresh-output-directory>` must also pass in source and standalone form. Do not call classical presets AI, claim generic filter reversal or expand model/time/resource limits without new evidence.

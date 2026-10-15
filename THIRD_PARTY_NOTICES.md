@@ -82,3 +82,15 @@ The original U-2-Net source repository carries Apache-2.0. The fixed `u2netp.onn
 The build verifies the artifact's exact size, its upstream MD5 compatibility value, and a pinned SHA-256. Hashes establish byte identity, not copyright permission, model quality or freedom from every security risk. Details and sources are in [docs/MODELS.md](docs/MODELS.md). Model binaries are not committed to Git history.
 
 The initial Windows artifact is an unsigned development alpha. A wider end-user release requires completion of the model provenance and binary notice/source checks as well as the installation tests recorded in [docs/VERIFICATION.md](docs/VERIFICATION.md).
+
+## DnCNN color blind (0.4 development)
+
+Original author Kai Zhang, upstream cszn/KAIR release v1.0, MIT repository licence.
+The original notice is preserved in `src/local_ai_photo_editor/models/DNCNN_LICENSE.txt`
+and shipped beside the verified ONNX derivative. Exact original/converted bytes,
+SHA-256, build-only conversion versions and inference verification are recorded
+in `models/dncnn-manifest.json` and [VIDEO_RESTORATION.md](docs/VIDEO_RESTORATION.md).
+PyTorch 2.14.1 CPU and ONNX 1.23.2 are conversion dependencies, not intended
+application-runtime components. The build's installed-distribution inventory
+includes build tools and must not be mistaken for a byte-level package SBOM.
+This addition does not waive existing Qt/FFmpeg/model redistribution gates.

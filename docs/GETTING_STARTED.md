@@ -1,5 +1,15 @@
 # Erste Schritte mit Edivora
 
+## 0.4: Start and improve a video
+
+Open each tool directly in the launcher; it stays open. There are no selection
+checkboxes. Choose a video clip and range, then **Bild → Bild verbessern**
+(or **Picture → Improve picture**). Preview conventional corrections or local
+DnCNN denoising before accepting. Neural output is a separate MP4; keep it
+alongside the project. CPU AI ranges are limited to 30 seconds at up to 720p.
+[Detailed workflow, preparation and limits](VIDEO_RESTORATION.md).
+
+
 Die Anwendungen sind für gelegentliche lokale Foto-, Video- und Audiobearbeitung gedacht. **Wähle zuerst den richtigen Softwarestand**, damit Anleitung und Funktionen zusammenpassen.
 
 ## Downloadstatus

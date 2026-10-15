@@ -15,6 +15,8 @@ from ..core.subject import (
     selection_overlay, subject_bounds, validate_subject_mask,
 )
 from .theme import stylesheet
+from .icons import IconButton, icon
+from .responsive import fit_initial_window
 from .canvas import PhotoCanvas
 from .subject_job import SubjectSelectionJob
 from .subject_strings import text
@@ -68,9 +70,10 @@ class SubjectDialog(QDialog):
         self._start_timer.timeout.connect(self.start_selection)
         self.setWindowTitle(self._t("title"))
         self.setStyleSheet(stylesheet())
-        self.setMinimumSize(820, 580)
+        self.setMinimumSize(640, 480)
         self.resize(1080, 740)
         self._build(mode)
+        fit_initial_window(self, (1080, 740))
         self.canvas.set_image(self._preview_source, self._image.size)
         self._update_controls()
         if start_immediately:
@@ -95,7 +98,7 @@ class SubjectDialog(QDialog):
         return label
 
     def _button(self, key: str, callback) -> QPushButton:
-        button = QPushButton(self._t(key))
+        button = IconButton(self._t(key), key=key)
         button.clicked.connect(callback)
         return button
 
@@ -131,7 +134,7 @@ class SubjectDialog(QDialog):
         content = QHBoxLayout()
         self.canvas = PhotoCanvas()
         self.canvas.set_language(self.language)
-        self.canvas.setMinimumSize(340, 290)
+        self.canvas.setMinimumSize(180, 140)
         content.addWidget(self.canvas, 1)
         self.panel = QWidget()
         self.panel.setObjectName("toolsPanel")
@@ -169,7 +172,7 @@ class SubjectDialog(QDialog):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.panel)
-        scroll.setMinimumWidth(320)
+        scroll.setMinimumWidth(285)
         scroll.setMaximumWidth(380)
         content.addWidget(scroll)
         outer.addLayout(content, 1)

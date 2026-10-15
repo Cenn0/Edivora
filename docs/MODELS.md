@@ -1,5 +1,16 @@
 # Model decisions and provenance
 
+## DnCNN in 0.4 development
+
+A third pinned model, DnCNN color blind, provides **framewise CPU video
+denoising**, not filter inversion or generation. It is limited to a selected
+30-second / 720p / 30fps range. See [exact weights, hashes, MIT notice, deterministic
+conversion, limits and real inference checks](VIDEO_RESTORATION.md). Runtime
+uses only verified ONNX bytes; PyTorch is build-only. Missing weights disable
+only the neural option. Existing U2NETP/Silero and GPU/distribution boundaries
+below remain applicable.
+
+
 Historical model research originally checked on 2026-10-12. **Current `main` source (0.3.0a1)** uses pinned **U2NETP** for Photo and one Video still frame, plus pinned **Silero VAD v6.2.1 ONNX** for Audio speech-activity regions ([media implementation](MEDIA_PROJECTS_AI.md)). The older verified photo ZIP includes **U2NETP only**. The optional expanded model-profile proposal in [PR #17](https://github.com/Cenn0/Edivora/pull/17) is **not part of `main` or a released download**. "Local inference is technically possible" is not hardware certification, GPU support, proven quality or release approval.
 
 ## Initial model: U2NETP

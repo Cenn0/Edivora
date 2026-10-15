@@ -6,6 +6,7 @@ stylesheets to each dialog. Qt Style Sheets do not support CSS variables.
 from __future__ import annotations
 
 from string import Template
+from pathlib import Path
 from types import MappingProxyType
 
 COLORS = MappingProxyType({
@@ -106,13 +107,23 @@ QPushButton#quickAiAction { border-left: 3px solid $ai; }
 QPushButton#quickAction:disabled, QPushButton#quickAiAction:disabled {
     border-color: $border; color: $muted;
 }
+QListWidget#clipTimeline { background: $app; color: $text; border: 1px solid $border; border-radius: 6px; }
+QListWidget#clipTimeline::item { background: $elevated; padding: 6px 10px; margin: 3px; border-radius: 4px; }
+QListWidget#clipTimeline::item:selected { background: $border; color: $primary; border: 1px solid $selection; }
+QPushButton#timelineAction {
+    padding: 3px; min-width: 26px; min-height: 26px; border-radius: 6px;
+}
 QPushButton#moreTools { background: transparent; text-align: left; }
 QPushButton#homePlanned { color: $muted; background: $panel; }
-QComboBox, QSpinBox {
+QComboBox, QSpinBox, QDoubleSpinBox {
     color: $text; background: $elevated; border: 1px solid $border;
     border-radius: 8px; padding: 5px 10px; min-height: 34px;
 }
-QComboBox:focus, QSpinBox:focus { border: 2px solid $selection; }
+QSpinBox::up-button, QDoubleSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 20px; border-left: 1px solid $border; border-radius: 3px; }
+QSpinBox::down-button, QDoubleSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 20px; border-left: 1px solid $border; border-radius: 3px; }
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow { image: url("$up_icon"); width: 14px; height: 14px; }
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow { image: url("$down_icon"); width: 14px; height: 14px; }
+QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border: 2px solid $selection; }
 QComboBox QAbstractItemView {
     color: $text; background: $elevated;
     selection-background-color: $border;
@@ -141,6 +152,10 @@ QScrollBar:vertical { width: 9px; background: transparent; }
 QScrollBar::handle:vertical { background: $border; border-radius: 4px; min-height: 30px; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 QSplitter::handle:horizontal { background: $border; width: 4px; }
+QSplitter::handle:vertical { background: $border; height: 4px; }
+QTabWidget#inspectorTabs QTabBar::tab { padding: 5px 10px; min-height: 24px; }
+QToolButton:focus { border: 2px solid $selection; }
+QToolButton:disabled { color: $muted; }
 QMenuBar { color: $secondary; background: $panel; }
 QMenuBar::item:selected { background: $elevated; }
 QMenu { background: $panel; color: $text; border: 1px solid $border; }
@@ -154,4 +169,7 @@ QToolTip { color: $text; background: $elevated; border: 1px solid $border; paddi
 
 def stylesheet() -> str:
     """Qt-supported stylesheet built from a single immutable token palette."""
-    return Template(_QSS).substitute(COLORS)
+    assets = Path(__file__).resolve().parents[1] / "assets"
+    return Template(_QSS).substitute(COLORS,
+        up_icon=(assets / "chevron-up.svg").as_posix().replace('"', '\\"'),
+        down_icon=(assets / "chevron-down.svg").as_posix().replace('"', '\\"'))

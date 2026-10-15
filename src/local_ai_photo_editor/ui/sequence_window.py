@@ -16,8 +16,8 @@ import uuid
 from PySide6.QtCore import QProcess, QSignalBlocker, Qt, QUrl
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QAbstractItemView, QFileDialog, QFrame, QHBoxLayout, QLabel,
-    QListWidget, QListWidgetItem, QMessageBox, QPushButton, QVBoxLayout,
+    QAbstractItemView, QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel,
+    QListWidget, QListWidgetItem, QMessageBox, QPushButton, QSizePolicy, QVBoxLayout,
     QWidget,
 )
 
@@ -29,8 +29,13 @@ from ..core.media_project import (
     load_media_project, save_media_project,
 )
 from ..core.media_sequence import SequenceExport, commit_sequence_export
+from ..core.media_history import MediaHistory, same_content
 from ..core.process_tree import kill_media_ai_process_group
 from .media_strings import text
+from .icons import IconButton
+from .responsive import ElideLabel
+from .video_strings import text as video_text
+from .media_shell import resize_media_shell
 from .media_window import MediaWindow, clock
 
 
@@ -42,6 +47,8 @@ class SequenceWindow(MediaWindow):
         self.active_id: str | None = None
         self._project_file: Path | None = None
         self._dirty = False
+        self._history_restoring = False
+        self._export_progress_buffer = bytearray()
         self._ui_ready = False
         self._loading = False
         self._pending_new: Path | None = None
@@ -64,35 +71,44 @@ class SequenceWindow(MediaWindow):
             self.fade_in.valueChanged.connect(lambda _: self._mark_changed())
             self.fade_out.valueChanged.connect(lambda _: self._mark_changed())
         self._ui_ready = True
+        self._saved_state = self._snapshot()
+        self._history = MediaHistory(self._saved_state)
         self._update_enabled()
 
     def _install_sequence_controls(self) -> None:
-        # Use one visible horizontal lane; each clip can be dragged to reorder.
         stage = self.timeline.parentWidget()
         stage_layout = stage.layout()
         position = stage_layout.indexOf(self.timeline)
         lane = QFrame()
         lane.setObjectName("toolCard")
         lane_layout = QVBoxLayout(lane)
-        lane_layout.setContentsMargins(10, 8, 10, 8)
-        lane_layout.setSpacing(5)
+        lane_layout.setContentsMargins(8, 6, 8, 6)
+        lane_layout.setSpacing(4)
         head = QHBoxLayout()
+        head.setSpacing(3)
         self.clip_heading = QLabel()
         self.clip_heading.setObjectName("sectionTitle")
         head.addWidget(self.clip_heading)
-        head.addStretch(1)
-        self.add_button = QPushButton()
-        self.add_button.clicked.connect(self.add_media)
-        head.addWidget(self.add_button)
-        self.remove_button = QPushButton()
-        self.remove_button.clicked.connect(self.remove_selected)
-        head.addWidget(self.remove_button)
+        head.addStretch()
+        for attribute, key, callback in (
+            ("add_button", "clip_add", self.open_file),
+            ("remove_button", "clip_remove", self.remove_selected),
+            ("up_button", "clip_up", lambda: self.move_selected(-1)),
+            ("down_button", "clip_down", lambda: self.move_selected(1)),
+            ("duplicate_button", "clip_duplicate", self.duplicate_selected),
+            ("split_button", "clip_split", self.split_selected),
+        ):
+            button = IconButton(key=key)
+            button.setObjectName("timelineAction")
+            button.setCompact(True)
+            button.clicked.connect(callback)
+            setattr(self, attribute, button)
+            head.addWidget(button)
         lane_layout.addLayout(head)
         self.clip_list = QListWidget()
         self.clip_list.setObjectName("clipTimeline")
-        self.clip_list.setAccessibleName("Media sequence")
-        self.clip_list.setMinimumHeight(82)
-        self.clip_list.setMaximumHeight(105)
+        self.clip_list.setMinimumWidth(0)
+        self.clip_list.setFixedHeight(80)
         self.clip_list.setFlow(QListWidget.Flow.LeftToRight)
         self.clip_list.setWrapping(False)
         self.clip_list.setDragEnabled(True)
@@ -105,52 +121,66 @@ class SequenceWindow(MediaWindow):
         self.clip_list.currentRowChanged.connect(self._select_list_row)
         self.clip_list.model().rowsMoved.connect(self._reorder_from_widget)
         lane_layout.addWidget(self.clip_list)
-        buttons = QHBoxLayout()
-        self.up_button = QPushButton()
-        self.up_button.clicked.connect(lambda: self.move_selected(-1))
-        self.down_button = QPushButton()
-        self.down_button.clicked.connect(lambda: self.move_selected(1))
-        self.duplicate_button = QPushButton()
-        self.duplicate_button.clicked.connect(self.duplicate_selected)
-        self.split_button = QPushButton()
-        self.split_button.clicked.connect(self.split_selected)
-        for btn in (self.up_button, self.down_button, self.duplicate_button, self.split_button):
-            buttons.addWidget(btn)
-        lane_layout.addLayout(buttons)
         stage_layout.insertWidget(position, lane)
 
-        project_row = QFrame()
-        project_row.setObjectName("toolCard")
-        project_layout = QVBoxLayout(project_row)
-        project_layout.setContentsMargins(12, 10, 12, 10)
-        self.project_heading = QLabel()
+        self.project_heading = ElideLabel()
         self.project_heading.setObjectName("sectionTitle")
-        project_layout.addWidget(self.project_heading)
-        bar = QHBoxLayout()
-        self.open_project_button = QPushButton()
+        project_layout = self.project_tools_layout
+        project_layout.insertWidget(0, self.project_heading)
+        self.open_project_button = IconButton(key="media_project_open")
         self.open_project_button.clicked.connect(self.open_media_project)
-        self.save_project_button = QPushButton()
+        self.save_project_button = IconButton(key="media_project_save")
+        self.save_project_button.setCompact(True)
         self.save_project_button.clicked.connect(self.save_media_project)
-        self.save_as_button = QPushButton()
+        self.save_as_button = IconButton(key="media_project_save_as")
         self.save_as_button.clicked.connect(self.save_media_project_as)
-        for button in (self.open_project_button, self.save_project_button, self.save_as_button):
-            bar.addWidget(button)
-        project_layout.addLayout(bar)
-        outer = self.centralWidget().layout()
-        # A separate bottom strip keeps project commands accessible from
-        # Video and Audio without conflating them with final-file export.
-        outer.insertWidget(outer.count() - 1, project_row)
-
-        self.ai_button = QPushButton()
+        project_layout.insertWidget(1, self.open_project_button)
+        project_layout.insertWidget(2, self.save_as_button)
+        self.header_layout.insertWidget(self.header_layout.indexOf(self.export_button), self.save_project_button)
+        self.ai_button = IconButton(key="ai_voice" if self.kind == "audio" else "ai_video_frame")
         self.ai_button.setObjectName("quickAiAction")
         self.ai_button.clicked.connect(self.start_local_ai)
-        project_layout.addWidget(self.ai_button)
-
+        target = self.audio_tools_layout if self.kind == "audio" else self.picture_tools_layout
+        target.insertWidget(target.count() - 1, self.ai_button)
         QShortcut(QKeySequence("Ctrl+Shift+O"), self, activated=self.open_media_project)
         QShortcut(QKeySequence("Ctrl+S"), self, activated=self.save_media_project)
+        QShortcut(QKeySequence("Ctrl+Shift+S"), self, activated=self.save_media_project_as)
+        self.undo_button = IconButton(icon_name="undo")
+        self.redo_button = IconButton(icon_name="redo")
+        for button, callback in ((self.redo_button, self.redo_edit), (self.undo_button, self.undo_edit)):
+            button.setCompact(True)
+            button.setObjectName("timelineAction")
+            button.clicked.connect(callback)
+            self.playback_layout.insertWidget(0, button)
+        QShortcut(QKeySequence.StandardKey.Undo, self, activated=self.undo_edit)
+        QShortcut(QKeySequence("Ctrl+Shift+Z"), self, activated=self.redo_edit)
+        QShortcut(QKeySequence("Ctrl+Y"), self, activated=self.redo_edit)
+        self.video_size = None
+        self.enhance_button = None
+        if self.kind == "video":
+            self.enhance_button = IconButton(icon_name="adjust")
+            self.enhance_button.setObjectName("quickAction")
+            self.enhance_button.clicked.connect(self.enhance_video)
+            self.picture_tools_layout.insertWidget(0, self.enhance_button)
+            self.video_size = QComboBox()
+            self.video_size.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            self.video_size.setMinimumContentsLength(10)
+            self.video_size.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            self.video_size.addItem("", "hd")
+            self.video_size.addItem("", "full_hd")
+            project_layout.insertWidget(3, self.video_size)
+            self.source_preview_hint = QLabel()
+            self.source_preview_hint.setTextFormat(Qt.TextFormat.PlainText)
+            self.source_preview_hint.setWordWrap(True)
+            self.source_preview_hint.setObjectName("muted")
+            self.picture_tools_layout.insertWidget(1, self.source_preview_hint)
+        for button in (self.open_project_button, self.save_as_button, self.ai_button, self.enhance_button):
+            if button is not None:
+                button.setFitToWidth()
         self.language_combo.currentIndexChanged.connect(self._translate_sequence)
         self._translate_sequence()
         self._refresh_clips()
+        resize_media_shell(self)
 
     def _translate_sequence(self) -> None:
         def key(k: str) -> str:
@@ -164,7 +194,17 @@ class SequenceWindow(MediaWindow):
             (self.save_as_button, "media_project_save_as"),
         ):
             button.setText(key(name))
-        self.clip_heading.setText(key("clip_lane"))
+        self.undo_button.setText(video_text(self.language, "undo") + " (Ctrl+Z)")
+        self.redo_button.setText(video_text(self.language, "redo") + " (Ctrl+Shift+Z)")
+        if self.enhance_button is not None:
+            self.enhance_button.setText(video_text(self.language, "enhance"))
+            self.source_preview_hint.setText(video_text(self.language, "source_preview"))
+            self.video_size.setAccessibleName(video_text(self.language, "size"))
+            self.video_size.setToolTip(video_text(self.language, "size_hint"))
+            for index, profile in enumerate(("hd", "full_hd")):
+                self.video_size.setItemText(index, video_text(self.language, profile))
+        self.clip_heading.setText(key("clips_short"))
+        self.clip_heading.setToolTip(key("clip_lane"))
         self.project_heading.setText(key("project_title"))
         self.ai_button.setText(key("ai_voice" if self.kind == "audio" else "ai_video_frame"))
         self.clip_list.setAccessibleName(key("clip_lane"))
@@ -211,6 +251,12 @@ class SequenceWindow(MediaWindow):
         self.up_button.setEnabled(ready and idx is not None and idx > 0)
         self.down_button.setEnabled(ready and idx is not None and idx < len(self.clips) - 1)
         self.clip_list.setEnabled(not busy)
+        if self.enhance_button is not None:
+            self.enhance_button.setEnabled(ready)
+            self.video_size.setEnabled(not busy)
+        history_ready = not busy and not self._loading
+        self.undo_button.setEnabled(history_ready and self._history.can_undo)
+        self.redo_button.setEnabled(history_ready and self._history.can_redo)
         self.ai_button.setEnabled(
             ready and (voice_model_available() if self.kind == "audio" else image_model_available())
         )
@@ -239,9 +285,80 @@ class SequenceWindow(MediaWindow):
             round(self.fade_out.value() * 1000) if self.fade_out is not None else 0,
         )
 
-    def _mark_changed(self) -> None:
+    def _mark_changed(self, key: str | None = None) -> None:
+        if self._history_restoring:
+            return
         self._dirty = True
+        if hasattr(self, "_history"):
+            self._history.record(self._snapshot(), key)
+            self._dirty = not same_content(self._snapshot(), self._saved_state)
+            self.undo_button.setEnabled(not self._is_busy() and not self._loading and self._history.can_undo)
+            self.redo_button.setEnabled(not self._is_busy() and not self._loading and self._history.can_redo)
         self._update_project_heading()
+
+    def undo_edit(self) -> None:
+        if self._is_busy() or self._loading or not self._history.can_undo:
+            return
+        if self._history_sources_available(-1):
+            self._restore_history(self._history.undo())
+
+    def redo_edit(self) -> None:
+        if self._is_busy() or self._loading or not self._history.can_redo:
+            return
+        if self._history_sources_available(1):
+            self._restore_history(self._history.redo())
+
+    def _history_sources_available(self, direction: int) -> bool:
+        try:
+            for clip in self._history.candidate(direction).clips:
+                clip.validated(self.kind)
+            return True
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, self._t("error"), str(exc))
+            return False
+
+    def _restore_history(self, state: MediaSequence) -> None:
+        self._history_restoring = True
+        self._cancel_waveform()
+        self.player.pause()
+        self._pending_new = self._pending_existing = None
+        self.clips = list(state.clips)
+        if self.normalize is not None:
+            with QSignalBlocker(self.normalize), QSignalBlocker(self.fade_in), QSignalBlocker(self.fade_out):
+                self.normalize.setChecked(state.normalize)
+                self.fade_in.setValue(state.fade_in_ms / 1000)
+                self.fade_out.setValue(state.fade_out_ms / 1000)
+        if self.clips:
+            selected = next((c for c in self.clips if c.id == state.selected_id), self.clips[0])
+            self._preview_clip(selected)
+        else:
+            self._loading = True
+            self.player.setSource(QUrl())
+            self.source, self.active_id, self.duration_ms = None, None, 0
+            self._loading = False
+            self.timeline.set_duration(0)
+            self.file_label.setText(self._t(f"empty_{self.kind}"))
+            self._refresh_clips()
+        self._history_restoring = False
+        self._dirty = not same_content(self._snapshot(), self._saved_state)
+        self._update_project_heading()
+        self._update_enabled()
+
+    def enhance_video(self) -> None:
+        index = self._selected_index()
+        if self.kind != "video" or index is None or self._is_busy() or not self._capture_selected():
+            return
+        from .video_dialog import VideoEnhancementDialog
+        self.player.pause()
+        protected = tuple(c.source for c in self.clips)
+        if self._project_file is not None:
+            protected += (self._project_file,)
+        dialog = VideoEnhancementDialog(self.clips[index], self.player.position(), self.language, protected, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result_clip is not None:
+            self.clips[index] = dialog.result_clip
+            self._mark_changed()
+            self._preview_clip(self.clips[index])
+        dialog.deleteLater()
 
     def _update_project_heading(self) -> None:
         if not getattr(self, "_ui_ready", False):
@@ -271,7 +388,7 @@ class SequenceWindow(MediaWindow):
                           mute=self.mute.isChecked() if self.mute is not None else False)
         if changed != clip:
             self.clips[idx] = changed
-            self._mark_changed()
+            self._mark_changed(key=clip.id)
             self._refresh_clips()
         return True
 
@@ -325,6 +442,8 @@ class SequenceWindow(MediaWindow):
 
     def _preview_clip(self, clip: MediaClip) -> None:
         self.active_id = clip.id
+        if hasattr(self, "_history"):
+            self._history.select(clip.id)
         self._pending_existing = clip.id
         self._pending_new = None
         self._loading = True
@@ -387,6 +506,11 @@ class SequenceWindow(MediaWindow):
 
     def _volume_changed(self, value: int) -> None:
         super()._volume_changed(value)
+        if self._ui_ready and not self._loading:
+            self._capture_selected()
+
+    def _mute_changed(self, muted: bool) -> None:
+        super()._mute_changed(muted)
         if self._ui_ready and not self._loading:
             self._capture_selected()
 
@@ -508,7 +632,10 @@ class SequenceWindow(MediaWindow):
         )
         self._preview_clip(selection)
         self._dirty = False
+        self._saved_state = self._snapshot()
+        self._history.reset(self._saved_state)
         self._update_project_heading()
+        self._update_enabled()
 
     def save_media_project(self) -> None:
         if self._project_file is None:
@@ -542,13 +669,16 @@ class SequenceWindow(MediaWindow):
             return
         self._project_file = Path(path)
         self._dirty = False
+        self._saved_state = self._snapshot()
+        self._history.checkpoint()
         self._set_status("media_project_saved", name=path.name)
         self._update_project_heading()
 
     def _sequence_export(self, destination: Path) -> SequenceExport:
         if not self._capture_selected():
             raise ValueError(self._t("invalid_selection"))
-        return SequenceExport(self._snapshot(), destination).validated()
+        return SequenceExport(self._snapshot(), destination,
+            self.video_size.currentData() if self.video_size is not None else "hd").validated()
 
     def export_file(self) -> None:
         if self._is_busy() or not self.clips or not self._can_render():
@@ -584,21 +714,40 @@ class SequenceWindow(MediaWindow):
         self._sequence_temp = temporary
         self._export_cancelled = False
         self._export_error.clear()
+        self._export_progress_buffer.clear()
         process = QProcess(self)
         self._export_process = process
         process.setProgram(engine)
         process.setArguments(arguments)
         process.readyReadStandardError.connect(self._collect_error)
+        process.readyReadStandardOutput.connect(self._sequence_progress)
         process.finished.connect(lambda code, status, p=process: self._sequence_finished(p, code))
         process.errorOccurred.connect(
             lambda error, p=process: self._sequence_start_error(p, error)
         )
-        self.progress.setRange(0, 0)
+        self.progress.setRange(0, 100)
+        self.progress.setValue(0)
         self.progress.show()
         self.cancel_button.show()
         self._set_status("media_sequence_render")
         self._update_enabled()
         process.start()
+
+    def _sequence_progress(self) -> None:
+        if self._export_process is None or self._sequence_plan is None:
+            return
+        self._export_progress_buffer.extend(bytes(self._export_process.readAllStandardOutput()))
+        del self._export_progress_buffer[:-8192]
+        while b"\n" in self._export_progress_buffer:
+            line, _, rest = self._export_progress_buffer.partition(b"\n")
+            self._export_progress_buffer = bytearray(rest)
+            if line.startswith(b"out_time_us="):
+                try:
+                    elapsed = max(0, int(line.split(b"=", 1)[1]))
+                    value = min(99, round(elapsed / (self._sequence_plan.sequence.length_ms * 10)))
+                    self.progress.setValue(value)
+                except ValueError:
+                    pass
 
     def _sequence_start_error(self, process: QProcess, error: QProcess.ProcessError) -> None:
         if process is self._export_process and error == QProcess.ProcessError.FailedToStart:

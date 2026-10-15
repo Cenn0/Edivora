@@ -70,9 +70,9 @@ class EditorWindowTests(unittest.TestCase):
         self.assertTrue(self.window.open_button.isEnabled())
         self.assertFalse(self.window.ai_button.isEnabled())
         self.assertFalse(self.window.export_button.isEnabled())
-        self.assertEqual(self.window.open_button.text(), "Foto öffnen")
+        self.assertEqual(self.window.open_button.accessibleName(), "Foto öffnen")
         self.window.set_language("en")
-        self.assertEqual(self.window.open_button.text(), "Open photo")
+        self.assertEqual(self.window.open_button.accessibleName(), "Open photo")
         self.assertEqual(self.window.language_combo.currentData(), "en")
 
     def test_adjustment_preview_is_committed_explicitly_and_undoable(self) -> None:
@@ -236,7 +236,7 @@ class EditorWindowTests(unittest.TestCase):
             with patch("local_ai_photo_editor.ui.window.QFileDialog.getSaveFileName", return_value=(str(fresh), "PNG (*.png)")):
                 self.window.export_copy()
             self.assertTrue(fresh.exists())
-            self.assertEqual(self.window.status_label.text(), self.window._t("export_done", name=fresh.name))
+            self.assertEqual(self.window.status_label.accessibleName(), self.window._t("export_done", name=fresh.name))
 
     def test_invalid_project_does_not_replace_active_document(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

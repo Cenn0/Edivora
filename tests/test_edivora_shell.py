@@ -98,12 +98,12 @@ class EdivoraShellTests(unittest.TestCase):
         w = self.window
         w.set_document(Image.new("RGB", (100, 70), (75, 90, 120)))
         w.set_language("en")
-        self.assertIn("Photo", w.nav_photo.text())
+        self.assertIn("Photo", w.nav_photo.accessibleName())
         self.assertEqual(w.nav_photo.accessibleName(), "Photo")
         self.assertIn("Open separate window", w.nav_video.toolTip())
         self.assertEqual(w.quick_buttons[0].text(), "Enhance photo …")
         w.set_language("de")
-        self.assertIn("Foto", w.nav_photo.text())
+        self.assertIn("Foto", w.nav_photo.accessibleName())
         self.assertIn("Weitere", w.more_tools_button.text())
 
     def test_media_navigation_starts_independent_tools(self) -> None:

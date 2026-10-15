@@ -1,5 +1,16 @@
 # Edivora – Roadmap
 
+## New 0.4 source (not the older 0.3 download)
+
+Implemented: direct persistent launcher, shared accessible vector icons,
+responsive photo/media/dialog layouts, video correction recipes with actual
+still comparison, short-clip DnCNN denoising, HD/Full HD sequence output,
+media Undo/Redo and project v2 with v1 compatibility. [Changes and remaining
+limits](RELEASE_NOTES_RESPONSIVE_SUITE.md). Windows package acceptance is tied to
+a successful run for this exact source, not to the earlier alpha's results.
+No merge or availability of the separate PR #17 is implied.
+
+
 **Aktualisiert am 14.10.2026.** Diese Roadmap trennt **bereits im Quellcode implementiert**, **als Release nachgewiesen** und **geplante** Funktionen. Eine Entwicklungsversionsnummer ist **keine** veröffentlichte Paketfreigabe.
 
 ## Historischer Foto-Testbuild: v0.1.0-alpha.1

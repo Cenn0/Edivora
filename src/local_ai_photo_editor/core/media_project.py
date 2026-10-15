@@ -13,10 +13,11 @@ from pathlib import Path, PurePosixPath
 import tempfile
 import uuid
 
+from .video_adjustments import VideoAdjustments
 from .media import AUDIO_OUTPUTS, MAX_SOURCE_BYTES, MIN_SELECTION_MS, protects_source, validate_source
 
 PROJECT_MAGIC = "edivora-media"
-PROJECT_VERSION = 1
+PROJECT_VERSION = 2
 MAX_CLIPS = 24
 MAX_PROJECT_BYTES = 256 * 1024
 MAX_SEQUENCE_MS = 4 * 60 * 60 * 1000
@@ -87,15 +88,17 @@ class MediaClip:
     volume_percent: int = 100
     mute: bool = False
     has_audio: bool = True
+    video_adjustments: VideoAdjustments = VideoAdjustments()
 
     @classmethod
     def create(cls, kind: str, source: str | Path, duration_ms: int,
                *, start_ms: int = 0, end_ms: int | None = None,
                volume_percent: int = 100, mute: bool = False,
-               has_audio: bool = True) -> "MediaClip":
+               has_audio: bool = True,
+               video_adjustments: VideoAdjustments = VideoAdjustments()) -> "MediaClip":
         clip = cls(uuid.uuid4().hex, validate_source(_allowed_path(Path(source)), kind),
                    duration_ms, start_ms,
-                   duration_ms if end_ms is None else end_ms, volume_percent, mute, has_audio)
+                   duration_ms if end_ms is None else end_ms, volume_percent, mute, has_audio, video_adjustments)
         return clip.validated(kind)
 
     @property
@@ -117,6 +120,11 @@ class MediaClip:
         _int(self.volume_percent, 0, 200, "clip volume")
         _bool(self.mute, "mute")
         _bool(self.has_audio, "audio presence")
+        if type(self.video_adjustments) is not VideoAdjustments:
+            raise ValueError("Invalid video adjustments.")
+        self.video_adjustments.validated()
+        if kind == "audio" and self.video_adjustments.has_effect:
+            raise ValueError("Video effects cannot be applied to an audio clip.")
         if kind == "audio" and (self.mute or not self.has_audio):
             raise ValueError("Audio clips cannot be muted or have no audio.")
         return self
@@ -209,12 +217,15 @@ def save_media_project(sequence: MediaSequence, path: str | Path) -> None:
     items = []
     for clip in seq.clips:
         source = validate_source(clip.source, seq.kind)
+        if not protects_source(source, project):
+            raise ValueError("A project cannot replace a source media file or alias.")
         items.append({
             "id": clip.id, "source": _source_reference(source, project),
             "fingerprint": fingerprint(source),
             "duration_ms": clip.duration_ms, "start_ms": clip.start_ms,
             "end_ms": clip.end_ms, "volume_percent": clip.volume_percent,
             "mute": clip.mute, "has_audio": clip.has_audio,
+            "video_adjustments": clip.video_adjustments.to_dict(),
         })
     data = {
         "format": PROJECT_MAGIC, "version": PROJECT_VERSION,
@@ -231,8 +242,8 @@ def save_media_project(sequence: MediaSequence, path: str | Path) -> None:
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
-        if project.is_symlink():
-            raise ValueError("Project destination changed into a symlink.")
+        if project.is_symlink() or any(not protects_source(c.source, project) for c in seq.clips):
+            raise ValueError("Project destination changed into a source alias or symlink.")
         os.replace(temporary, project)
     finally:
         Path(temporary).unlink(missing_ok=True)
@@ -259,7 +270,7 @@ def load_media_project(path: str | Path) -> MediaSequence:
     }, "project")
     if data["format"] != PROJECT_MAGIC:
         raise ValueError("Not an Edivora media project.")
-    _int(data["version"], PROJECT_VERSION, PROJECT_VERSION, "project version")
+    _int(data["version"], 1, PROJECT_VERSION, "project version")
     kind = data["kind"]
     if kind not in PROJECT_EXTENSIONS or project.suffix.lower() != PROJECT_EXTENSIONS[kind]:
         raise ValueError("Project type and filename do not match.")
@@ -268,14 +279,19 @@ def load_media_project(path: str | Path) -> MediaSequence:
         raise ValueError("Invalid number of clips.")
     clips = []
     for row in rows:
-        row = _exact_dict(row, {
+        clip_fields = {
             "id", "source", "fingerprint", "duration_ms", "start_ms",
             "end_ms", "volume_percent", "mute", "has_audio",
-        }, "clip")
+        }
+        if data["version"] == 2:
+            clip_fields.add("video_adjustments")
+        row = _exact_dict(row, clip_fields, "clip")
+        adjustments = (VideoAdjustments.from_dict(row["video_adjustments"])
+                       if data["version"] == 2 else VideoAdjustments())
         src = _resolve_reference(row["source"], project)
         clip = MediaClip(
             row["id"], src, row["duration_ms"], row["start_ms"],
-            row["end_ms"], row["volume_percent"], row["mute"], row["has_audio"],
+            row["end_ms"], row["volume_percent"], row["mute"], row["has_audio"], adjustments,
         ).validated(kind)
         expected = _exact_dict(row["fingerprint"], {"size", "sample_sha256"}, "fingerprint")
         _int(expected["size"], 1, MAX_SOURCE_BYTES, "media size")
