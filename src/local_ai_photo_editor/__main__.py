@@ -584,6 +584,10 @@ def main(argv: list[str] | None = None) -> int:
         from .worker import run_job
         return run_job(Path(args[1]))
     if len(args) == 3 and args[0] == "--media-ai-job":
+        if args[1] not in {"voice", "frame"}:
+            return 2
+        from .core.process_tree import protect_media_ai_worker
+        protect_media_ai_worker()  # Fail closed before any nested FFmpeg starts.
         if args[1] == "voice":
             from .ai.voice import voice_worker
             return voice_worker(Path(args[2]), _compiled_executable())

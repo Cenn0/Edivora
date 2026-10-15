@@ -2,13 +2,13 @@
 
 # Edivora
 
-**Simple, local photo, video and audio editing with selected on-device AI features.** Edivora is being developed as a free, open-source desktop toolkit with German and English UI. **The GitHub repository is currently private**, and the current suite has not been published as a public end-user release. No account, cloud model server or runtime model downloads are needed.
+**Simple, local photo, video and audio editing with selected on-device AI features.** Edivora is open source, with a German and English interface. **The repository is public, but redistribution of Windows packages is not approved.** Runtime processing is local; the application does not require accounts, cloud inference or automatic model downloads.
 
 **Language:** [Deutsch](README.md) · English (this page)
 
 ![Edivora Photo, Video and Audio](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
-> **Source code is not a product release.** The [published `v0.1.0-alpha.1` ZIP](https://github.com/Cenn0/Edivora/releases/tag/v0.1.0-alpha.1) contains the **older photo-only test alpha**, not the multi-tool launcher. The previous three-workspace baseline was **0.3.0a1**; the new **0.4.0a1** source is described below. A private, unsigned Windows test package is provided above; a fully accepted Windows 11 public release has **not** been approved. License/codec and clean-machine checks are pending.
+> **Source is not an approved binary release.** `main` contains the Photo/Video/Audio 0.4.0a1 development code. The former photo-only v0.1.0-alpha.1 package does not contain these features. Public Windows binaries remain blocked pending Qt, FFmpeg, model-weight redistribution review and clean Windows 11 acceptance.
 
 ## New in development source 0.4.0a1
 
@@ -22,19 +22,9 @@
 
 [Workflow, limitations and provenance](docs/VIDEO_RESTORATION.md) · [0.4 change notes](docs/RELEASE_NOTES_RESPONSIVE_SUITE.md)
 
-## Windows test downloads and version boundaries
+## Windows package status
 
-**Previous 0.3 build — does not include the new 0.4 features:**
-
-**[Verified Windows x64 test build 0.3 (GitHub Actions)](https://github.com/Cenn0/Edivora/actions/runs/38636053924/artifacts/11928373456)** · [Successful Windows package checks](https://github.com/Cenn0/Edivora/actions/runs/38636053924)
-
-This completed PR #18 build contains **the Edivora application code of the earlier 0.3 merge to `main`** (branding, launcher, Photo/Video/Audio and local AI); subsequent changes are limited to documentation and release automation. The private Actions artifact **expires 14 days after upload** and requires repository access. **Extract every file into the same local folder and launch `LocalAiPhotoEditor.exe` there.** The permanent release ZIP link below becomes available only after a separate successful `main` packaging run.
-
-**[Windows x64: Download Edivora 0.3.0 Alpha 1 (ZIP)](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/Edivora-0.3.0-alpha.1-windows-x64.zip)** · [SHA-256 checksum](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/SHA256SUMS.txt) · [Private prerelease notes](https://github.com/Cenn0/Edivora/releases/tag/v0.3.0-alpha.1) · [Build provenance](https://github.com/Cenn0/Edivora/releases/download/v0.3.0-alpha.1/BUILD_PROVENANCE.json)
-
-This is a **private, unsigned prerelease** for authorized repository users, **not an officially accepted Windows 11 product release**. Publication is gated on a successful Windows CI package build; if the run is not green, no new release is published. Unlike the older photo alpha below, this build includes the launcher and all three editors.
-
-**Installation:** Download the ZIP and `SHA256SUMS.txt`, compare the ZIP SHA-256 using `Get-FileHash .\Edivora-0.3.0-alpha.1-windows-x64.zip -Algorithm SHA256` in PowerShell, extract **all** files and launch **`LocalAiPhotoEditor/LocalAiPhotoEditor.exe`**. The technical executable name is still historical; the UI is branded **Edivora**. Keep the complete Qt, model and FFmpeg directories. Python or Docker are not needed on the target computer. **Do not redistribute publicly:** FFmpeg/Qt/model licence review and fresh Windows 11 acceptance are not complete. [Release notes](docs/RELEASE_NOTES_TEST_SUITE.md) · [Windows CI builds](https://github.com/Cenn0/Edivora/actions/workflows/windows-alpha.yml).
+**No Windows ZIP is currently approved for public redistribution.** Previously downloadable test binaries are being withdrawn until the exact Qt, FFmpeg and model-weight licensing obligations are resolved. CI results demonstrate selected technical checks only; they do not constitute legal clearance or a clean Windows 11 end-user acceptance. See [public release checklist](docs/PUBLIC_RELEASE_CHECKLIST.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Current source capabilities
 
@@ -48,11 +38,9 @@ One **launcher** starts Photo, Video and Audio in separate independent windows; 
 
 **AI scope:** The 0.4 source uses local, pinned **U2NETP, Silero VAD and DnCNN ONNX CPU** models. Classic image/audio adjustments are **not generative AI**. No application-level CUDA/DirectML/other GPU deployment has been verified; automatic GPU support should not be inferred from a compatible card. The proposed expanded model profiles in PR #17 are **not on `main`**.
 
-## Download the historical photo alpha
+## Historical photo-only alpha
 
-The existing [Windows x64 test package](https://github.com/Cenn0/Edivora/releases/download/v0.1.0-alpha.1/LocalAiPhotoEditor-0.1.0-alpha.1-windows-x64.zip) is **unsigned**. Verify its hash using [SHA256SUMS.txt](https://github.com/Cenn0/Edivora/releases/download/v0.1.0-alpha.1/SHA256SUMS.txt), unpack the **entire** ZIP and run `LocalAiPhotoEditor/LocalAiPhotoEditor.exe`. You can import a photo, make basic corrections, remove its background locally and export a copy. **Video, Audio and project files are not available in that ZIP.**
-
-The historical package passed 69 tests and actual CPU inference plus native/offline packaging checks on Windows Server 2022. These results do not verify the new suite or a clean Windows 11 install. [Exact historical evidence](docs/VERIFICATION.md).
+The retired `v0.1.0-alpha.1` included only basic photo editing, not the Edivora launcher or media editors. Its historical Windows Server 2022 and offline checks are documented in [verification](docs/VERIFICATION.md); they do not certify the current suite.
 
 ## Run the latest development source
 

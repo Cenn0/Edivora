@@ -13,13 +13,13 @@ No merge or availability of the separate PR #17 is implied.
 
 **Aktualisiert am 14.10.2026.** Diese Roadmap trennt **bereits im Quellcode implementiert**, **als Release nachgewiesen** und **geplante** Funktionen. Eine Entwicklungsversionsnummer ist **keine** veröffentlichte Paketfreigabe.
 
-## Historisch veröffentlicht: v0.1.0-alpha.1 (Foto)
+## Historischer Foto-Testbuild: v0.1.0-alpha.1
 
-Der alte, **unsignierte** Windows-x64-Testdownload enthält Import/Export von JPEG, PNG und WebP, Grundkorrekturen, Undo/Redo, DE/EN und lokale U2NETP-Hintergrundentfernung. Er wurde auf Windows Server 2022 inklusive Offline-KI-Ausführung und GUI getestet. **Kein Video-/Audioeditor, kein Launcher, keine `.laip/.edvp/.edap`-Projekte** in diesem Paket. [Verifikationsprotokoll](VERIFICATION.md).
+Das frühere, **unsignierte** Windows-x64-Testpaket enthielt Import/Export von JPEG, PNG und WebP, Grundkorrekturen, Undo/Redo, DE/EN und lokale U2NETP-Hintergrundentfernung. Er wurde auf Windows Server 2022 inklusive Offline-KI-Ausführung und GUI getestet. **Kein Video-/Audioeditor, kein Launcher, keine `.laip/.edvp/.edap`-Projekte** in diesem Paket. [Verifikationsprotokoll](VERIFICATION.md).
 
 ## Aktueller `main`-Quellcode: 0.3.0a1
 
-**Privater Testdownload:** [Edivora 0.3.0 Alpha 1](https://github.com/Cenn0/Edivora/releases/tag/v0.3.0-alpha.1) enthält den gemergten Entwicklungsstand, sobald die Windows-Paketprüfung erfolgreich ist. Dieses **unsignierte interne Prerelease** bedeutet ausdrücklich keine öffentliche Lizenz-/Hardware-/Windows-11-Freigabe.
+**Öffentlicher Quellcode:** Die aktuelle Suite liegt in `main`. Öffentliche Windows-Binärpakete sind **noch nicht lizenzrechtlich freigegeben**. Historische Pakete und Actions-Artefakte werden bis zum Abschluss der Prüfung zurückgezogen; der private Prerelease-Workflow bleibt für öffentliche Repositorys deaktiviert.
 
 **Implementiert, noch nicht als gleichwertiger neuer Endnutzerdownload freigegeben:**
 

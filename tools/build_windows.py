@@ -38,6 +38,19 @@ def main() -> int:
     ffmpeg_binary = Path(imageio_ffmpeg.get_ffmpeg_exe()).resolve()
     if not ffmpeg_binary.is_file():
         raise RuntimeError("The pinned FFmpeg wheel does not contain a local executable.")
+    # Evidence for legal review: never equate the imageio wrapper license
+    # with the exact third-party FFmpeg executable shipped in the package.
+    ffmpeg_version = subprocess.check_output(
+        [str(ffmpeg_binary), "-version"], text=True, errors="replace", timeout=20,
+    )
+    ffmpeg_buildconf = subprocess.check_output(
+        [str(ffmpeg_binary), "-buildconf"], text=True, errors="replace", timeout=20,
+    )
+    ffmpeg_license = subprocess.check_output(
+        [str(ffmpeg_binary), "-L"], text=True, errors="replace", timeout=20,
+    )
+    if "--enable-nonfree" in ffmpeg_version:
+        raise RuntimeError("Refusing to bundle an FFmpeg binary configured with --enable-nonfree.")
     codec_listing = subprocess.check_output(
         [str(ffmpeg_binary), "-hide_banner", "-encoders"],
         text=True, timeout=20,
@@ -91,6 +104,20 @@ def main() -> int:
     media_tools = destination / "media-tools"
     media_tools.mkdir()
     shutil.copy2(ffmpeg_binary, media_tools / "ffmpeg.exe")
+    (media_tools / "FFMPEG_BUILD_PROVENANCE.json").write_text(
+        json.dumps({
+            "source_python_distribution": "imageio-ffmpeg==0.6.0",
+            "source_executable_filename": ffmpeg_binary.name,
+            "shipped_executable_sha256": hashlib.sha256(
+                (media_tools / "ffmpeg.exe").read_bytes()
+            ).hexdigest(),
+            "ffmpeg_version": ffmpeg_version,
+            "ffmpeg_buildconf": ffmpeg_buildconf,
+            "ffmpeg_license_output": ffmpeg_license,
+            "redistribution_cleared": False,
+            "notice": "Binary configuration evidence only; rights, codec notices and corresponding-source obligations require separate review.",
+        }, indent=2, ensure_ascii=False), encoding="utf-8",
+    )
     shutil.copy2(ROOT / "docs" / "qt-licenses" / "GPL-3.0-only.txt",
                  media_tools / "GPL-3.0-license.txt")
     # This FFmpeg command-line binary is distinct from Qt's playback backend.
