@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 import unittest
+from unittest.mock import patch
 
 from local_ai_photo_editor.core.process_tree import kill_media_ai_process_group
 
@@ -38,7 +39,10 @@ def _process_running(pid: int) -> bool:
     # POSIX orphan children can briefly be zombies awaiting init to reap.
     status = Path(f"/proc/{pid}/stat")
     if status.exists():
-        return status.read_text("utf-8").split(") ", 1)[-1][:1] != "Z"
+        try:
+            return status.read_text("utf-8").split(") ", 1)[-1][:1] != "Z"
+        except FileNotFoundError:
+            return False
     return True
 
 
@@ -95,7 +99,9 @@ time.sleep(12)
 
     @unittest.skipIf(os.name == "nt", "Unix process groups are not a Windows cancellation primitive")
     def test_never_signals_an_unrelated_process_group(self) -> None:
-        self.assertFalse(kill_media_ai_process_group(os.getpid()))
+        with patch("os.getpgid", return_value=99999), patch("os.killpg") as kill:
+            self.assertFalse(kill_media_ai_process_group(12345))
+            kill.assert_not_called()
 
 
 if __name__ == "__main__":
