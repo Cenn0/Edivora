@@ -135,6 +135,8 @@ jobs:
         run: |
           Copy-Item -Recurse test-results dist/LocalAiPhotoEditor/verification
       - name: Upload checked portable alpha
+        # An Actions artifact is downloadable on a public repository; do not redistribute unreviewed Qt/FFmpeg/model binaries.
+        if: ${{ github.event.repository.private == true }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: LocalAiPhotoEditor-windows-x64-alpha
@@ -142,7 +144,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Upload verification evidence
-        if: always()
+        if: ${{ always() && github.event.repository.private == true }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: verification-windows
@@ -154,7 +156,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - name: Preserve failed runtime package for diagnosis
-        if: ${{ failure() && steps.standalone_build.outcome == 'success' }}
+        if: ${{ failure() && steps.standalone_build.outcome == 'success' && github.event.repository.private == true }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: diagnostic-package-windows-x64
