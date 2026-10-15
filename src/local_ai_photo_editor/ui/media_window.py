@@ -630,6 +630,8 @@ class MediaWindow(QMainWindow):
         process = QProcess(self)
         self._wave_process = process
         self._wave_data = bytearray()
+        # Do not buffer arbitrary error output from untrusted media in Qt.
+        process.setStandardErrorFile(QProcess.nullDevice())
         process.setProgram(engine)
         process.setArguments([
             "-nostdin", "-hide_banner", "-loglevel", "error",
