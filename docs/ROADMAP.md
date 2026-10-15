@@ -1,55 +1,35 @@
 # Edivora – Roadmap
 
-## New 0.4 source (not the older 0.3 download)
+**Stand: 15.10.2026 · aktueller `main`-Quellcode: 0.4.0a1.** Die Roadmap unterscheidet Quellcodefunktionen, erfolgreiche automatisierte Prüfungen, getestete Binärartefakte und eine **offiziell freigegebene Veröffentlichung**. Das sind unterschiedliche Zustände.
 
-Implemented: direct persistent launcher, shared accessible vector icons,
-responsive photo/media/dialog layouts, video correction recipes with actual
-still comparison, short-clip DnCNN denoising, HD/Full HD sequence output,
-media Undo/Redo and project v2 with v1 compatibility. [Changes and remaining
-limits](RELEASE_NOTES_RESPONSIVE_SUITE.md). Windows package acceptance is tied to
-a successful run for this exact source, not to the earlier alpha's results.
-No merge or availability of the separate PR #17 is implied.
+## Aktuell im Quellcode umgesetzt (0.4.0a1)
 
+- **Launcher:** Foto, Video und Audio direkt und unabhängig starten; der Launcher bleibt für weitere Starts offen. Keine Auswahlkästchen und keine Sammelstart-Schaltfläche.
+- **Oberflächen:** gemeinsames Dark-Theme und Edivora-Branding, lokale Vektoricons, DE/EN-Beschriftungen und Tastaturalternativen. Medienwerkzeuge besitzen kompakte Werkzeugleisten, größenanpassbare Einzelclipvorschauen und scrollbare Inspektor-Reiter. Unterstütztes Layout-Minimum: **640 × 480 logische Pixel**.
+- **Foto:** Korrekturen und Looks, Zuschnitt/Rotation, Motiv-/Hintergrundeffekte, Masken-Pinsel, reversible Vorschauen, Undo/Redo und `.laip`-Projektarchive.
+- **Video:** bis zu 24 Clips auf **einer** Reihenfolgespur, trimmen/teilen/duplizieren/sortieren, `.edvp`-Projektdateien, FFmpeg-MP4-Export in HD oder Full HD. Sieben konventionelle Bildkorrekturen mit Vorher-/Nachher-Standbildvorschau und pro Clip gespeicherten Parametern.
+- **Video-KI:** lokale U2NETP-Freistellung **eines Standbilds** sowie CPU-DnCNN-Entrauschung eines ausgewählten Bereichs bis **30 s, 720p und 30 fps**. Die KI-Entrauschung erzeugt nach expliziter Bestätigung eine **separate** MP4. Kein universelles Entfernen eingebrannter Filter oder Wiederherstellen verlorener Bilddaten.
+- **Audio:** bis zu 24 Clips auf einer Reihenfolgespur, Trimmen, Pegel/Fades, `.edap`-Projekte, WAV-/MP3-Export, lokale Silero-VAD-Vorschläge für Sprachsegmente.
+- **Medienprojekte:** Undo/Redo (bis 60 Zustände), Schema 2 für neue Projekte, striktes Einlesen älterer Schema-1-Dateien. Projektdateien referenzieren externe Medien, statt sie einzubetten. Originalmedien werden nicht überschrieben.
 
-**Aktualisiert am 14.10.2026.** Diese Roadmap trennt **bereits im Quellcode implementiert**, **als Release nachgewiesen** und **geplante** Funktionen. Eine Entwicklungsversionsnummer ist **keine** veröffentlichte Paketfreigabe.
+[Umsetzung und Einschränkungen](VIDEO_RESTORATION.md) · [Release Notes 0.4](RELEASE_NOTES_RESPONSIVE_SUITE.md) · [UI-Stand](UI_IMPLEMENTATION.md).
 
-## Historischer Foto-Testbuild: v0.1.0-alpha.1
+## Historischer Foto-Testbuild
 
-Das frühere, **unsignierte** Windows-x64-Testpaket enthielt Import/Export von JPEG, PNG und WebP, Grundkorrekturen, Undo/Redo, DE/EN und lokale U2NETP-Hintergrundentfernung. Er wurde auf Windows Server 2022 inklusive Offline-KI-Ausführung und GUI getestet. **Kein Video-/Audioeditor, kein Launcher, keine `.laip/.edvp/.edap`-Projekte** in diesem Paket. [Verifikationsprotokoll](VERIFICATION.md).
+Das frühere unsignierte `v0.1.0-alpha.1` enthielt **nur** Fotofunktionen und U2NETP, nicht den heutigen Launcher, Video/Audio oder DnCNN. Automatisierte Windows-Server-2022-/Offline-Prüfungen beziehen sich auf genau dieses Paket und beweisen keine Windows-11-Abnahme der 0.4-Suite. Der frühere Binärdownload wird bis zur Redistributionsprüfung zurückgezogen. [Historische Nachweise](VERIFICATION.md).
 
-## Aktueller `main`-Quellcode: 0.3.0a1
+## Abgrenzung von noch nicht integrierter Arbeit
 
-**Öffentlicher Quellcode:** Die aktuelle Suite liegt in `main`. Öffentliche Windows-Binärpakete sind **noch nicht lizenzrechtlich freigegeben**. Historische Pakete und Actions-Artefakte werden bis zum Abschluss der Prüfung zurückgezogen; der private Prerelease-Workflow bleibt für öffentliche Repositorys deaktiviert.
+- **PR #17:** Automatische/manuelle KI-Modellprofile, IS-Net und Whisper sind ein **separater offener Vorschlag**, nicht Teil von 0.4.0a1 in `main`. [PR ansehen](https://github.com/Cenn0/Edivora/pull/17).
+- **Weiterhin offen:** Durchgehende Vorschau der kompletten Sequenz, Mehrspurmontage und -mischung, Übergänge, vollständiges Media-Relinking, portable eingebettete Medienpakete, Autosave/Crash-Recovery, breiter bestätigte Codec-/Hardwarematrix und echte GPU-Ausführung.
+- **Längerfristig:** verifizierte Video-KI über zusammenhängende Frames, zusätzliche Spracherkennung und hochwertige generative Funktionen nur mit geprüften Modellgewichten, Rechten, Ressourcenbudgets, expliziter Übernahme und reproduzierbaren Qualitätsnachweisen.
 
-**Implementiert, noch nicht als gleichwertiger neuer Endnutzerdownload freigegeben:**
+## Freigabe-Gates für öffentliche Windows-Binärpakete
 
-- Gemeinsamer Edivora-Launcher mit einzeln, zu zweit oder zu dritt parallel geöffneten, unabhängigen Foto-/Video-/Audio-Prozessen.
-- Foto: geführte Korrekturen, Looks, Motivwahl-/Hintergrundeffekte, manuelle Alphamaskenkorrektur und `.laip`-Fotoarchive.
-- Video: geordnete **Single-Lane-Timeline bis 24 Clips**, Drag & Drop, Schnitt-/Duplizierfunktionen, `.edvp`-Projekt und lokaler FFmpeg-MP4-Export.
-- Audio: dieselbe Grund-Timeline bis 24 Clips, Pegel/Fades, `.edap`-Projekt und FFmpeg-WAV-/MP3-Export.
-- Echte lokale **U2NETP-Standbild-Freistellung** im Videoeditor und **Silero-VAD-Sprachaktivitätsvorschläge** im Audioeditor; CPU-ONNX mit fest geprüften Modellen und ohne Runtime-Downloads.
-- Zentrales Dark-Theme und zweisprachige Beschriftungen. Markendarstellung mit Edivora-Logo und dokumentierten Vektorassets ist im begleitenden Branding-Änderungssatz integriert, **nicht** im zuvor veröffentlichten ZIP.
+1. **Reale Funktion:** Foto-/Medien-/Modell-Smokes mit echten gepinnten Gewichten sowie korrekte Abbruch- und Exportpfade, DE/EN und relevante Anzeigegrößen.
+2. **Paketidentität:** Windows-Standalone-Build aus exakt identifiziertem Commit, Prüfsummen, Abhängigkeits- und Modellmanifest, Test des tatsächlich heruntergeladenen Pakets unter wirksamer Offline-Sperre.
+3. **Lizenzen/Sicherheit:** genaue Qt-/PySide6-/Shiboken-Binaries, LGPL-Verpflichtungen und Quellen; exakte FFmpeg-Buildkonfiguration und entsprechende Quellen; Modellgewichte-Rechte (u. a. U2NETP und DnCNN); SBOM, native Runtime-Bibliotheken und Schutz vor Quelldateiüberschreibung.
+4. **Windows-11-Clean-Machine:** echte Ausführung unter Windows 11 x64 ohne Entwicklungsumgebung, Skalierung/Accessibility, Formate/Codecs, Abbrüche, Leistung und Ressourcenlimits.
+5. **Veröffentlichung:** rechtliche Freigabe, dokumentierte Einschränkungen, Hashes, Herkunft und Versionskennung. Signierung für stabile Endnutzerdistribution vorsehen.
 
-[Umfang und Grenzen](MEDIA_MVP.md) · [Mediendateien, Render und KI](MEDIA_PROJECTS_AI.md) · [UI-Designsystem](DESIGN_SYSTEM.md).
-
-## Nächste mögliche Entwicklungsstufe: Modellprofile
-
-Ein **separater, noch offener PR #17** schlägt CPU-Modellprofile, ressourcenbewusste automatische oder manuelle Auswahl, ein größeres Bildsegmentierungsmodell und Offline-Transkription vor. **Diese Funktionen sind nicht Bestandteil von `main` 0.3.0a1 oder des alten Releases.** Nur nach Merge, Tests, Modell-/Lizenzprüfung und aktualisierten Produktgrenzen den Status ändern.
-
-## Offene Produktfunktionen
-
-- Eine **kontinuierliche Gesamtvorschau** der zusammengesetzten Video-/Audioreihenfolge.
-- Mehrere **überlagerbare Spuren**, Übergänge, präzise Audio-/Videomischung, Medien-Undo-/Redo und Autosave.
-- Media-Relinking, portable Paketprojekte, breitere Decoder-/Encoder-/Codec-Matrix und gemessene Qualitäts-/Performanceprofile.
-- Optional: verbesserte KI-Maskenqualität, Video-KI über zusammenhängende Frames, lokale Transkription/Untertitel, Rauschminderung. Nur als implementiert kennzeichnen, wenn tatsächlich gemergt und überprüft.
-- Langfristig: lokale generative Fotoänderungen **nur** nach vollständig gepinnter Modellkette, geprüfter Lizenz, RAM/GPU-Messungen, Masken-Isolation, Preview/Accept/Cancel und Crash-Recovery. Ein Modellkandidat allein ist keine unterstützte Funktion.
-
-## Release-Gates vor einer neuen öffentlichen Windows-Suite
-
-1. **Code + echte Modelle:** Testmatrix mit echten ONNX-Gewichten, Media-/Foto-Ein- und Ausgabe, DE/EN und für relevante Änderungen GPU nur mit tatsächlich geprüfter Laufzeit.
-2. **Paket:** Exakter Standalone-Windows-Build einschließlich eingebetteter Vektorlogos, KI-Gewichte, Qt- und FFmpeg-Runtime; separater Test des **heruntergeladenen** Artefakts unter nachweisbarer Netzwerksperre.
-3. **Lizenz-/Sicherheitsprüfung:** Qt-LGPL-Pflichten, tatsächliche FFmpeg-Binary-/Codec-GPL/LGPL-Bedingungen und entsprechende Quellen; Rechte an externen Modellgewichten; Schutz vor Dateiverlust, Symlink-/Hardlink-Aliassen und ungeprüften Medien/Projekten.
-4. **Windows 11 Clean Machine:** reale Import-/Preview-/Export-Workflows, Codec-Stichproben, DPI/Accessibility, RAM/CPU und Fehlerfälle auf einer frischen Windows-11-x64-Umgebung.
-5. **Veröffentlichung:** Build-Commit, Hash, Release Notes, bekannte Einschränkungen, Lizenzinventar und klare Kennzeichnung als **Testalpha** oder verifizierter Release. Für stabilen Release ist Windows-Signierung vorzusehen.
-
-Bis diese Gates abgeschlossen sind, sind neue Quellcode-Features **nicht** als freigegebene Windows-Suite zu bezeichnen. [Beitragen](CONTRIBUTING.md) · [Nachweise](VERIFICATION.md).
+**Status:** Der Quellcode ist öffentlich. **Es gibt keine genehmigte öffentliche Windows-ZIP.** Erfolgreiche CI-Jobs allein ersetzen diese Freigaben nicht. Der private Prerelease-Workflow bleibt im öffentlichen Repository deaktiviert. [Checkliste](PUBLIC_RELEASE_CHECKLIST.md) · [Lizenzen](../THIRD_PARTY_NOTICES.md) · [Testnachweise](VERIFICATION.md).

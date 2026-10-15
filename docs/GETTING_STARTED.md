@@ -1,13 +1,8 @@
 # Erste Schritte mit Edivora
 
-## 0.4: Start and improve a video
+## Neu in 0.4: Videos verbessern
 
-Open each tool directly in the launcher; it stays open. There are no selection
-checkboxes. Choose a video clip and range, then **Bild → Bild verbessern**
-(or **Picture → Improve picture**). Preview conventional corrections or local
-DnCNN denoising before accepting. Neural output is a separate MP4; keep it
-alongside the project. CPU AI ranges are limited to 30 seconds at up to 720p.
-[Detailed workflow, preparation and limits](VIDEO_RESTORATION.md).
+Öffne Foto, Video oder Audio direkt im Launcher; dieser bleibt für weitere Starts offen. Im Videoeditor einen Clip und seinen Bereich auswählen, danach **Bild → Bild verbessern** (Englisch: **Picture → Improve picture**). Klassische Bildkorrekturen und die lokale DnCNN-Entrauschung werden vor dem Übernehmen als Standbild berechnet. Die KI-Variante erstellt eine **separate MP4**; ihre CPU-Verarbeitung ist auf 30 Sekunden, 720p und 30 fps begrenzt. [Ablauf, Vorbereitung und Grenzen](VIDEO_RESTORATION.md).
 
 
 Die Anwendungen sind für gelegentliche lokale Foto-, Video- und Audiobearbeitung gedacht. **Wähle zuerst den richtigen Softwarestand**, damit Anleitung und Funktionen zusammenpassen.
@@ -32,7 +27,7 @@ py -3.12 -m venv .venv
 
 Andere Shells verwenden `.venv/bin/python` und passende Pfadseparatoren. Die erste Zielplattform ist Windows 11 x64; Linux/macOS-Quellstarts sind **keine** offiziell verifizierte Paketunterstützung.
 
-Der Launcher zeigt drei Karten. Wähle **Foto**, **Video** oder **Audio** per `Öffnen` oder markiere **1–3 Werkzeuge** und klicke **Ausgewählte Werkzeuge öffnen**. Die Editoren arbeiten in getrennten Fenstern/Prozessen. Bei einem später ausdrücklich freigegebenen Windows-Paket heißt die Startdatei zurzeit **`LocalAiPhotoEditor.exe`** trotz Edivora-Logo; DLLs, Modelle und `media-tools/ffmpeg.exe` müssen daneben liegen.
+Der Launcher zeigt drei Karten: **Foto**, **Video** oder **Audio** jeweils direkt mit `Öffnen` starten. Der Launcher bleibt geöffnet; beliebig viele unabhängige Editorfenster können nacheinander gestartet werden. Tastatur: **Alt+1/2/3**. Die Editoren arbeiten in getrennten Fenstern/Prozessen. Bei einem später ausdrücklich freigegebenen Windows-Paket heißt die Startdatei zurzeit **`LocalAiPhotoEditor.exe`** trotz Edivora-Logo; DLLs, Modelle und `media-tools/ffmpeg.exe` müssen daneben liegen.
 
 ## 2. Foto: arbeiten, sichern, exportieren
 
@@ -44,7 +39,7 @@ Der Launcher zeigt drei Karten. Wähle **Foto**, **Video** oder **Audio** per `�
 
 **Videoeditor öffnen** → Clip importieren → bei Bedarf bis zu **24 Clips** ergänzen → Clip auswählen, auf der Zeitleiste trimmen, teilen oder duplizieren → Clips per Drag & Drop oder Schaltflächen sortieren → **Projekt speichern** (`.edvp`) → **MP4 exportieren**.
 
-Die Vorschau zeigt **jeweils einen Clip**, nicht das ganze zusammengesetzte Video. Der Export erzeugt eine einzige MP4-Datei mit vereinheitlichtem **1280×720, 30 fps, MPEG-4 Part 2 + AAC**. Das ist keine professionelle Mehrspur-Timeline und kein H.264-Garantieversprechen. Die lokale KI-Funktion **Standbild freistellen** exportiert nur das **gerade ausgewählte Videobild** als separates PNG; sie verändert nicht das ganze Video.
+Die Vorschau zeigt **jeweils einen Clip**, nicht das ganze zusammengesetzte Video. Der Export erzeugt eine einzige MP4-Datei in wählbarem **HD (1280×720) oder Full HD (1920×1080)** mit **30 fps, MPEG-4 Part 2 + AAC**. Das ist keine professionelle Mehrspur-Timeline und kein H.264-Garantieversprechen. Die lokale KI-Funktion **Standbild freistellen** exportiert nur das **gerade ausgewählte Videobild** als separates PNG; sie verändert nicht das ganze Video.
 
 ## 4. Audio: Clips schneiden und Sprache finden
 
@@ -53,6 +48,8 @@ Die Vorschau zeigt **jeweils einen Clip**, nicht das ganze zusammengesetzte Vide
 Die lokale **Silero-VAD-Spracherkennung** erkennt Sprachaktivität im gewählten Bereich (bis zu 15 Minuten). Sie schlägt Schnittabschnitte vor und fragt vor der Übernahme. Sie **transkribiert keine Wörter** und kann leise Sprache verpassen oder Geräusche irrtümlich erkennen.
 
 ## 5. Unterschied zwischen Speichern und Exportieren
+
+**Ungespeicherte Video-/Audioprojekte:** Beim Öffnen eines anderen Projekts oder Schließen des Fensters kannst du **Projekt speichern**, **Änderungen verwerfen** oder **Abbrechen** wählen. Brichst du den Dateidialog ab oder schlägt das Speichern fehl, bleibt das aktuelle Projekt geöffnet. Ein Export ersetzt kein gespeichertes Projekt.
 
 | Aktion | Inhalt | Für wen? |
 | --- | --- | --- |

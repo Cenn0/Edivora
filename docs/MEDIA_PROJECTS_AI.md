@@ -1,16 +1,6 @@
-# Edivora 0.3 source MVP – Clips, editable media projects and offline AI
+# Edivora 0.4 – Clips, media projects and offline AI
 
-## 0.4 superseding changes
-
-The 0.4 source adds per-clip video correction recipes, HD/Full HD sequence export,
-real short-clip DnCNN denoising, media Undo/Redo and strict project schema 2 with
-schema-1 reading. Ordinary playback still shows the original. The 0.3 limits
-below describe that earlier baseline; in particular, “no whole-video AI” no
-longer describes the bounded 0.4 denoising workflow. [Current behavior and
-compatibility](VIDEO_RESTORATION.md).
-
-
-Status: **implemented in the current `main` source (0.3.0a1)**; **not** present in the published photo-only `v0.1.0-alpha.1` ZIP and **not** a separately accepted Windows suite.
+Status: **implemented in current `main` source (0.4.0a1)**. The 0.4 source adds per-clip picture recipes, HD/Full HD rendering, bounded DnCNN CPU denoising, media Undo/Redo and strict project schema 2 with schema-1 compatibility. Ordinary playback remains the original source. See [the current 0.4 behavior and model limits](VIDEO_RESTORATION.md). The historical photo-only `v0.1.0-alpha.1` package does not contain these capabilities; public Windows binaries remain unapproved.
 A passing Windows Server CI build is not clean Windows 11 or licensing approval.
 
 ## 1. Clip timeline (Video and Audio)
@@ -36,11 +26,11 @@ overlay graphics, mix tracks, add transitions, or offer professional multi-
 track editing. The list is a simple first timeline, not an NLE timeline.
 There is no cut transition effect beyond hard cuts.
 
-Video rendering standardizes each clip to **1280 × 720, 30 fps, YUV420p,
-MPEG-4 Part 2** and AAC stereo. Inputs are scaled preserving aspect ratio and
+Video rendering standardizes each clip to selectable **HD (1280 × 720) or
+Full HD (1920 × 1080), 30 fps, YUV420p, MPEG-4 Part 2** and AAC stereo. Inputs are scaled preserving aspect ratio and
 letterboxed as needed. When a source has no audio (or is muted) the exporter
 inserts local silence so the assembled output has consistent video/audio
-streams. A 720p render can reduce image quality and frame rate compared with
+streams. A standardized render can reduce image quality and frame rate compared with
 the originals. This does not promise H.264 encoding or mobile compatibility.
 
 Audio rendering resamples each selected segment to **48 kHz stereo**, applies
@@ -70,6 +60,9 @@ Use **Save project** or **Save as** to persist the clip order, file references,
 full source durations, in/out boundaries, per-clip volume/mute flags, selected
 clip, audio master fades and normalization. **Open project** reconstructs
 these settings. **Export** is separate and produces a regular media file.
+When switching projects or closing with unsaved changes, the UI offers
+**Save / Discard / Cancel**. A cancelled Save As dialog or unsuccessful write
+blocks the switch/close instead of dropping edits.
 
 The format is a small, versioned **UTF-8 JSON file**, *not* an archive
 containing media payloads. Media files are never duplicated or modified.
