@@ -559,7 +559,7 @@ def tool_command(tool: str) -> tuple[str, list[str]]:
 
 def media_job_command(operation: str, directory: str | Path) -> tuple[str, list[str]]:
     """Run built-in, local AI workers in the same packaged application."""
-    if operation not in ("voice", "frame"):
+    if operation not in ("voice", "frame", "restore"):
         raise ValueError("Unsupported media AI operation.")
     executable = _compiled_executable()
     command = ["--media-ai-job", operation, str(directory)]
@@ -594,11 +594,18 @@ def main(argv: list[str] | None = None) -> int:
         if args[1] == "frame":
             from .ai.video_frame import frame_worker
             return frame_worker(Path(args[2]), _compiled_executable())
+        if args[1] == "restore":
+            from .ai.video_restoration import restoration_worker
+            return restoration_worker(Path(args[2]), _compiled_executable())
         return 2
     if len(args) == 2 and args[0] == "--smoke-test":
         return smoke_test(Path(args[1]))
     if len(args) == 2 and args[0] == "--ui-smoke-test":
         return ui_smoke_test(Path(args[1]))
+    if len(args) == 2 and args[0] == "--suite-smoke-test":
+        _configure_bundled_qt_plugins()
+        from .suite_smoke import suite_smoke
+        return suite_smoke(Path(args[1]), _compiled_executable())
     if len(args) == 2 and args[0] == "--media-smoke-test":
         _configure_bundled_qt_plugins()
         from .media_smoke import media_smoke_test

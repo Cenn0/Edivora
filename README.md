@@ -4,47 +4,56 @@
 
 **Language:** Deutsch (dieses README) · [English README](README.en.md)
 
-**Foto, Video und Audio einfach bearbeiten – mit ausgewählten lokalen KI-Funktionen.** Edivora wird als kostenloses Open-Source-Werkzeug für gelegentliche Bearbeitung entwickelt; **der Quellcode ist öffentlich**, während die Freigabe öffentlicher Windows-Binärpakete noch aussteht. Für die Bearbeitung sind weder Konto noch Modellserver oder Cloud-Verarbeitung vorgesehen. Die Oberfläche ist auf **Deutsch und Englisch** verfügbar.
+**Foto, Video und Audio einfach bearbeiten – mit ausgewählten lokalen KI-Funktionen.** Edivora ist ein öffentliches Open-Source-Projekt mit deutscher und englischer Oberfläche. **Der Quellcode ist öffentlich; eine Weiterverteilung von Windows-Binärpaketen ist noch nicht freigegeben.** Die Bearbeitung läuft lokal, ohne Konto, Cloud-KI oder automatische Modell-Downloads.
 
 ![Edivora Photo, Video und Audio](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
-> **Quellcode ist nicht gleich freigegebenes Windows-Paket.** `main` enthält die aktuelle Foto-/Video-/Audio-Suite (0.3.0a1). Die frühere Foto-Testalpha `v0.1.0-alpha.1` ist nicht dieselbe Anwendung. Bereits bereitgestellte Binärdateien werden bis zur abschließenden Prüfung der Qt-, FFmpeg- und KI-Modell-Rechte zurückgezogen.
+> **Quellcode ist keine freigegebene Binärversion.** `main` enthält den Entwicklungsstand 0.4.0a1 für Foto, Video und Audio. Das frühere reine Fotopaket v0.1.0-alpha.1 enthält diese Funktionen nicht. Öffentliche Windows-Binärpakete bleiben bis zur Lizenzprüfung von Qt, FFmpeg und Modellgewichten sowie der Windows-11-Abnahme gesperrt.
 
-## Windows-Downloadstatus
+## Neu im Entwicklungsstand 0.4.0a1
 
-**Aktuell gibt es keine öffentlich zur Weiterverteilung freigegebene Windows-ZIP.** Portable Builds enthalten Drittanbieterprogramme, Qt-Bibliotheken und KI-Modellgewichte mit eigenen Bedingungen. Siehe [Drittanbieterhinweise](THIRD_PARTY_NOTICES.md), [Roadmap](docs/ROADMAP.md) und [Quellcode-Einstieg](docs/GETTING_STARTED.md). Ein erfolgreicher CI-Build ist weder eine Lizenzfreigabe noch eine Windows-11-Endnutzerabnahme.
+**Launcher ohne Auswahlkästchen:** Foto, Video und Audio direkt öffnen; der Launcher bleibt offen. Mehr lokale Vektor-Icons, kompakte Werkzeugleisten und anpassbare Vorschauflächen. Video-/Audio-Einstellungen sind in Reiter aufgeteilt; lange Bedienbereiche scrollen statt abgeschnitten zu werden. Mindestgröße: **640 × 480 logische Pixel**.
 
-[Repository und Quellcode](https://github.com/Cenn0/Edivora) · [CI-Läufe](https://github.com/Cenn0/Edivora/actions) · [Mitwirken](docs/CONTRIBUTING.md)
+**Video verbessern:** Helligkeit, Kontrast, Farbstärke, Wärme, Grün/Magenta, klassische Rauschglättung und Schärfe; anpassbare Vorlagen und echter Vorher-/Nachher-Bildvergleich. Korrekturen werden je Clip im Projekt gespeichert und beim Export angewandt. Die normale Abspielvorschau zeigt weiterhin die Quelle. HD- und Full-HD-Export stehen zur Auswahl.
+
+**Echte lokale KI-Entrauschung:** DnCNN verarbeitet einen gewählten Abschnitt bis **30 Sekunden**, maximal **720p / 30 fps**, auf der CPU. Stärke und Vorschau sind einstellbar; erst nach Bestätigung wird eine separate MP4 erstellt. Das kann langsam sein und Details glätten oder flimmern. **Kein universeller KI-Filterentferner:** Eingebrannte Filter können nur teilweise abgeschwächt werden; verlorene Originaldetails werden nicht zuverlässig wiederhergestellt.
+
+**Video und Audio:** Rückgängig/Wiederholen mit bis zu 60 Zuständen. Neue `.edvp/.edap`-Dateien verwenden Schema 2; Schema 1 wird weiterhin gelesen. Alte Versionen können Schema 2 nicht öffnen.
+
+[Bedienung, Grenzen und Modellnachweise](docs/VIDEO_RESTORATION.md) · [Änderungsübersicht 0.4](docs/RELEASE_NOTES_RESPONSIVE_SUITE.md)
+
+## Windows-Paketstatus
+
+**Es gibt derzeit kein zur öffentlichen Weiterverteilung freigegebenes Windows-ZIP.** Frühere Testpakete werden bis zur Prüfung der konkreten Qt-, FFmpeg- und Modellgewicht-Lizenzpflichten zurückgezogen. CI-Ergebnisse sind technische Einzelprüfungen, keine Lizenzfreigabe oder Windows-11-Endnutzerabnahme. Siehe [Veröffentlichungscheckliste](docs/PUBLIC_RELEASE_CHECKLIST.md) und [Drittanbieterhinweise](THIRD_PARTY_NOTICES.md).
 
 ## Was kann Edivora?
 
 | Bereich | Im aktuellen Quellcode umgesetzt | Wichtige Grenze |
 | --- | --- | --- |
 | **Foto** | JPEG/PNG/WebP öffnen und exportieren; Licht/Farbe, Looks, Zuschneiden, Spiegeln, Drehen, Bildgröße, Hintergrundgestaltung; Vorschau, Vorher/Nachher, Undo/Redo; lokale U2NETP-Motivauswahl und manuelle Alphamasken-Korrektur; **`.laip`**-Projekte | Kein RAW/HDR, keine Ebenen oder generative Textbearbeitung; Freistellmasken sind nicht immer perfekt |
-| **Video** | Clips importieren, auf **einer** Timeline anordnen (bis 24), teilen, duplizieren, trimmen und Lautstärke einstellen; **`.edvp`** speichern/öffnen; lokale KI-Freistellung **eines Videostandbilds** als PNG; MP4-Export | Keine Mehrspurmontage, Übergänge, Untertitel oder KI-Verarbeitung eines ganzen Videos; Export auf 720p/30 fps MPEG-4 Part 2 + AAC vereinheitlicht |
+| **Video** | Clips importieren, auf **einer** Timeline anordnen (bis 24), teilen, duplizieren, trimmen und Lautstärke einstellen; **`.edvp`** speichern/öffnen; lokale KI-Freistellung **eines Videostandbilds** als PNG; MP4-Export | Keine Mehrspurmontage, Übergänge oder Untertitel; Bildkorrekturen und kurze KI-Entrauschung siehe 0.4 oben. Export HD/Full HD, 30 fps, MPEG-4 Part 2 + AAC |
 | **Audio** | Clips auf **einer** Timeline anordnen (bis 24), trimmen, teilen und mit Lautstärke/Fades/Pegelausgleich exportieren; **`.edap`** speichern/öffnen; lokale Silero-VAD-KI schlägt Sprachabschnitte vor; WAV/MP3-Export | Kein Mehrspurmix, keine Transkription, keine Rauschunterdrückungs-KI; Sprachabschnitte sind nur ein zu prüfender Vorschlag |
 
 Der **Launcher** kann Foto, Video und Audio einzeln, zwei gemeinsam oder alle drei gleichzeitig in **unabhängigen Prozessen** starten. Vorschau und Bearbeitung der Medien-Timeline beziehen sich auf den gewählten Clip; erst der Export setzt die Reihenfolge zusammen. Das Original wird dabei nicht überschrieben.
 
-**KI bedeutet nicht automatisch Generierung:** U2NETP erstellt Motivmasken für Foto/ein Videostandbild; Silero VAD erkennt Sprachaktivität in Audio. Klassische Korrekturen, Fades und Filter sind keine generativen KI-Modelle. KI-Berechnung läuft lokal über **ONNX Runtime CPU**, soweit für die jeweilige Funktion dokumentiert. Für GPU-/CUDA-/DirectML-Betrieb existiert derzeit **keine projektseitig verifizierte Unterstützung**. Fehlende Modelle werden zur Laufzeit **nicht** heruntergeladen.
+**KI bedeutet nicht automatisch Generierung:** U2NETP erstellt Motivmasken für Foto/ein Videostandbild; Silero VAD erkennt Sprachaktivität in Audio; DnCNN entrauscht einzelne RGB-Frames eines kurzen Videos. Klassische Korrekturen, Fades und Filter sind keine generativen KI-Modelle. KI-Berechnung läuft lokal über **ONNX Runtime CPU**, soweit für die jeweilige Funktion dokumentiert. Für GPU-/CUDA-/DirectML-Betrieb existiert derzeit **keine projektseitig verifizierte Unterstützung**. Fehlende Modelle werden zur Laufzeit **nicht** heruntergeladen.
 
 ## Historische Foto-Testalpha
 
-Die `v0.1.0-alpha.1` enthielt ausschließlich den Fotoeditor. Deren frühere Windows-Server-2022-Tests (69 Tests, darunter lokale CPU-Inferenz) bleiben als historische Entwicklungsnachweise dokumentiert; sie gelten nicht als Abnahme des neuen Launchers oder der Medieneditoren.
-
-![Historische Foto-Testalpha (Deutsch)](docs/screenshots/ui-smoke-de.png)
-
-*Screenshot des historischen Foto-Testbuilds, nicht der aktuellen Suite.*
+Das zurückgezogene `v0.1.0-alpha.1` enthielt ausschließlich grundlegende Fotobearbeitung, nicht den Launcher oder die Medieneditoren. Die damaligen Windows-Server-2022- und Offline-Nachweise sind unter [Verifikation](docs/VERIFICATION.md) dokumentiert und gelten nicht für die heutige Suite.
 
 ## Aktuellen Entwicklungsstand aus dem Quellcode starten
 
-**Voraussetzung:** Python **3.12** und zum **Vorbereiten** der beiden gepinnten KI-Modelle Internetzugriff. Das eigentliche Programm verwendet später keine Modell-Downloads.
+**Voraussetzung:** Python **3.12** und zum **Vorbereiten** der drei gepinnten KI-Modelle Internetzugriff. Das eigentliche Programm verwendet später keine Modell-Downloads.
 
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -e .
 .venv\Scripts\python tools\prepare_model.py
 .venv\Scripts\python tools\prepare_voice_model.py
+.venv\Scripts\python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+.venv\Scripts\python -m pip install onnx==1.23.2
+.venv\Scripts\python tools\prepare_restoration_model.py
 .venv\Scripts\python -m local_ai_photo_editor
 ```
 

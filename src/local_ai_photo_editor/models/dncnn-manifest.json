@@ -1,0 +1,16 @@
+{
+  "id": "dncnn-color-blind",
+  "task": "framewise RGB denoising; not filter inversion",
+  "source_url": "https://github.com/cszn/KAIR/releases/download/v1.0/dncnn_color_blind.pth",
+  "source_bytes": 2678121,
+  "source_sha256": "dfe11a6b703304df82cdf236f431fc6492766c7b9119d97e943edeb392c710a3",
+  "filename": "dncnn_color_blind.onnx",
+  "bytes": 2677066,
+  "sha256": "b6a7d59f4ce2ada940dcd78bd627595c59c5180a9c6d7787fa153198d2f50c12",
+  "license": "MIT (upstream KAIR LICENSE; preserve DNCNN_LICENSE.txt)",
+  "license_url": "https://github.com/cszn/KAIR/blob/master/LICENSE",
+  "conversion": "tools/prepare_restoration_model.py; torch 2.14.1 CPU / onnx 1.23.2; opset 17; IR 8",
+  "runtime": "onnxruntime CPUExecutionProvider",
+  "runtime_network": false,
+  "verification_run": 38644618848
+}

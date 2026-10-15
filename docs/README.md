@@ -35,3 +35,7 @@ Diese Dokumentation beschreibt zwei **unterschiedliche** Softwarestände: das ve
 - [Windows-Paketanleitung](../packaging/START_HERE.txt) – gilt für den Entwicklungsbuild und ist kein neues Releaseversprechen
 
 **Statuskennzeichnung:** „Implementiert im Quellcode“ ist **nicht** „offiziell als Windows-Paket abgenommen“. „CPU-Modell integriert“ ist **nicht** „GPU offiziell unterstützt“ oder „KI-Qualität garantiert“. Für Änderungen im Repository sind eigene Prüfprotokolle mit Branch-/Commitbezug erforderlich.
+
+## 0.4 development
+
+[Video improvements, model provenance and responsive UI](VIDEO_RESTORATION.md) · [0.4 change notes](RELEASE_NOTES_RESPONSIVE_SUITE.md)
