@@ -594,13 +594,32 @@ class SequenceWindow(MediaWindow):
         self._preview_clip(second)
 
     def _confirm_unsaved(self) -> bool:
+        """Require an explicit Save / Discard / Cancel decision before data loss."""
         if not self._dirty:
             return True
-        return QMessageBox.question(
-            self, self._t("project_title"), self._t("media_project_unsaved"),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        ) == QMessageBox.StandardButton.Yes
+        prompt = QMessageBox(self)
+        prompt.setIcon(QMessageBox.Icon.Warning)
+        prompt.setWindowTitle(self._t("project_title"))
+        prompt.setText(self._t("media_project_unsaved"))
+        prompt.setStandardButtons(
+            QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.Discard
+            | QMessageBox.StandardButton.Cancel
+        )
+        can_save = bool(self.clips) and not self._is_busy()
+        prompt.button(QMessageBox.StandardButton.Save).setText(self._t("media_project_save"))
+        prompt.button(QMessageBox.StandardButton.Save).setEnabled(can_save)
+        prompt.button(QMessageBox.StandardButton.Discard).setText(self._t("media_project_discard"))
+        prompt.button(QMessageBox.StandardButton.Cancel).setText(self._t("cancel"))
+        prompt.setDefaultButton(
+            QMessageBox.StandardButton.Save if can_save else QMessageBox.StandardButton.Cancel
+        )
+        prompt.setEscapeButton(QMessageBox.StandardButton.Cancel)
+        answer = QMessageBox.StandardButton(prompt.exec())
+        if answer == QMessageBox.StandardButton.Save:
+            # Never abandon the current project if Save As is cancelled or IO fails.
+            return can_save and self.save_media_project()
+        return answer == QMessageBox.StandardButton.Discard
 
     def open_media_project(self) -> None:
         if self._is_busy() or not self._confirm_unsaved():
@@ -637,15 +656,16 @@ class SequenceWindow(MediaWindow):
         self._update_project_heading()
         self._update_enabled()
 
-    def save_media_project(self) -> None:
-        if self._project_file is None:
-            self.save_media_project_as()
-            return
-        self._save_to(self._project_file)
-
-    def save_media_project_as(self) -> None:
+    def save_media_project(self) -> bool:
         if self._is_busy() or not self.clips:
-            return
+            return False
+        if self._project_file is None:
+            return self.save_media_project_as()
+        return self._save_to(self._project_file)
+
+    def save_media_project_as(self) -> bool:
+        if self._is_busy() or not self.clips:
+            return False
         extension = PROJECT_EXTENSIONS[self.kind]
         suggested = str(self._project_file or
                         (self.clips[0].source.parent / f"edivora-project{extension}"))
@@ -653,26 +673,30 @@ class SequenceWindow(MediaWindow):
             self, self._t("media_project_save_as"), suggested, f"Edivora (*{extension})"
         )
         if not path:
-            return
+            return False
         dest = Path(path)
         if not dest.suffix:
             dest = dest.with_suffix(extension)
-        self._save_to(dest)
+        return self._save_to(dest)
 
-    def _save_to(self, path: Path) -> None:
-        if self._is_busy() or not self._capture_selected():
-            return
+    def _save_to(self, path: Path) -> bool:
+        if self._is_busy():
+            return False
+        if not self._capture_selected():
+            QMessageBox.warning(self, self._t("error"), self._t("invalid_selection"))
+            return False
         try:
             save_media_project(self._snapshot(), path)
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, self._t("error"), str(exc))
-            return
+            return False
         self._project_file = Path(path)
         self._dirty = False
         self._saved_state = self._snapshot()
         self._history.checkpoint()
         self._set_status("media_project_saved", name=path.name)
         self._update_project_heading()
+        return True
 
     def _sequence_export(self, destination: Path) -> SequenceExport:
         if not self._capture_selected():

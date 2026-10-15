@@ -31,6 +31,5 @@ corrections are not mislabeled as AI. Full HD export is not neural upscaling.
 
 No multitrack mixing, transitions, whole-sequence live playback, GPU deployment,
 generative video, transcription or new model-profile selector is introduced.
-The suite is unsigned and intended for private evaluation; licensing,
-real-world codec/hardware coverage and clean Windows 11 acceptance remain open.
+The source repository is public, but **public Windows binary redistribution is not approved**. Signing, Qt/FFmpeg/model licensing, real-world codec/hardware coverage and clean Windows 11 acceptance remain open.
 See [detailed workflow, provenance and constraints](VIDEO_RESTORATION.md).
