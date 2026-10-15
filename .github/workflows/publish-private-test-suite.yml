@@ -18,6 +18,7 @@ jobs:
   publish:
     if: >-
       github.repository == 'Cenn0/Edivora' &&
+      github.event.repository.private == true &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
