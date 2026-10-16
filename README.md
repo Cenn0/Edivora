@@ -6,6 +6,9 @@
 
 **Language:** **English** · [Deutsch](README.de.md)
 
+[![CI](https://github.com/Cenn0/Edivora/actions/workflows/python-checks.yml/badge.svg?branch=main)](https://github.com/Cenn0/Edivora/actions/workflows/python-checks.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+
 ![Edivora photo, video and audio editors](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
 Edivora is an open-source desktop suite with English and German interfaces. Editing happens locally, without an account or cloud AI. Models must be prepared separately before use; the application does not download them at runtime.
