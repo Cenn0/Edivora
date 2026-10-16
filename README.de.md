@@ -2,6 +2,8 @@
 
 # Edivora
 
+**Marke und UI-Design:** [Logo sowie helle und dunkle Designvorlagen](docs/branding/README.md) (Konzeptgrafiken, keine Produktscreenshots).
+
 **Foto, Video und Audio lokal bearbeiten – mit ausgewählten KI-Funktionen.**
 
 **Sprache:** [English](README.md) · **Deutsch**

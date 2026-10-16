@@ -2,6 +2,8 @@
 
 # Edivora
 
+**Brand and UI design:** [Logo and light/dark design templates](docs/branding/README.md) (concept artwork, not product screenshots).
+
 **Edit photos, video and audio locally, with selected on-device AI tools.**
 
 **Language:** **English** · [Deutsch](README.de.md)

@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Edivora monochrome icon">
-  <rect x="3" y="3" width="122" height="122" rx="30" fill="#171B2D"/>
-  <path d="M25 49C32 28 54 18 75 23c11 2 21 8 28 17M103 40c13 17 15 38 3 56-4 6-9 11-16 15M90 111c-18 10-43 7-58-8C14 86 14 66 25 49" fill="none" stroke="#F5F4FF" stroke-width="17" stroke-linecap="round"/>
-  <path d="M51 43.5c0-4.6 5.2-7.4 9.2-5L90 56c4 2.4 4 8.2 0 10.6L60.2 84C56.2 86.4 51 83.6 51 79Z" fill="#F5F4FF"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Monochrome Edivora media mark"><path d="M104 25H51Q24 25 24 50V98Q24 116 52 116H103" fill="none" stroke="#111D39" stroke-width="17" stroke-linecap="round"/><path d="M45 72H96" fill="none" stroke="#111D39" stroke-width="12" stroke-linecap="round"/><circle cx="68" cy="71" r="18" fill="#FFFFFF" stroke="#111D39" stroke-width="6"/><path d="M103 59V89M113 64V83" stroke="#111D39" stroke-width="4" stroke-linecap="round"/></svg>

@@ -6,7 +6,7 @@ Der Produktname umfasst **Edivora Photo**, **Edivora Video** und **Edivora Audio
 
 ## Logo und Wortmarke
 
-Die SVGs liegen versioniert **im Repository**, nicht auf einem CDN. Sie enthalten keine externen Fonts, Bilder oder Skripte. Die eingespielten Basisassets stammen aus dem ursprünglichen Edivora-Branding-Entwurf ([PR #11](https://github.com/Cenn0/Edivora/pull/11)); das Banner wurde an den aktuellen Entwicklungsstand angepasst.
+Die SVGs liegen versioniert **im Repository**, nicht auf einem CDN. Sie enthalten keine externen Fonts, Bilder oder Skripte. Die frühere Bildmarke wurde durch eine eigene E-/Kamera-Blenden-/Audiowellen-Gestaltung ohne Play-Dreieck ersetzt. Das Banner beschreibt weiterhin den aktuellen Entwicklungsstand; Konzeptgrafiken sind von echten Screenshots getrennt.
 
 | Asset | Vorschau | Einsatz |
 | --- | --- | --- |
@@ -40,3 +40,7 @@ Die eigentliche UI-Tokenquelle ist `src/local_ai_photo_editor/ui/theme.py`; Abst
 ## Asset-Änderungen prüfen
 
 Wenn du ein Logo bearbeitest, kontrolliere `viewBox`, Kontrast, kleinere Darstellungen, Lesbarkeit, fehlende externen URLs und die aus dem SVG abgeleitete Windows-ICO-Ausgabe. Führe `PYTHONPATH=src python -m unittest discover -s tests -p 'test_branding.py' -v` in geeigneter Umgebung aus und prüfe neue UI-/Windows-Screenshots, bevor du Branding in einem Release versprichst.
+
+## Aktuelle Designvorlagen
+
+[Light- und Dark-Designs samt Farbtokens](branding/README.md). Diese Grafiken sind Konzepte und keine implementierten UI-Nachweise.
