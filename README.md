@@ -1,4 +1,7 @@
-![Edivora – Create simply. Stay local.](src/local_ai_photo_editor/assets/edivora-wordmark.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/branding/banner-dark.svg">
+  <img src="docs/branding/banner-light.svg" alt="Edivora — Create simply. Stay local. Foto, Video und Audio." width="1200">
+</picture>
 
 # Edivora
 
@@ -12,8 +15,6 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
 **Explore:** [Features](#features) · [Source setup](#run-from-source) · [Docs](docs/README.md) · [Roadmap](docs/ROADMAP.md) · [Contribute](docs/CONTRIBUTING.md)
-
-![Edivora photo, video and audio editors](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
 **Interface preview** — [view the committed English UI test capture](docs/screenshots/ui-smoke-en.png):
 
