@@ -1,3 +1,3 @@
 # Edivora — English README (0.4.0a1)
 
-The primary English documentation is now in **[README.md](README.md)**. Die deutsche Fassung ist unter **[README.de.md](README.de.md)** verfügbar.
+The primary English documentation is available in **[README.md](README.md)**. For the optional German translation, see **[README.de.md](README.de.md)**.
