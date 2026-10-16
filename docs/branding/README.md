@@ -1,5 +1,14 @@
 # Edivora branding and UI design references
 
+## Brand banners
+
+The README shows the matching banner for the viewer's light or dark color scheme. Both banners contain the established Edivora symbol and slogan; neither is a product screenshot.
+
+- [Light banner](banner-light.svg)
+- [Dark banner](banner-dark.svg)
+
+Use the compact [logo](logo.svg) where a banner would be unsuitable (for example favicons and application icons). The banners are self-contained SVGs with no external assets. Their mark is embedded from the existing brand logo; the desktop application's compact icon stays unchanged.
+
 **Status:** visual design concepts, not screenshots, shipped features, or evidence of product readiness.
 
 | Asset | Purpose |
