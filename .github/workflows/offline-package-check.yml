@@ -408,11 +408,18 @@ jobs:
               Set-Content -Encoding utf8NoBOM (Join-Path $env:EVIDENCE_PATH 'firewall-cleanup.json')
           }
 
-      - name: Upload source identity, environment, firewall and runtime evidence
+      - name: Summarize offline package verification without storage
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: offline-package-check-${{ github.run_id }}
-          path: ${{ env.EVIDENCE_PATH }}/
-          if-no-files-found: error
-          retention-days: 14
+        shell: pwsh
+        run: |
+          $reportPath = Join-Path $env:EVIDENCE_PATH 'offline-package-result.json'
+          if (Test-Path $reportPath) {
+            $report = Get-Content -Raw $reportPath | ConvertFrom-Json
+            $line = "Status: $($report.status); phase: $($report.phase); firewall enforced: $($report.offline_enforcement_confirmed); cleanup verified: $($report.rule_removal_verified)"
+            Write-Host $line
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Offline portable package verification"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $line
+          } else {
+            Write-Host "No native runtime report generated; inspect the prior step failure."
+          }
