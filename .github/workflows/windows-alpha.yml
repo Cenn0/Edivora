@@ -18,7 +18,7 @@ concurrency:
 jobs:
   windows:
     runs-on: windows-2022
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       PYTHONPATH: src
       QT_QPA_PLATFORM: offscreen
@@ -32,8 +32,6 @@ jobs:
         with:
           python-version: '3.12'
           architecture: x64
-          cache: pip
-          cache-dependency-path: pyproject.toml
       - name: Install pinned application and build dependencies
         # 4.3 corrupts compiled-method storage during Qt signal connection.
         # Maintainer-confirmed regression: https://github.com/Nuitka/Nuitka/issues/4081
@@ -97,25 +95,11 @@ jobs:
           QT_QPA_PLATFORM: windows
           QT_SCALE_FACTOR: '1.5'
         run: python -m local_ai_photo_editor --suite-smoke-test test-results/source-suite-dpi150
-      - name: Restore native compiler cache
-        id: compiler_cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/local-ai-photo-editor-clcache
-          key: windows-2022-x64-python312-nuitka422-${{ hashFiles('pyproject.toml', 'tools/build_windows.py', 'tools/package_boundary.py') }}-${{ github.sha }}
-          restore-keys: |
-            windows-2022-x64-python312-nuitka422-${{ hashFiles('pyproject.toml', 'tools/build_windows.py', 'tools/package_boundary.py') }}-
       - name: Build standalone application
         id: standalone_build
         env:
           NUITKA_CACHE_DIR_CLCACHE: ${{ runner.temp }}/local-ai-photo-editor-clcache
         run: python tools/build_windows.py
-      - name: Save native compiler cache after successful compilation
-        if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' && steps.compiler_cache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/local-ai-photo-editor-clcache
-          key: ${{ steps.compiler_cache.outputs.cache-primary-key }}
       - name: Exercise packaged worker from a temporary working directory
         if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
         shell: pwsh
