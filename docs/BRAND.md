@@ -17,7 +17,9 @@ Die SVGs liegen versioniert **im Repository**, nicht auf einem CDN. Sie enthalte
 
 Dateipfade: `src/local_ai_photo_editor/assets/`. In den Kopfzeilen des Launchers und aller drei Editoren werden die SVG-Daten durch QtSvg lokal gerendert; beim **Windows-Build** erzeugt `tools/brand_assets.py` ein ICO aus demselben Logo. `tools/build_windows.py` bindet SVG-Ressourcen sowie das ICO in den Entwicklungsbuild ein. **Dies ist eine Implementierung, kein Nachweis eines erfolgreich getesteten neuen Windows-Pakets.**
 
-## Farben und Anwendung
+## Bestehende UI-Farben und neue Designvorlagen
+
+Die nachfolgende Tabelle beschreibt die **bisherigen Qt-UI-Farben**, nicht die Farben der neuen Designboards. Die neuen Farb- und Komponentenreferenzen sind in [docs/branding](branding/README.md) hinterlegt; die Qt-Themes werden erst bei einer späteren UI-Umsetzung darauf abgestimmt. Eine neue Konzeptgrafik ist keine Implementierung.
 
 | Rolle | Farbe |
 | --- | --- |
