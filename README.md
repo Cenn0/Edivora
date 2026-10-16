@@ -2,6 +2,8 @@
 
 # Edivora
 
+**Brand and UI design:** [Logo and light/dark design templates](docs/branding/README.md) (concept artwork, not product screenshots).
+
 **Edit photos, video and audio locally, with selected on-device AI tools.**
 
 **Language:** **English** · [Deutsch](README.de.md)
@@ -9,7 +11,15 @@
 [![CI](https://github.com/Cenn0/Edivora/actions/workflows/python-checks.yml/badge.svg?branch=main)](https://github.com/Cenn0/Edivora/actions/workflows/python-checks.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
+**Explore:** [Features](#features) · [Source setup](#run-from-source) · [Docs](docs/README.md) · [Roadmap](docs/ROADMAP.md) · [Contribute](docs/CONTRIBUTING.md)
+
 ![Edivora photo, video and audio editors](src/local_ai_photo_editor/assets/edivora-banner.svg)
+
+**Interface preview** — [view the committed English UI test capture](docs/screenshots/ui-smoke-en.png):
+
+<a href="docs/screenshots/ui-smoke-en.png"><img src="docs/screenshots/ui-smoke-en.png" alt="Edivora user interface captured during an English-language UI smoke test" width="820"></a>
+
+This is a development-source capture, **not** evidence of an approved distributable Windows build.
 
 Edivora is an open-source desktop suite with English and German interfaces. Editing happens locally, without an account or cloud AI. Models must be prepared separately before use; the application does not download them at runtime.
 

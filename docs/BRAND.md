@@ -6,7 +6,7 @@ Der Produktname umfasst **Edivora Photo**, **Edivora Video** und **Edivora Audio
 
 ## Logo und Wortmarke
 
-Die SVGs liegen versioniert **im Repository**, nicht auf einem CDN. Sie enthalten keine externen Fonts, Bilder oder Skripte. Die eingespielten Basisassets stammen aus dem ursprünglichen Edivora-Branding-Entwurf ([PR #11](https://github.com/Cenn0/Edivora/pull/11)); das Banner wurde an den aktuellen Entwicklungsstand angepasst.
+Die SVGs liegen versioniert **im Repository**, nicht auf einem CDN. Sie enthalten keine externen Fonts, Bilder oder Skripte. Die frühere Bildmarke wurde durch eine eigene E-/Kamera-Blenden-/Audiowellen-Gestaltung ohne Play-Dreieck ersetzt. Das Banner beschreibt weiterhin den aktuellen Entwicklungsstand; Konzeptgrafiken sind von echten Screenshots getrennt.
 
 | Asset | Vorschau | Einsatz |
 | --- | --- | --- |
@@ -17,7 +17,9 @@ Die SVGs liegen versioniert **im Repository**, nicht auf einem CDN. Sie enthalte
 
 Dateipfade: `src/local_ai_photo_editor/assets/`. In den Kopfzeilen des Launchers und aller drei Editoren werden die SVG-Daten durch QtSvg lokal gerendert; beim **Windows-Build** erzeugt `tools/brand_assets.py` ein ICO aus demselben Logo. `tools/build_windows.py` bindet SVG-Ressourcen sowie das ICO in den Entwicklungsbuild ein. **Dies ist eine Implementierung, kein Nachweis eines erfolgreich getesteten neuen Windows-Pakets.**
 
-## Farben und Anwendung
+## Bestehende UI-Farben und neue Designvorlagen
+
+Die nachfolgende Tabelle beschreibt die **bisherigen Qt-UI-Farben**, nicht die Farben der neuen Designboards. Die neuen Farb- und Komponentenreferenzen sind in [docs/branding](branding/README.md) hinterlegt; die Qt-Themes werden erst bei einer späteren UI-Umsetzung darauf abgestimmt. Eine neue Konzeptgrafik ist keine Implementierung.
 
 | Rolle | Farbe |
 | --- | --- |
@@ -40,3 +42,7 @@ Die eigentliche UI-Tokenquelle ist `src/local_ai_photo_editor/ui/theme.py`; Abst
 ## Asset-Änderungen prüfen
 
 Wenn du ein Logo bearbeitest, kontrolliere `viewBox`, Kontrast, kleinere Darstellungen, Lesbarkeit, fehlende externen URLs und die aus dem SVG abgeleitete Windows-ICO-Ausgabe. Führe `PYTHONPATH=src python -m unittest discover -s tests -p 'test_branding.py' -v` in geeigneter Umgebung aus und prüfe neue UI-/Windows-Screenshots, bevor du Branding in einem Release versprichst.
+
+## Aktuelle Designvorlagen
+
+[Light- und Dark-Designs samt Farbtokens](branding/README.md). Diese Grafiken sind Konzepte und keine implementierten UI-Nachweise.

@@ -2,6 +2,8 @@
 
 # Edivora
 
+**Marke und UI-Design:** [Logo sowie helle und dunkle Designvorlagen](docs/branding/README.md) (Konzeptgrafiken, keine Produktscreenshots).
+
 **Foto, Video und Audio lokal bearbeiten – mit ausgewählten KI-Funktionen.**
 
 **Sprache:** [English](README.md) · **Deutsch**
@@ -9,7 +11,15 @@
 [![CI](https://github.com/Cenn0/Edivora/actions/workflows/python-checks.yml/badge.svg?branch=main)](https://github.com/Cenn0/Edivora/actions/workflows/python-checks.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
+**Direkt zu:** [Funktionen](#funktionen) · [Quellcode-Start](#aus-dem-quellcode-starten) · [Dokumentation](docs/README.md) · [Roadmap](docs/ROADMAP.md) · [Mitwirken](docs/CONTRIBUTING.md)
+
 ![Edivora: Foto-, Video- und Audioeditor](src/local_ai_photo_editor/assets/edivora-banner.svg)
+
+**Oberflächenvorschau** – [deutschen UI-Test-Screenshot ansehen](docs/screenshots/ui-smoke-de.png):
+
+<a href="docs/screenshots/ui-smoke-de.png"><img src="docs/screenshots/ui-smoke-de.png" alt="Edivora-Oberfläche aus einem deutschsprachigen UI-Smoke-Test" width="820"></a>
+
+Die Aufnahme zeigt einen Quellcode-Teststand, **keine freigegebene Windows-Binärversion**.
 
 Edivora ist eine Open-Source-Desktop-Suite mit deutsch- und englischsprachiger Oberfläche. Die Bearbeitung läuft lokal, ohne Benutzerkonto oder Cloud-KI. KI-Modelle müssen vor der ersten Nutzung separat vorbereitet werden; die Anwendung lädt sie nicht automatisch herunter.
 
