@@ -2,31 +2,31 @@
 
 # Edivora
 
-**Foto, Video und Audio lokal bearbeiten – mit ausgewählten KI-Funktionen.**
+**Edit photos, video and audio locally, with selected on-device AI tools.**
 
-**Sprache:** Deutsch · [English](README.en.md)
+**Language:** **English** · [Deutsch](README.de.md)
 
-![Edivora: Foto-, Video- und Audioeditor](src/local_ai_photo_editor/assets/edivora-banner.svg)
+![Edivora photo, video and audio editors](src/local_ai_photo_editor/assets/edivora-banner.svg)
 
-Edivora ist eine Open-Source-Desktop-Suite mit deutsch- und englischsprachiger Oberfläche. Die Bearbeitung läuft lokal, ohne Benutzerkonto oder Cloud-KI. KI-Modelle müssen vor der ersten Nutzung separat vorbereitet werden; die Anwendung lädt sie nicht automatisch herunter.
+Edivora is an open-source desktop suite with English and German interfaces. Editing happens locally, without an account or cloud AI. Models must be prepared separately before use; the application does not download them at runtime.
 
-> **Entwicklungsstand: 0.4.0a1 (Quellcode).** Für die aktuelle Suite ist **kein öffentlich zur Weiterverteilung freigegebenes Windows-Paket** verfügbar. Die Freigabe hängt unter anderem von der Prüfung der Qt-, FFmpeg- und Modelllizenzen sowie einer Windows-11-Abnahme ab. Historische Foto-Testpakete enthalten weder den aktuellen Launcher noch Video- und Audiofunktionen.
+> **Development source: 0.4.0a1.** **No Windows package of the current suite has been approved for public redistribution.** Release approval requires, among other things, Qt/FFmpeg/model-license reviews and Windows 11 acceptance. Historical photo-only test packages do not include the current launcher or the video/audio editors.
 
-## Funktionen
+## Features
 
-| Editor | Im aktuellen Quellcode | Wichtige Grenzen |
+| Editor | Implemented in the current source | Main limitations |
 | --- | --- | --- |
-| **Foto** | JPEG/PNG/WebP, Licht und Farbe, Looks, Zuschnitt, Drehung, Vorher/Nachher, Undo/Redo, lokale Motivfreistellung mit U2NETP und `.laip`-Projekte | Keine Ebenen, RAW/HDR-Unterstützung oder generative Textbearbeitung |
-| **Video** | Bis zu 24 Clips auf einer Timeline anordnen, trimmen, teilen und duplizieren; Bildkorrekturen, `.edvp`-Projekte und MP4-Export; lokale KI-Freistellung eines Standbilds und kurze DnCNN-Entrauschung | Keine Mehrspurmontage, Übergänge oder durchgehende Vorschau der gesamten Sequenz |
-| **Audio** | Bis zu 24 Clips auf einer Timeline, Trimmen, Pegel, Fades, WAV/MP3-Export, `.edap`-Projekte und lokale Spracherkennung von Abschnitten mit Silero VAD | Kein Mehrspurmix, keine Transkription und keine KI-Rauschunterdrückung |
+| **Photo** | JPEG/PNG/WebP, color and light adjustments, looks, crop/rotate, before/after, undo/redo, local U2NETP subject masking and `.laip` projects | No layers, RAW/HDR or prompt-based generative editing |
+| **Video** | Arrange, trim, split and duplicate up to 24 clips in one lane; picture adjustments, `.edvp` projects and MP4 export; local still-frame subject masking and short-clip DnCNN denoising | No multitrack editing, transitions or continuous full-sequence preview |
+| **Audio** | Up to 24 clips in one lane; trimming, levels, fades, WAV/MP3 export, `.edap` projects and local Silero VAD speech-region suggestions | No multitrack mixing, transcription or neural noise reduction |
 
-Der Launcher öffnet Foto, Video und Audio in **getrennten Fenstern** und bleibt für weitere Starts verfügbar. Bearbeitete Dateien werden separat exportiert; das Original soll nicht überschrieben werden.
+The launcher can open Photo, Video and Audio in **separate windows** while remaining open. Export creates a separate file rather than intentionally overwriting the original.
 
-**Grenzen der KI:** DnCNN verarbeitet auf der CPU ausgewählte Videoabschnitte bis **30 Sekunden bei maximal 720p/30 fps**. Das Ergebnis kann Details verlieren oder flimmern. Eingebrannte Filter und bereits verlorene Bildinformationen lassen sich nicht zuverlässig rekonstruieren. **GPU/CUDA/DirectML sind projektseitig nicht verifiziert.** `.edvp`- und `.edap`-Projektdateien verweisen auf Quelldateien und können absolute lokale Pfade enthalten.
+**AI boundaries:** On CPU, DnCNN processes selected video sections of up to **30 seconds, 720p and 30 fps**. Processing may remove detail or cause flicker. Baked-in filters and lost image detail cannot be reliably reversed. **GPU/CUDA/DirectML operation has not been verified by this project.** `.edvp` and `.edap` project files reference source media and may contain absolute local paths.
 
-## Aus dem Quellcode starten
+## Run from source
 
-Für den aktuellen Entwicklungsstand wird **Python 3.12** empfohlen. Unter Windows im Repository-Verzeichnis:
+The current development instructions use **Python 3.12**. From the repository root on Windows:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -39,25 +39,25 @@ py -3.12 -m venv .venv
 .venv\Scripts\python -m local_ai_photo_editor
 ```
 
-Die Modellvorbereitung benötigt Internetzugang und prüft festgelegte Modellartefakte. Der letzte Befehl öffnet den Launcher. Einzelne Editoren starten mit `--tool photo`, `--tool video` oder `--tool audio`.
+Model preparation requires network access and checks pinned model artifacts. The final command launches the editor selection window. Use `--tool photo`, `--tool video` or `--tool audio` to launch one editor directly.
 
-Der derzeitige Windows-Entwicklungsbuild verwendet noch den Dateinamen `LocalAiPhotoEditor.exe` und benötigt seinen vollständigen Begleitordner. Eine herunterladbare, freigegebene `Edivora.exe` wird nicht behauptet. Weitere Hinweise: [Erste Schritte](docs/GETTING_STARTED.md).
+The Windows development build is still called `LocalAiPhotoEditor.exe` and needs its accompanying directory. An approved downloadable `Edivora.exe` is **not** claimed. See [Getting started](docs/GETTING_STARTED.md).
 
-## Entwickeln und testen
+## Develop and test
 
-Technische Basis: **Python 3.12**, **PySide6/Qt**, **Pillow/NumPy**, **ONNX Runtime (CPU)** und **FFmpeg** für den Medienexport.
+The main stack is **Python 3.12**, **PySide6/Qt**, **Pillow/NumPy**, **ONNX Runtime (CPU)** and **FFmpeg** for media export.
 
 ```powershell
 .venv\Scripts\python -m unittest discover -s tests -v
 .venv\Scripts\python -m compileall -q src tests tools
 ```
 
-Automatisierte Tests belegen nur die jeweils getesteten Fälle; sie ersetzen weder eine Prüfung der Modellqualität noch eine Abnahme installierbarer Windows-Binärpakete. Mediendateien werden mit nativen Decodern verarbeitet und sind **keine vertrauenswürdigen Eingaben**.
+Automated checks cover specific cases; they do not establish model quality, safe media decoding or approval for redistributed Windows binaries. Treat incoming media as **untrusted**.
 
-## Dokumentation
+## Documentation
 
-[Erste Schritte](docs/GETTING_STARTED.md) · [Funktions- und Projektformate](docs/MEDIA_PROJECTS_AI.md) · [KI-Modelle](docs/MODELS.md) · [Videoverbesserung](docs/VIDEO_RESTORATION.md) · [Architektur](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md) · [Beitragen](docs/CONTRIBUTING.md) · [Sicherheitsrichtlinie](SECURITY.md)
+[Getting started](docs/GETTING_STARTED.md) · [Media projects and AI](docs/MEDIA_PROJECTS_AI.md) · [Models](docs/MODELS.md) · [Video restoration](docs/VIDEO_RESTORATION.md) · [Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md) · [Contributing](docs/CONTRIBUTING.md) · [Security policy](SECURITY.md)
 
-## Lizenz und Veröffentlichung
+## License and distribution
 
-Der Anwendungscode steht unter [Apache-2.0](LICENSE). **Qt, FFmpeg, Modelle und weitere Drittkomponenten haben eigene Bedingungen**; eine öffentliche Binärveröffentlichung benötigt eine gesonderte Prüfung. Siehe [Drittanbieterhinweise](THIRD_PARTY_NOTICES.md) und [Veröffentlichungscheckliste](docs/PUBLIC_RELEASE_CHECKLIST.md).
+Application source code is licensed under [Apache-2.0](LICENSE). **Qt, FFmpeg, AI models and other third-party components have separate terms.** Public binary distribution requires a further compliance review. See [third-party notices](THIRD_PARTY_NOTICES.md) and the [public release checklist](docs/PUBLIC_RELEASE_CHECKLIST.md).
