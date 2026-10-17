@@ -40,6 +40,11 @@ Edivora ist eine quelloffene, einsteigerfreundliche Desktop-Suite mit unabhängi
 
 Ein grüner CI-Status beweist **nicht** automatisch die Stufen 3–6.
 
+### Implementierungsschritte nach der Bestandsaufnahme
+
+- **M3 (Teil):** Verifiziertes, manuelles Relinking verschobener oder geänderter Medienquellen; die unveränderte Projektdatei wird nur nach ausdrücklichem Speichern aktualisiert. Vollständiges Autosave, Recovery und portable Medienpakete stehen aus.
+- **M1 (Teil):** Ganzsequenz-Vorschau über einen lokalen **Vorab-Render** für maximal **2 Minuten** mit dem bestehenden Exportfiltergraphen sowie eine Qt-freie, millisekundengenaue Sequenz-Zeitbasis. Der Vorschauprozess besitzt Zeit-/Dateigrößenlimits, Abbruch und Temp-Cleanup. **Nicht** gleichbedeutend mit kontinuierlicher **Echtzeit**-Vorschau, Mehrspurunterstützung oder einer finalen Windows-Freigabe.
+
 ## 3. Priorisierung und Reihenfolge
 
 | Meilenstein | Priorität | Zielversion (Plan) | Ergebnis | Voraussetzung |
