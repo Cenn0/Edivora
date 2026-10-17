@@ -9,6 +9,7 @@
 - Verify provenance and redistribution rights of ONNX weights, exported models and tokenizers (including any introduced by open pull requests).
 - Test the downloaded Windows package offline, on a clean Windows 11 device, including media import/export, CPU inference and source-file protection.
 - Publish binary SHA-256, build revision, reproducible package manifest, known limitations, support scope and all necessary legal notices.
+- Generate **build/windows-package-inventory.json** after the Windows standalone tree is assembled. This reproducible, external manifest lists each relative path, byte count, SHA-256, file type and aggregate digest; it has `public_redistribution_approved: false` by design. Do not call it a resolved license SBOM or a legal clearance. If any package file is added/modified afterwards, generate a **new** inventory and tie evidence to the exact artifact commit.
 - Check commit metadata, workflow logs, GitHub release assets and downloadable artifacts for private information before publishing.
 
 Public GitHub repository settings such as branch rules, vulnerability reporting, secret scanning and dependency alerts require separate configuration. Adding documentation does not enable those settings.

@@ -100,6 +100,13 @@ jobs:
         env:
           NUITKA_CACHE_DIR_CLCACHE: ${{ runner.temp }}/local-ai-photo-editor-clcache
         run: python tools/build_windows.py
+      - name: Verify exact post-build file inventory and fail-closed release flag
+        if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -c "import json; from pathlib import Path; from tools.binary_inventory import build_inventory; p=Path('build/windows-package-inventory.json'); d=json.loads(p.read_text('utf-8')); assert d==build_inventory('dist/LocalAiPhotoEditor'); assert d['public_redistribution_approved'] is False; assert d['license_compliance']=='NOT_REVIEWED'; assert any(f['path']=='media-tools/ffmpeg.exe' for f in d['files'])"
+          if ($LASTEXITCODE -ne 0) { throw 'Windows package inventory mismatch or unsafe release flag' }
       - name: Exercise packaged worker from a temporary working directory
         if: ${{ !cancelled() && steps.standalone_build.outcome == 'success' }}
         shell: pwsh
