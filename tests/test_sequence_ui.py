@@ -130,6 +130,55 @@ class SequencerQtTests(unittest.TestCase):
             self.app.processEvents()
             self.QTest.qWait(150)  # allow Windows multimedia decoder threads to release file handles
 
+    def test_open_missing_media_relinks_and_requires_resave(self) -> None:
+        from unittest.mock import patch
+        from local_ai_photo_editor.core.media_project import (
+            MediaClip, MediaSequence, load_media_project, save_media_project,
+        )
+
+        original = self.make_audio("to-move.wav", 430)
+        clip = MediaClip.create("audio", original, 1500)
+        project = self.root / "moved.edap"
+        save_media_project(MediaSequence("audio", (clip,)), project)
+        moved = self.root / "moved-audio.wav"
+        original.rename(moved)
+
+        w = self.window_type("audio")
+        w.show()
+        self.app.processEvents()
+        try:
+            # A cancelled file chooser must not mutate the active editor.
+            with patch("local_ai_photo_editor.ui.sequence_window.QFileDialog.getOpenFileName",
+                       return_value=("", "")):
+                self.assertIsNone(w._load_with_relinks(project))
+            self.assertFalse(w.clips)
+
+            with patch("local_ai_photo_editor.ui.sequence_window.QFileDialog.getOpenFileName",
+                       return_value=(str(moved), "")):
+                outcome = w._load_with_relinks(project)
+            self.assertIsNotNone(outcome)
+            sequence, relinked = outcome
+            self.assertTrue(relinked)
+            self.assertEqual(sequence.clips[0].source, moved)
+
+            # Use the same UI path as the toolbar and check unsaved state.
+            with patch("local_ai_photo_editor.ui.sequence_window.QFileDialog.getOpenFileName",
+                       side_effect=[(str(project), ""), (str(moved), "")]):
+                w.open_media_project()
+            self.wait_for(lambda: w.duration_ms > 0 and len(w.clips) == 1)
+            self.assertTrue(w._dirty)
+            self.assertTrue(w._relink_unsaved)
+            self.assertTrue(w._save_to(project))
+            self.assertFalse(w._dirty)
+            self.assertFalse(w._relink_unsaved)
+            self.assertEqual(load_media_project(project).clips[0].source, moved)
+        finally:
+            w._dirty = False
+            w.close()
+            w.deleteLater()
+            self.app.processEvents()
+            self.QTest.qWait(150)
+
     def test_ai_is_explicitly_disabled_without_bundled_model(self) -> None:
         from unittest.mock import patch
 
