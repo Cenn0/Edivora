@@ -31,7 +31,7 @@ Edivora is an open-source desktop suite with English and German interfaces. Edit
 | Editor | Implemented in the current source | Main limitations |
 | --- | --- | --- |
 | **Photo** | JPEG/PNG/WebP, color and light adjustments, looks, crop/rotate, before/after, undo/redo, local U2NETP subject masking and `.laip` projects | No layers, RAW/HDR or prompt-based generative editing |
-| **Video** | Arrange, trim, split and duplicate up to 24 clips in one lane; picture adjustments, `.edvp` projects and MP4 export; local still-frame subject masking and short-clip DnCNN denoising | No multitrack editing, transitions or continuous full-sequence preview |
+| **Video** | Arrange, trim, split and duplicate up to 24 clips in one lane; picture adjustments, `.edvp` projects and MP4 export; local still-frame subject masking and short-clip DnCNN denoising | Only pre-rendered full-sequence previews up to 2 minutes; no realtime multitrack preview or transitions |
 | **Audio** | Up to 24 clips in one lane; trimming, levels, fades, WAV/MP3 export, `.edap` projects and local Silero VAD speech-region suggestions | No multitrack mixing, transcription or neural noise reduction |
 
 The launcher can open Photo, Video and Audio in **separate windows** while remaining open. Export creates a separate file rather than intentionally overwriting the original.

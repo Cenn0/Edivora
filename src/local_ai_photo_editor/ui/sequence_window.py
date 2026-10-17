@@ -137,6 +137,10 @@ class SequenceWindow(MediaWindow):
         self.save_as_button.clicked.connect(self.save_media_project_as)
         project_layout.insertWidget(1, self.open_project_button)
         project_layout.insertWidget(2, self.save_as_button)
+        self.sequence_preview_button = IconButton(icon_name="play")
+        self.sequence_preview_button.setObjectName("quickAction")
+        self.sequence_preview_button.clicked.connect(self.preview_whole_sequence)
+        project_layout.insertWidget(3, self.sequence_preview_button)
         self.header_layout.insertWidget(self.header_layout.indexOf(self.export_button), self.save_project_button)
         self.ai_button = IconButton(key="ai_voice" if self.kind == "audio" else "ai_video_frame")
         self.ai_button.setObjectName("quickAiAction")
@@ -175,7 +179,7 @@ class SequenceWindow(MediaWindow):
             self.source_preview_hint.setWordWrap(True)
             self.source_preview_hint.setObjectName("muted")
             self.picture_tools_layout.insertWidget(1, self.source_preview_hint)
-        for button in (self.open_project_button, self.save_as_button, self.ai_button, self.enhance_button):
+        for button in (self.open_project_button, self.save_as_button, self.ai_button, self.enhance_button, self.sequence_preview_button):
             if button is not None:
                 button.setFitToWidth()
         self.language_combo.currentIndexChanged.connect(self._translate_sequence)
@@ -204,6 +208,8 @@ class SequenceWindow(MediaWindow):
             self.video_size.setToolTip(video_text(self.language, "size_hint"))
             for index, profile in enumerate(("hd", "full_hd")):
                 self.video_size.setItemText(index, video_text(self.language, profile))
+        self.sequence_preview_button.setText(key("sequence_preview"))
+        self.sequence_preview_button.setAccessibleName(key("sequence_preview"))
         self.clip_heading.setText(key("clips_short"))
         self.clip_heading.setToolTip(key("clip_lane"))
         self.project_heading.setText(key("project_title"))
@@ -245,6 +251,13 @@ class SequenceWindow(MediaWindow):
         self.open_project_button.setEnabled(not busy)
         self.save_project_button.setEnabled(not busy and bool(self.clips))
         self.save_as_button.setEnabled(not busy and bool(self.clips))
+        from .sequence_preview import MAX_PREVIEW_MS
+        preview_possible = (ready and self._can_render()
+                            and self._snapshot().length_ms <= MAX_PREVIEW_MS)
+        self.sequence_preview_button.setEnabled(preview_possible)
+        self.sequence_preview_button.setToolTip(self._t(
+            "sequence_preview_hint" if preview_possible else "sequence_preview_limit"
+        ))
         self.remove_button.setEnabled(ready)
         self.duplicate_button.setEnabled(ready and len(self.clips) < MAX_CLIPS)
         self.split_button.setEnabled(ready and len(self.clips) < MAX_CLIPS)
@@ -742,6 +755,31 @@ class SequenceWindow(MediaWindow):
             raise ValueError(self._t("invalid_selection"))
         return SequenceExport(self._snapshot(), destination,
             self.video_size.currentData() if self.video_size is not None else "hd").validated()
+
+    def preview_whole_sequence(self) -> None:
+        """Render a bounded assembled preview using the actual export filtergraph."""
+        if self._is_busy() or not self.clips or not self._capture_selected():
+            return
+        from .sequence_preview import SequencePreviewDialog, preview_allowed
+        try:
+            sequence = self._snapshot().validated()
+            if not preview_allowed(sequence):
+                raise ValueError(self._t("sequence_preview_limit"))
+            engine = ffmpeg_executable(self._compiled_executable)
+            profile = self.video_size.currentData() if self.video_size is not None else "hd"
+            dialog = SequencePreviewDialog(
+                sequence, engine=engine, video_profile=profile,
+                language=self.language, parent=self,
+            )
+        except (OSError, ValueError, RuntimeError) as exc:
+            QMessageBox.warning(self, self._t("error"), str(exc))
+            return
+        self.player.pause()
+        try:
+            dialog.exec()
+        finally:
+            dialog.close()
+            dialog.deleteLater()
 
     def export_file(self) -> None:
         if self._is_busy() or not self.clips or not self._can_render():
