@@ -20,11 +20,16 @@ name, and their accepted trim range.
 - **Export** renders *all clips in the visible order*, not only the selected
   preview. Export selection is the complete arranged sequence.
 
-The player previews **one selected clip at a time**. It does not yet play the
-whole arrangement continuously, show one continuous composited A/V waveform,
-overlay graphics, mix tracks, add transitions, or offer professional multi-
-track editing. The list is a simple first timeline, not an NLE timeline.
-There is no cut transition effect beyond hard cuts.
+The ordinary source player previews **one selected clip at a time**. The optional
+**Preview full sequence** button now renders **up to two minutes of the complete
+arranged timeline** asynchronously using the same validated, local FFmpeg
+filtergraph as the final export (including stored video corrections and audio
+master fades). It then opens the temporary WAV/MP4 for playback and seeking.
+The temporary file is deleted on close. This is **render-before-playback**, not
+real-time editing, and requires available local Qt playback decoders. Longer
+sequences can still be exported, but cannot use this bounded preview yet.
+The editor still has no multitrack overlays, transitions or live composited
+waveform. The clip list is not a nonlinear multitrack timeline.
 
 Video rendering standardizes each clip to selectable **HD (1280 × 720) or
 Full HD (1920 × 1080), 30 fps, YUV420p, MPEG-4 Part 2** and AAC stereo. Inputs are scaled preserving aspect ratio and
