@@ -8,8 +8,12 @@
 | --- | --- | --- |
 | **Launcher** | `ui/launcher.py`: drei Karten mit direktem Start (Alt+1/2/3), bleibt geöffnet, beliebig viele unabhängige Foto-/Video-/Audiofenster über `__main__.py` | Kein gemeinsames Fensterprojekt oder Mehrspurarbeit |
 | **Foto** | `ui/window.py`, `ui/canvas.py`, Motiv-, Masken- und Korrekturdialoge; geführte Werkzeuge, Bildbearbeitung mit Vorschau/Übernehmen/Verwerfen, Undo/Redo und `.laip` | Keine Ebenen, keine generative Textbearbeitung |
-| **Video** | `ui/sequence_window.py`, `ui/media_shell.py`, `ui/video_dialog.py`: Einzelclip-Wiedergabe, bis 24 Clips in einer Spur, Schneiden/Sortieren, `.edvp`, Undo/Redo und HD/Full-HD-MP4-Export; sieben klassische Bildkorrekturen mit tatsächlicher Frame-Vorschau und lokale DnCNN-CPU-Entrauschung kurzer Sequenzen | Keine kontinuierliche Gesamtvorschau, Mehrspurmontage, Übergänge, GPU-Runtime oder zuverlässiges Entfernen eingebrannter Filter |
+| **Video** | `ui/sequence_window.py`, `ui/media_shell.py`, `ui/video_dialog.py`: Einzelclip-Wiedergabe, bis 24 Clips in einer Spur, Schneiden/Sortieren, `.edvp`, Undo/Redo und HD/Full-HD-MP4-Export; sieben klassische Bildkorrekturen mit tatsächlicher Frame-Vorschau und lokale DnCNN-CPU-Entrauschung kurzer Sequenzen | Nur eine separate, vorab gerenderte Gesamtvorschau bis 2 Minuten (keine Echtzeitansicht); keine Mehrspurmontage, Übergänge, geprüfte GPU-Runtime oder zuverlässige Filter-Rücknahme |
 | **Audio** | Derselbe Sequenzeditor: Einzelclip-Wiedergabe und Wellenform, Trimmen/Splitten, Pegel/Fades, `.edap`, Undo/Redo, WAV/MP3 sowie bestätigungspflichtige Silero-VAD-Schnittvorschläge | Keine Mehrspurmischung oder Worttranskription; PR #17 ist separat |
+
+## Ganze Sequenz als gerenderte Vorschau
+
+Die Schaltfläche **Gesamte Sequenz ansehen** rendert Audio/Video bis maximal **2 Minuten** über den bestehenden FFmpeg-Exportplan in ein privates temporäres Verzeichnis. Der Qt-Mediaplayer kann anschließend das Gesamtergebnis abspielen und darin suchen. Der Vorgang ist abbrechbar, zeitlich (180 Sekunden) und hinsichtlich temporärer Dateigröße (512 MiB) begrenzt. Er ist **keine laufend aktualisierte Live-Vorschau**; bei längeren Projekten bleibt nur der normale Export. Die Originaldateien bleiben unverändert und Vorschauartefakte werden beim Schließen gelöscht.
 
 ## Layout, Bedienung und Projektzustand
 
