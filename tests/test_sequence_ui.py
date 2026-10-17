@@ -179,6 +179,90 @@ class SequencerQtTests(unittest.TestCase):
             self.app.processEvents()
             self.QTest.qWait(150)
 
+    def test_autosave_recovery_requires_consent_and_explicit_save(self) -> None:
+        from unittest.mock import patch
+        from local_ai_photo_editor.core.media_recovery import (
+            candidate_recovery, write_recovery
+        )
+        from local_ai_photo_editor.core.media_project import load_media_project
+
+        a = self.make_audio("recovery.wav", 400)
+        project = self.root / "recovery.edap"
+        first = self.window_type("audio")
+        first.show()
+        self.app.processEvents()
+        second = None
+        try:
+            first.open_path(a)
+            self.wait_for(lambda: len(first.clips) == 1 and first.duration_ms > 0)
+            self.assertTrue(first._save_to(project))
+            saved = project.read_bytes()
+            first.start_spin.setValue(0.200)
+            self.assertTrue(first._dirty)
+            first._autosave_recovery()
+            # Ensure a strictly newer checkpoint regardless of NTFS granularity.
+            checkpoint = write_recovery(first._snapshot(), project)
+            newer = project.stat().st_mtime_ns + 3_000_000_000
+            os.utime(checkpoint, ns=(newer, newer))
+            self.assertIsNotNone(candidate_recovery(project))
+            self.assertEqual(project.read_bytes(), saved)
+
+            second = self.window_type("audio")
+            second.show()
+            self.app.processEvents()
+            with patch("local_ai_photo_editor.ui.sequence_window.QFileDialog.getOpenFileName",
+                       return_value=(str(project), "")), patch(
+                       "local_ai_photo_editor.ui.sequence_window.QMessageBox.question",
+                       return_value=__import__("PySide6.QtWidgets",
+                                               fromlist=["QMessageBox"]).QMessageBox.StandardButton.Yes):
+                second.open_media_project()
+            self.wait_for(lambda: len(second.clips) == 1 and second.duration_ms > 0)
+            self.assertTrue(second._dirty)
+            self.assertTrue(second._recovery_pending)
+            self.assertEqual(second.clips[0].start_ms, 200)
+            self.assertEqual(project.read_bytes(), saved)
+            self.assertTrue(second._save_to(project))
+            self.assertFalse(second._dirty)
+            self.assertFalse(second._recovery_pending)
+            self.assertFalse(checkpoint.exists())
+            self.assertEqual(load_media_project(project).clips[0].start_ms, 200)
+        finally:
+            first._dirty = False
+            first.close()
+            first.deleteLater()
+            if second is not None:
+                second._dirty = False
+                second.close()
+                second.deleteLater()
+            self.app.processEvents()
+            self.QTest.qWait(150)
+
+    def test_failed_automatic_checkpoint_preserves_saved_project(self) -> None:
+        from unittest.mock import patch
+
+        a = self.make_audio("full.wav", 370)
+        project = self.root / "full.edap"
+        w = self.window_type("audio")
+        w.show()
+        self.app.processEvents()
+        try:
+            w.open_path(a)
+            self.wait_for(lambda: len(w.clips) == 1 and w.duration_ms > 0)
+            self.assertTrue(w._save_to(project))
+            before = project.read_bytes()
+            w.start_spin.setValue(0.150)
+            with patch("local_ai_photo_editor.ui.sequence_window.write_recovery",
+                       side_effect=OSError("disk full")):
+                w._autosave_recovery()
+            self.assertTrue(w._dirty)
+            self.assertEqual(project.read_bytes(), before)
+        finally:
+            w._dirty = False
+            w.close()
+            w.deleteLater()
+            self.app.processEvents()
+            self.QTest.qWait(150)
+
     def test_ai_is_explicitly_disabled_without_bundled_model(self) -> None:
         from unittest.mock import patch
 
