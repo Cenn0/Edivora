@@ -25,6 +25,8 @@ Edivora ist eine quelloffene, einsteigerfreundliche Desktop-Suite mit unabhängi
 | Medienprojekte | Schema 2, ältere Schema-1-Dateien werden gelesen, 60 Undo/Redo-Zustände in der Sitzung, sicheres Speichern | Externe Medienreferenzen, kein vollständiges Relinking/Autosave/Crash-Recovery |
 | Distribution | Öffentliches Apache-2.0-**Quellcode**-Repo; historische Foto-Alpha | **Keine für öffentliche Weiterverteilung freigegebene Windows-Suite** |
 
+**Distributionsstatus:** Es gibt weiterhin **keine genehmigte öffentliche Windows-ZIP**. Der öffentliche Quellcode und erfolgreiche automatisierte Tests allein erlauben keine Weiterverteilung ungeprüfter Qt-/FFmpeg-/Modell-Binärdateien.
+
 **Statuskorrektur:** [PR #17](https://github.com/Cenn0/Edivora/pull/17) (vier Modelle/Hardwareprofile) wurde am 16.10.2026 **geschlossen, nicht gemergt**. Diese Funktionen gehören **nicht** zum Stand von main. Dagegen wurden unter anderem [PR #21](https://github.com/Cenn0/Edivora/pull/21) (0.4-Suite), [#22](https://github.com/Cenn0/Edivora/pull/22) (Public-Release-Schutz) und [#31](https://github.com/Cenn0/Edivora/pull/31) (CI-Kostenhygiene) gemergt. Die weiterhin offenen Release-Issues [#2](https://github.com/Cenn0/Edivora/issues/2) und [#3](https://github.com/Cenn0/Edivora/issues/3) bleiben verbindlich; ein alter Issue-Text, der PR #22 noch als ungemergt beschreibt, ist überholt.
 
 ### Freigabestufen – separat nachweisen
