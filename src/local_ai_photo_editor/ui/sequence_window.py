@@ -26,7 +26,7 @@ from ..ai.voice import model_available as voice_model_available
 from ..core.media import MIN_SELECTION_MS, ffmpeg_executable, validate_source
 from ..core.media_project import (
     MAX_CLIPS, MediaClip, MediaSequence, PROJECT_EXTENSIONS,
-    load_media_project, save_media_project,
+    load_media_project, save_media_project, unavailable_media,
 )
 from ..core.media_sequence import SequenceExport, commit_sequence_export
 from ..core.media_history import MediaHistory, same_content
@@ -47,6 +47,7 @@ class SequenceWindow(MediaWindow):
         self.active_id: str | None = None
         self._project_file: Path | None = None
         self._dirty = False
+        self._relink_unsaved = False
         self._history_restoring = False
         self._export_progress_buffer = bytearray()
         self._ui_ready = False
@@ -291,7 +292,7 @@ class SequenceWindow(MediaWindow):
         self._dirty = True
         if hasattr(self, "_history"):
             self._history.record(self._snapshot(), key)
-            self._dirty = not same_content(self._snapshot(), self._saved_state)
+            self._dirty = self._relink_unsaved or not same_content(self._snapshot(), self._saved_state)
             self.undo_button.setEnabled(not self._is_busy() and not self._loading and self._history.can_undo)
             self.redo_button.setEnabled(not self._is_busy() and not self._loading and self._history.can_redo)
         self._update_project_heading()
@@ -340,7 +341,7 @@ class SequenceWindow(MediaWindow):
             self.file_label.setText(self._t(f"empty_{self.kind}"))
             self._refresh_clips()
         self._history_restoring = False
-        self._dirty = not same_content(self._snapshot(), self._saved_state)
+        self._dirty = self._relink_unsaved or not same_content(self._snapshot(), self._saved_state)
         self._update_project_heading()
         self._update_enabled()
 
@@ -621,6 +622,39 @@ class SequenceWindow(MediaWindow):
             return can_save and self.save_media_project()
         return answer == QMessageBox.StandardButton.Discard
 
+    def _load_with_relinks(self, path: str | Path) -> tuple[MediaSequence, bool] | None:
+        """Load a project only after *all* replacements pass exact source checks.
+
+        Cancelled selection returns None without altering the active editor.
+        Malformed project references never bypass the strict loader.
+        """
+        try:
+            return load_media_project(path), False
+        except (OSError, ValueError):
+            unavailable = unavailable_media(path)
+            if not unavailable:
+                raise
+        chosen: dict[tuple[str, str], Path] = {}
+        replacements: dict[str, Path] = {}
+        file_filter = ("Video (*.mp4 *.mov *.mkv *.webm *.avi *.m4v)"
+                       if self.kind == "video" else
+                       "Audio (*.wav *.mp3 *.m4a *.aac *.flac *.ogg *.opus)")
+        for missing in unavailable:
+            key = (missing.reference, missing.sample_sha256)
+            if key not in chosen:
+                selected, _ = QFileDialog.getOpenFileName(
+                    self, self._t("media_relink_choose", name=missing.name),
+                    str(Path(path).parent), file_filter,
+                )
+                if not selected:
+                    return None
+                chosen[key] = Path(selected)
+            replacements[missing.clip_id] = chosen[key]
+        sequence = load_media_project(path, replacements=replacements)
+        if sequence.kind != self.kind:
+            raise ValueError("This project belongs to a different editor.")
+        return sequence, True
+
     def open_media_project(self) -> None:
         if self._is_busy() or not self._confirm_unsaved():
             return
@@ -631,17 +665,21 @@ class SequenceWindow(MediaWindow):
         if not path:
             return
         try:
-            sequence = load_media_project(path)
+            outcome = self._load_with_relinks(path)
+            if outcome is None:
+                return
+            sequence, relinked = outcome
             if sequence.kind != self.kind:
                 raise ValueError("This project belongs to a different editor.")
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, TypeError) as exc:
             QMessageBox.warning(self, self._t("error"), str(exc))
             return
         self._cancel_waveform()
         self.clips = list(sequence.clips)
         self.active_id = None
         self._project_file = Path(path)
-        self._dirty = False
+        self._relink_unsaved = relinked
+        self._dirty = relinked
         if self.normalize is not None:
             self.normalize.setChecked(sequence.normalize)
             self.fade_in.setValue(sequence.fade_in_ms / 1000)
@@ -650,7 +688,7 @@ class SequenceWindow(MediaWindow):
             (c for c in self.clips if c.id == sequence.selected_id), self.clips[0]
         )
         self._preview_clip(selection)
-        self._dirty = False
+        self._dirty = relinked
         self._saved_state = self._snapshot()
         self._history.reset(self._saved_state)
         self._update_project_heading()
@@ -691,6 +729,7 @@ class SequenceWindow(MediaWindow):
             QMessageBox.warning(self, self._t("error"), str(exc))
             return False
         self._project_file = Path(path)
+        self._relink_unsaved = False
         self._dirty = False
         self._saved_state = self._snapshot()
         self._history.checkpoint()

@@ -70,8 +70,7 @@ References under the project directory are saved as simple relative paths.
 Sources outside that directory are saved with absolute local paths; such
 projects are **not portable**, and the project file may reveal personal folder
 names. Save a project alongside its media (or organize clips into a sibling
-subfolder) to keep relative references. Moving external media may require
-re-importing the files; automatic relinking is not yet implemented.
+subfolder) to keep relative references. Projects with moved or changed media now offer explicit **file relinking** when opened. Replacement files must match the recorded file size and first/last-64-KiB SHA-256 sample fingerprint; matching names are not sufficient. Cancelling or selecting a mismatched file leaves the active project intact. Relinked paths remain **unsaved changes** until the user saves the project. A sampled fingerprint is not a whole-file integrity proof. No automatic scanning or network search is performed.
 
 On reopening, the application checks strict JSON fields, version and project
 kind, a 256 KiB project size cap, max clip count, each source's type and path,
