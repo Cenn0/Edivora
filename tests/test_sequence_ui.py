@@ -159,7 +159,7 @@ class SequencerQtTests(unittest.TestCase):
             self.assertIsNotNone(outcome)
             sequence, relinked = outcome
             self.assertTrue(relinked)
-            self.assertEqual(sequence.clips[0].source, moved)
+            self.assertEqual(sequence.clips[0].source, moved.resolve())
 
             # Use the same UI path as the toolbar and check unsaved state.
             with patch("local_ai_photo_editor.ui.sequence_window.QFileDialog.getOpenFileName",
@@ -171,7 +171,7 @@ class SequencerQtTests(unittest.TestCase):
             self.assertTrue(w._save_to(project))
             self.assertFalse(w._dirty)
             self.assertFalse(w._relink_unsaved)
-            self.assertEqual(load_media_project(project).clips[0].source, moved)
+            self.assertEqual(load_media_project(project).clips[0].source, moved.resolve())
         finally:
             w._dirty = False
             w.close()
