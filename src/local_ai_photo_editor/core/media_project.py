@@ -14,7 +14,7 @@ import tempfile
 import uuid
 
 from .video_adjustments import VideoAdjustments
-from .media import AUDIO_OUTPUTS, MAX_SOURCE_BYTES, MIN_SELECTION_MS, protects_source, validate_source
+from .media import AUDIO_INPUTS, VIDEO_INPUTS, AUDIO_OUTPUTS, MAX_SOURCE_BYTES, MIN_SELECTION_MS, protects_source, validate_source
 
 PROJECT_MAGIC = "edivora-media"
 PROJECT_VERSION = 2
@@ -181,7 +181,7 @@ def _source_reference(source: Path, project: Path) -> str:
         return str(source)
 
 
-def _resolve_reference(reference: object, project: Path) -> Path:
+def _resolve_reference(reference: object, project: Path, *, allow_missing: bool = False) -> Path:
     if type(reference) is not str or not reference or len(reference) > 4096:
         raise ValueError("Invalid referenced media path.")
     _allowed_path(Path(reference))
@@ -192,11 +192,11 @@ def _resolve_reference(reference: object, project: Path) -> Path:
         parts = PurePosixPath(reference).parts
         if not parts or ".." in parts or "." in parts:
             raise ValueError("Media reference must stay inside the project directory.")
-        resolved = (project.parent / path).resolve(strict=True)
+        resolved = (project.parent / path).resolve(strict=not allow_missing)
         if project.parent.resolve() not in resolved.parents:
             raise ValueError("Media reference escapes its project directory.")
     else:
-        resolved = path.resolve(strict=True)
+        resolved = path.resolve(strict=not allow_missing)
     return _allowed_path(resolved)
 
 
@@ -249,7 +249,23 @@ def save_media_project(sequence: MediaSequence, path: str | Path) -> None:
         Path(temporary).unlink(missing_ok=True)
 
 
-def load_media_project(path: str | Path) -> MediaSequence:
+@dataclass(frozen=True)
+class UnavailableMedia:
+    """A project reference that needs explicit human relinking.
+
+    sample_sha256 is a sampled fingerprint (first/last 64 KiB and file size),
+    NOT a cryptographic digest of the entire source file.
+    """
+    clip_id: str
+    reference: str
+    name: str
+    reason: str
+    size: int
+    sample_sha256: str
+
+
+def _read_media_manifest(path: str | Path) -> tuple[Path, dict]:
+    """Parse a strictly bounded, versioned manifest without opening sources."""
     project = _allowed_path(Path(path).expanduser().absolute())
     if project.suffix.lower() not in PROJECT_EXTENSIONS.values():
         raise ValueError("Unsupported media project extension.")
@@ -274,36 +290,129 @@ def load_media_project(path: str | Path) -> MediaSequence:
     kind = data["kind"]
     if kind not in PROJECT_EXTENSIONS or project.suffix.lower() != PROJECT_EXTENSIONS[kind]:
         raise ValueError("Project type and filename do not match.")
-    rows = data["clips"]
-    if type(rows) is not list or not 1 <= len(rows) <= MAX_CLIPS:
+    if type(data["clips"]) is not list or not 1 <= len(data["clips"]) <= MAX_CLIPS:
         raise ValueError("Invalid number of clips.")
+    return project, data
+
+
+def _expected_fingerprint(value: object) -> dict[str, object]:
+    expected = _exact_dict(value, {"size", "sample_sha256"}, "fingerprint")
+    _int(expected["size"], 1, MAX_SOURCE_BYTES, "media size")
+    digest = expected["sample_sha256"]
+    if (type(digest) is not str or len(digest) != 64
+            or any(ch not in "0123456789abcdef" for ch in digest)):
+        raise ValueError("Invalid fingerprint digest.")
+    return expected
+
+
+def _clip_row(row: object, version: int) -> dict:
+    fields = {
+        "id", "source", "fingerprint", "duration_ms", "start_ms",
+        "end_ms", "volume_percent", "mute", "has_audio",
+    }
+    if version == 2:
+        fields.add("video_adjustments")
+    row = _exact_dict(row, fields, "clip")
+    clip_id = row["id"]
+    if type(clip_id) is not str or len(clip_id) != 32:
+        raise ValueError("Invalid clip ID.")
+    try:
+        if uuid.UUID(hex=clip_id).hex != clip_id:
+            raise ValueError("Invalid clip ID.")
+    except (ValueError, AttributeError) as exc:
+        raise ValueError("Invalid clip ID.") from exc
+    _expected_fingerprint(row["fingerprint"])
+    if version == 2:
+        VideoAdjustments.from_dict(row["video_adjustments"])
+    return row
+
+
+def unavailable_media(path: str | Path) -> tuple[UnavailableMedia, ...]:
+    """Inspect unavailable/changed sources without mutating a project.
+
+    Malformed, remote or escaping references are errors, never relink prompts.
+    The caller must still use load_media_project to validate every replacement.
+    """
+    project, data = _read_media_manifest(path)
+    missing = []
+    seen = set()
+    for value in data["clips"]:
+        row = _clip_row(value, data["version"])
+        if row["id"] in seen:
+            raise ValueError("Duplicate clip IDs are not allowed.")
+        seen.add(row["id"])
+        source = _resolve_reference(row["source"], project, allow_missing=True)
+        expected = _expected_fingerprint(row["fingerprint"])
+        if source.suffix.lower() not in (VIDEO_INPUTS if data["kind"] == "video" else AUDIO_INPUTS):
+            raise ValueError("Project contains an unsupported media source.")
+        if not source.is_file():
+            reason = "missing"
+        else:
+            try:
+                reason = "changed" if fingerprint(source) != expected else ""
+            except (OSError, ValueError):
+                reason = "unavailable"
+        if reason:
+            missing.append(UnavailableMedia(
+                row["id"], row["source"], source.name, reason,
+                expected["size"], expected["sample_sha256"],
+            ))
+    return tuple(missing)
+
+
+def load_media_project(
+    path: str | Path, *, replacements: dict[str, str | Path] | None = None,
+) -> MediaSequence:
+    """Load and validate all media references, with opt-in fingerprint-matched relinks.
+
+    Replacements are keyed by the persisted clip ID. Existing unchanged sources
+    cannot be silently replaced, all replacements must be used, and any wrong
+    source aborts the entire transaction before the UI changes.
+    """
+    project, data = _read_media_manifest(path)
+    replacements = {} if replacements is None else replacements
+    if type(replacements) is not dict or len(replacements) > MAX_CLIPS:
+        raise ValueError("Invalid media replacement mapping.")
+    used = set()
     clips = []
-    for row in rows:
-        clip_fields = {
-            "id", "source", "fingerprint", "duration_ms", "start_ms",
-            "end_ms", "volume_percent", "mute", "has_audio",
-        }
-        if data["version"] == 2:
-            clip_fields.add("video_adjustments")
-        row = _exact_dict(row, clip_fields, "clip")
+    seen = set()
+    for value in data["clips"]:
+        row = _clip_row(value, data["version"])
+        if row["id"] in seen:
+            raise ValueError("Duplicate clip IDs are not allowed.")
+        seen.add(row["id"])
+        expected = _expected_fingerprint(row["fingerprint"])
+        original = _resolve_reference(row["source"], project, allow_missing=True)
+        if original.suffix.lower() not in (VIDEO_INPUTS if data["kind"] == "video" else AUDIO_INPUTS):
+            raise ValueError("Project contains an unsupported media source.")
+        if row["id"] in replacements:
+            try:
+                current_matches = fingerprint(original) == expected
+            except (OSError, ValueError):
+                current_matches = False
+            if current_matches:
+                raise ValueError("Refusing to silently relink an unchanged media source.")
+            candidate = _allowed_path(Path(replacements[row["id"]]).expanduser().absolute())
+            src = validate_source(candidate, data["kind"])
+            used.add(row["id"])
+        else:
+            src = _resolve_reference(row["source"], project)
         adjustments = (VideoAdjustments.from_dict(row["video_adjustments"])
                        if data["version"] == 2 else VideoAdjustments())
-        src = _resolve_reference(row["source"], project)
         clip = MediaClip(
             row["id"], src, row["duration_ms"], row["start_ms"],
-            row["end_ms"], row["volume_percent"], row["mute"], row["has_audio"], adjustments,
-        ).validated(kind)
-        expected = _exact_dict(row["fingerprint"], {"size", "sample_sha256"}, "fingerprint")
-        _int(expected["size"], 1, MAX_SOURCE_BYTES, "media size")
-        if type(expected["sample_sha256"]) is not str or len(expected["sample_sha256"]) != 64:
-            raise ValueError("Invalid fingerprint digest.")
+            row["end_ms"], row["volume_percent"], row["mute"],
+            row["has_audio"], adjustments,
+        ).validated(data["kind"])
         if fingerprint(src) != expected:
             raise ValueError(f"Media source changed or was replaced: {src.name}")
         clips.append(clip)
+    if used != set(replacements):
+        raise ValueError("Unused media replacements are forbidden.")
     selected_id = data["selected_id"]
     if selected_id is not None and type(selected_id) is not str:
         raise ValueError("Invalid selection ID.")
     return MediaSequence(
-        kind, tuple(clips), selected_id,
+        data["kind"], tuple(clips), selected_id,
         data["normalize"], data["fade_in_ms"], data["fade_out_ms"],
     ).validated()
