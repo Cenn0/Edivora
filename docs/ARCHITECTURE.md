@@ -16,7 +16,7 @@ in `tools/prepare_restoration_model.py`, never in application startup.
 [Precise limits and source/standalone verification](VIDEO_RESTORATION.md).
 
 
-**Entscheidungsgrundlage:** 12.10.2026, ursprünglich für die Foto-Testalpha. Der aktuelle `main`-Quellcode (0.3.0a1, 14.10.2026) enthält zusätzlich Launcher, Video-/Audio-Sequenzen, Projektdateien und lokale Medien-KI. **Die früheren Windows-Server-2022-Paket- und Offline-Nachweise in [VERIFICATION.md](VERIFICATION.md) gelten ausschließlich für das alte Foto-Release `v0.1.0-alpha.1`, nicht automatisch für diese neue Suite.** Clean-Windows-11-Abnahme, Hardware-/Codec-Matrix und Redistribution-Freigabe der neuen Medienkomponenten sind offen.
+**Entscheidungsgrundlage:** 12.10.2026, ursprünglich für die Foto-Testalpha. Der überprüfte `main`-Quellcode (0.4.0a1, 17.10.2026) enthält zusätzlich Launcher, Video-/Audio-Sequenzen, Projektdateien und lokale Medien-KI. **Die früheren Windows-Server-2022-Paket- und Offline-Nachweise in [VERIFICATION.md](VERIFICATION.md) gelten ausschließlich für das alte Foto-Release `v0.1.0-alpha.1`, nicht automatisch für diese neue Suite.** Clean-Windows-11-Abnahme, Hardware-/Codec-Matrix und Redistribution-Freigabe der neuen Medienkomponenten sind offen.
 
 ## Entwicklungserweiterung: Audio-/Video-Sequenzen und ONNX
 
@@ -52,7 +52,7 @@ Die Produktidentität heißt **Edivora**. Vier lokal versionierte SVGs liegen in
 
 ## Stack
 
-Use Python 3.12, PySide6/Qt Widgets for the desktop UI, Pillow and NumPy for conventional image operations, and ONNX Runtime's CPU execution provider for the first neural network. Use Nuitka 4.2.2 to bundle the runtime into a standalone Windows application directory, delivered as a portable ZIP. An installer remains a later distribution option.
+Use Python 3.12, PySide6/Qt Widgets for the desktop UI, Pillow and NumPy for conventional image operations, and ONNX Runtime's CPU execution provider for the first neural network. Use Nuitka 4.2.2 to bundle the runtime into a standalone Windows application directory, assembled as a portable directory for verification. A publicly downloadable ZIP remains blocked by the independent Qt/FFmpeg/model-redistribution and Windows-11 release gates; an installer is a later option.
 
 Python owns application behaviour; native libraries perform image processing and inference. Avoid per-pixel Python loops. Qt Widgets keeps the first UI and its logic in one language. QML remains an option if a later design demonstrably needs it; introducing Python, TypeScript, and Rust at once is unnecessary for this scope.
 
