@@ -40,7 +40,7 @@ class MediaRelinkingTests(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             load_media_project(self.project)
         new = load_media_project(self.project, replacements={self.clip.id: moved})
-        self.assertEqual(new.clips[0].source, moved)
+        self.assertEqual(new.clips[0].source, moved.resolve())
         self.assertEqual(new.clips[0].start_ms, self.clip.start_ms)
         self.assertEqual(new.clips[0].end_ms, self.clip.end_ms)
         self.assertEqual(new.clips[0].id, self.clip.id)
@@ -64,7 +64,7 @@ class MediaRelinkingTests(unittest.TestCase):
         self.source.write_bytes(b"modified" * 320)
         self.assertEqual(unavailable_media(self.project)[0].reason, "changed")
         result = load_media_project(self.project, replacements={self.clip.id: backup})
-        self.assertEqual(result.clips[0].source, backup)
+        self.assertEqual(result.clips[0].source, backup.resolve())
         self.assertEqual(self.source.read_bytes(), b"modified" * 320)
 
     def test_forged_override_and_unused_mapping_rejected(self):
