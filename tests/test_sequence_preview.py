@@ -70,7 +70,10 @@ class SequencePreviewQtTests(unittest.TestCase):
             dlg.close()
             dlg.deleteLater()
             self.app.processEvents()
-        self.assertFalse(folder.exists())
+        deadline = time.monotonic() + 10
+        while folder.exists() and time.monotonic() < deadline:
+            self.QTest.qWait(100)
+        self.assertFalse(folder.exists(), "Preview cleanup retained a media decoder handle.")
         self.assertTrue(clips[0].source.exists())
         self.assertTrue(clips[1].source.exists())
 
@@ -88,7 +91,9 @@ class SequencePreviewQtTests(unittest.TestCase):
         dlg = self.dialog_type(MediaSequence("audio", (clip,)), engine=self.ffmpeg)
         root = Path(dlg._folder.name)
         dlg.close()
-        self.app.processEvents()
+        deadline = time.monotonic() + 10
+        while root.exists() and time.monotonic() < deadline:
+            self.QTest.qWait(100)
         self.assertFalse(root.exists())
         dlg.deleteLater()
 
