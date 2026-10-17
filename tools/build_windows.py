@@ -14,6 +14,7 @@ import sys
 from collect_licenses import collect
 from brand_assets import build_windows_icon
 from package_boundary import runtime_exclusion_arguments, verify_runtime_boundary
+from binary_inventory import write_inventory
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -150,6 +151,12 @@ def main() -> int:
     }, indent=2), encoding="utf-8")
     with (destination / "build-resolved.txt").open("w", encoding="utf-8") as stream:
         subprocess.run([sys.executable, "-m", "pip", "freeze"], stdout=stream, check=True)
+    # External deterministic per-file hashes; no rights or release approval is
+    # inferred. Generated AFTER all intended package files are copied. This
+    # manifest is build evidence and is not part of the scanned package.
+    inventory = write_inventory(destination, build / "windows-package-inventory.json")
+    print(f"Binary audit: {inventory['file_count']} files, "
+          f"{inventory['total_bytes']} bytes, public redistribution NOT approved.")
     # The workflow verifies the copied executable before this directory is uploaded.
     executable = destination / "LocalAiPhotoEditor.exe"
     print(f"Prepared {executable.name}; SHA-256 {hashlib.sha256(executable.read_bytes()).hexdigest()}")
