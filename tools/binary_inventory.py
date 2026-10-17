@@ -101,11 +101,15 @@ def build_inventory(package_dir: Path | str) -> dict:
 def write_inventory(package_dir: Path | str, manifest_path: Path | str) -> dict:
     """Write an evidence manifest atomically, outside the scanned directory."""
     root = Path(package_dir).expanduser().resolve(strict=True)
-    target = Path(manifest_path).expanduser().absolute()
-    if root == target or root in target.parents:
-        raise ValueError("Binary inventory must be written outside the package.")
-    if target.is_symlink() or not target.parent.is_dir():
+    requested = Path(manifest_path).expanduser().absolute()
+    if requested.is_symlink() or not requested.parent.is_dir():
         raise ValueError("Inventory destination is invalid or a symlink.")
+    # A Windows 8.3 temp directory (RUNNER~1) and its long spelling may
+    # represent the SAME folder, even though Path equality says otherwise.
+    # Canonicalize the parent before enforcing the outside-root invariant.
+    target = requested.parent.resolve(strict=True) / requested.name
+    if root == target or root == target.parent or root in target.parents:
+        raise ValueError("Binary inventory must be written outside the package.")
     inventory = build_inventory(root)
     payload = (json.dumps(inventory, ensure_ascii=True, sort_keys=True, indent=2)
                + "\n").encode("utf-8")
