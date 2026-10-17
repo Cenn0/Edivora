@@ -1,8 +1,10 @@
 # Edivora — unified UI/UX design system
 
-**Status:** design system dated 14 October 2026, with an implemented shared launcher, Photo workspace and **single-lane 24-clip Video/Audio source editors**. The historical photo ZIP `v0.1.0-alpha.1` does **not** contain the new UI. Source implementation and a tested Windows-11 release are different milestones.
+**Status:** design system dated 14 October 2026; consolidated against the 0.4.0a1 source on 17 October 2026, with an implemented shared launcher, Photo workspace and **single-lane 24-clip Video/Audio source editors**. The historical photo ZIP `v0.1.0-alpha.1` does **not** contain the new UI. Source implementation and a tested Windows-11 release are different milestones.
 
 **Implementation and design scope:** Photo editing and local foreground tools, Video/Audio trim and project timelines (`.edvp/.edap`), selected-frame U2NETP and Silero speech-activity suggestions are implemented in current source. **Multitrack overlays, transitions, full-sequence playback, subtitles/transcription and GPU acceleration remain future design ideas.** See [MEDIA_MVP.md](MEDIA_MVP.md) for actual features, [UI_IMPLEMENTATION.md](UI_IMPLEMENTATION.md) for source components, and [BRAND.md](BRAND.md) for installed SVG identity.
+
+**Interpretation:** This document contains **proposed target-state interaction patterns**, not claims that the entire navigation rail, all task cards or every prototype control is implemented. The current implemented UI remains documented in [UI_IMPLEMENTATION.md](UI_IMPLEMENTATION.md) and [README](../README.md). The 0.4 source has single-lane Video and Audio editors, not professional multitrack editors.
 
 **Interactive prototype:** [Offline HTML shell mock](prototypes/edivora-shell.html) demonstrates an **earlier design concept** only; it does not execute a real media editor. The logo assets originally proposed in [branding PR #11](https://github.com/Cenn0/Edivora/pull/11) were incorporated into the current documentation/branding implementation separately; merging that old PR without reconciling its obsolete Video/Audio claims would be incorrect.
 
@@ -36,8 +38,8 @@ Navigation rail (left, 68 px wide at normal sizes):
 
 - **Start:** home screen with import affordance and three media cards.
 - **Foto / Photo:** current workspace (functional scope according to README).
-- **Video:** future workspace; clearly marked *Geplant / Planned* until implemented.
-- **Audio:** future workspace; clearly marked *Geplant / Planned* until implemented.
+- **Video:** **implemented as a single-lane source editor**. A shared navigation rail and multitrack controls are target concepts, not existing features.
+- **Audio:** **implemented as a single-lane source editor**. Expanded mixing, transcription and advanced track UI remain targets.
 - **Hilfe / Help** and **Einstellungen / Settings:** bottom of rail, accessible without clutter.
 
 Do not make “AI” a fourth workspace: AI is a capability in relevant tasks. Use the suite mark and the word “Edivora” in the global identity, and the workspace label “Foto”, “Video” or “Audio” in the document header. Navigation items need both an icon and a visible or accessible text name, and the active one needs more than a color difference.
@@ -77,8 +79,8 @@ For **Video**, split the stage vertically into monitor and lower timeline, while
 Lead with one sentence: “Was möchtest du bearbeiten?” / “What would you like to edit?” Show exactly three cards, each with a medium icon, an outcome phrase and a concise supported/planned status.
 
 - **Foto bearbeiten / Edit a photo** — opens a photo or project.
-- **Video bearbeiten / Edit a video** — *Geplant / Planned* while unimplemented.
-- **Audio bearbeiten / Edit audio** — *Geplant / Planned* while unimplemented.
+- **Video bearbeiten / Edit a video** — opens the implemented single-lane video editor; advanced planned tasks remain gated.
+- **Audio bearbeiten / Edit audio** — opens the implemented single-lane audio editor; advanced planned tasks remain gated.
 
 Offer a prominent drag-and-drop/import region and “Projekt öffnen / Open project”. An optional local recent-project list must avoid silently storing or exposing thumbnails from private files; allow users to clear it. The first launch must not require an account, wizard or model setup.
 
@@ -102,13 +104,13 @@ First tasks: **Foto verbessern / Enhance**, **Zuschneiden & drehen / Crop & rota
 
 Advanced groups: **Licht & Farben / Light & color**, **Looks**, **Ausschnitt / Crop**, **Hintergrund / Background**, **Motivauswahl / Subject** and **Kanten korrigieren / Refine edges**, gated by actual functionality. Photo keeps a large central image and zoom/fit/comparison affordances. Only show transparency checkerboard when relevant.
 
-### Video (future; no implemented claim)
+### Video (0.4 single-lane source editor; proposed advanced behavior)
 
 Suggested initial tasks, subject to an actual supported media pipeline: **Anfang/Ende schneiden / Trim**, **Clips anordnen / Arrange**, **Licht/Farbe anpassen / Adjust**, **Ton bearbeiten / Edit sound**, **Exportieren / Export**. Playback stage on top; below it an easy-to-read timeline with a visible playhead, large clip handles, limited default track complexity and horizontal zoom. Additional tracks, keyframes and transitions are progressively disclosed.
 
 Potential AI tasks such as captioning or subject tracking must remain unadvertised or marked planned until local models and end-to-end tests exist.
 
-### Audio (future; no implemented claim)
+### Audio (0.4 single-lane source editor; proposed advanced behavior)
 
 Suggested tasks: **Zuschneiden / Trim**, **Lautstärke anpassen / Level**, **Stille entfernen / Remove silence**, and **Rauschen reduzieren / Reduce noise** (AI label only if inference is actually used). Primary surface is a waveform with a clear selection region, scrubbing and playback. Time controls belong in the same location and style as Video transport. A spectrogram or multitrack mixer is an advanced workspace, not the first-launch interface.
 
