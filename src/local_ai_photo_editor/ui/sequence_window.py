@@ -13,7 +13,7 @@ from pathlib import Path
 import tempfile
 import uuid
 
-from PySide6.QtCore import QProcess, QSignalBlocker, Qt, QUrl
+from PySide6.QtCore import QProcess, QSignalBlocker, QTimer, Qt, QUrl
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView, QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel,
@@ -29,6 +29,7 @@ from ..core.media_project import (
     load_media_project, save_media_project, unavailable_media,
 )
 from ..core.media_sequence import SequenceExport, commit_sequence_export
+from ..core.media_recovery import candidate_recovery, clear_recovery, write_recovery
 from ..core.media_history import MediaHistory, same_content
 from ..core.process_tree import kill_media_ai_process_group
 from .media_strings import text
@@ -48,6 +49,7 @@ class SequenceWindow(MediaWindow):
         self._project_file: Path | None = None
         self._dirty = False
         self._relink_unsaved = False
+        self._recovery_pending = False
         self._history_restoring = False
         self._export_progress_buffer = bytearray()
         self._ui_ready = False
@@ -74,6 +76,10 @@ class SequenceWindow(MediaWindow):
         self._ui_ready = True
         self._saved_state = self._snapshot()
         self._history = MediaHistory(self._saved_state)
+        self._autosave_timer = QTimer(self)
+        self._autosave_timer.setInterval(15_000)
+        self._autosave_timer.timeout.connect(self._autosave_recovery)
+        self._autosave_timer.start()
         self._update_enabled()
 
     def _install_sequence_controls(self) -> None:
@@ -292,7 +298,7 @@ class SequenceWindow(MediaWindow):
         self._dirty = True
         if hasattr(self, "_history"):
             self._history.record(self._snapshot(), key)
-            self._dirty = self._relink_unsaved or not same_content(self._snapshot(), self._saved_state)
+            self._dirty = self._relink_unsaved or self._recovery_pending or not same_content(self._snapshot(), self._saved_state)
             self.undo_button.setEnabled(not self._is_busy() and not self._loading and self._history.can_undo)
             self.redo_button.setEnabled(not self._is_busy() and not self._loading and self._history.can_redo)
         self._update_project_heading()
@@ -341,7 +347,7 @@ class SequenceWindow(MediaWindow):
             self.file_label.setText(self._t(f"empty_{self.kind}"))
             self._refresh_clips()
         self._history_restoring = False
-        self._dirty = self._relink_unsaved or not same_content(self._snapshot(), self._saved_state)
+        self._dirty = self._relink_unsaved or self._recovery_pending or not same_content(self._snapshot(), self._saved_state)
         self._update_project_heading()
         self._update_enabled()
 
@@ -655,6 +661,21 @@ class SequenceWindow(MediaWindow):
             raise ValueError("This project belongs to a different editor.")
         return sequence, True
 
+    def _autosave_recovery(self) -> None:
+        """Checkpoint only a changed, already saved and validated project."""
+        if (self._project_file is None or not self._dirty or self._is_busy()
+                or self._loading or not self.clips):
+            return
+        try:
+            # Never write over the authoritative project. This operation is
+            # small (manifest + sampled fingerprints) and atomically replaces
+            # only its derived local sidecar.
+            write_recovery(self._snapshot().validated(), self._project_file)
+        except (OSError, ValueError):
+            # The main project is unchanged; make failed crash protection
+            # visible rather than claiming that autosave succeeded.
+            self._set_status("media_recovery_failed")
+
     def open_media_project(self) -> None:
         if self._is_busy() or not self._confirm_unsaved():
             return
@@ -664,8 +685,25 @@ class SequenceWindow(MediaWindow):
         )
         if not path:
             return
+        restored = False
+        load_path = path
         try:
-            outcome = self._load_with_relinks(path)
+            try:
+                recovery = candidate_recovery(path)
+            except (OSError, ValueError):
+                # A corrupt checkpoint may not prevent the last explicit
+                # Save from loading. It is never applied without consent.
+                recovery = None
+                QMessageBox.warning(self, self._t("error"), self._t("media_recovery_invalid"))
+            if recovery is not None and QMessageBox.question(
+                self, self._t("media_recovery_title"),
+                self._t("media_recovery_prompt"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            ) == QMessageBox.StandardButton.Yes:
+                load_path = str(recovery.checkpoint)
+                restored = True
+            outcome = self._load_with_relinks(load_path)
             if outcome is None:
                 return
             sequence, relinked = outcome
@@ -679,7 +717,8 @@ class SequenceWindow(MediaWindow):
         self.active_id = None
         self._project_file = Path(path)
         self._relink_unsaved = relinked
-        self._dirty = relinked
+        self._recovery_pending = restored
+        self._dirty = relinked or restored
         if self.normalize is not None:
             self.normalize.setChecked(sequence.normalize)
             self.fade_in.setValue(sequence.fade_in_ms / 1000)
@@ -688,7 +727,7 @@ class SequenceWindow(MediaWindow):
             (c for c in self.clips if c.id == sequence.selected_id), self.clips[0]
         )
         self._preview_clip(selection)
-        self._dirty = relinked
+        self._dirty = relinked or restored
         self._saved_state = self._snapshot()
         self._history.reset(self._saved_state)
         self._update_project_heading()
@@ -723,6 +762,7 @@ class SequenceWindow(MediaWindow):
         if not self._capture_selected():
             QMessageBox.warning(self, self._t("error"), self._t("invalid_selection"))
             return False
+        previous_project = self._project_file
         try:
             save_media_project(self._snapshot(), path)
         except (OSError, ValueError) as exc:
@@ -730,10 +770,20 @@ class SequenceWindow(MediaWindow):
             return False
         self._project_file = Path(path)
         self._relink_unsaved = False
+        self._recovery_pending = False
         self._dirty = False
         self._saved_state = self._snapshot()
         self._history.checkpoint()
         self._set_status("media_project_saved", name=path.name)
+        for cleared in (path, previous_project):
+            if cleared is None:
+                continue
+            try:
+                clear_recovery(cleared)
+            except (OSError, ValueError):
+                # Explicit Save did succeed. Keep working data, but surface a
+                # cleanup warning so an old recovery is not mistaken as valid.
+                self._set_status("media_recovery_failed")
         self._update_project_heading()
         return True
 
