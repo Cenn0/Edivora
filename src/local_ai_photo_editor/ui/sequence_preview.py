@@ -18,7 +18,7 @@ from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import (
     QDialog, QHBoxLayout, QLabel, QProgressBar, QPushButton, QSlider,
-    QVBoxLayout,
+    QVBoxLayout, QApplication,
 )
 
 from ..core.media_project import MediaSequence
@@ -28,6 +28,39 @@ from .media_window import clock
 MAX_PREVIEW_MS = 120_000
 MAX_RENDER_WALL_SECONDS = 180
 MAX_PREVIEW_BYTES = 512 * 1024 * 1024
+
+
+def _schedule_cleanup(folder: tempfile.TemporaryDirectory) -> None:
+    """Retire a Qt-owned media file after native decoder handles are released.
+
+    On Windows QMediaPlayer.setSource(QUrl()) is asynchronous. Unlinking the
+    preview file synchronously in closeEvent can fail with WinError 32. The
+    timer is owned by QApplication, not the closing dialog, and retains the
+    temporary-directory object until deletion succeeds. Retries stay inside
+    the GUI thread and never block the event loop.
+    """
+    app = QApplication.instance()
+    if app is None:
+        folder.cleanup()
+        return
+    timer = QTimer(app)
+    attempts = 0
+
+    def release() -> None:
+        nonlocal attempts
+        try:
+            folder.cleanup()
+        except OSError:
+            attempts += 1
+            if attempts >= 200:  # stop after 20 seconds, never freeze UI
+                timer.stop()
+                timer.deleteLater()
+            return
+        timer.stop()
+        timer.deleteLater()
+
+    timer.timeout.connect(release)
+    timer.start(100)
 
 
 def preview_allowed(sequence: MediaSequence) -> bool:
@@ -268,6 +301,11 @@ class SequencePreviewDialog(QDialog):
         self.player.setAudioOutput(None)
         self.watchdog.stop()
         if not self._cleaned:
-            self._folder.cleanup()
+            # Qt's native backend can retain the open file beyond setSource().
+            # Delete decoder objects on the next event-loop iteration, then
+            # retry cleanup asynchronously until Windows releases the handle.
+            self.player.deleteLater()
+            self.audio.deleteLater()
+            _schedule_cleanup(self._folder)
             self._cleaned = True
         event.accept()
