@@ -63,6 +63,29 @@ class RecoveryCheckpointTests(unittest.TestCase):
             candidate_recovery(self.project)
         self.assertEqual(before, self.project.read_bytes())
 
+    def test_unrelated_sidecar_name_cannot_be_overwritten_or_deleted(self):
+        # A user file at the derived name must never be silently sacrificed.
+        sidecar = write_recovery(self.changed(), self.project)
+        foreign = b"NOT AN EDIVORA CHECKPOINT"
+        sidecar.write_bytes(foreign)
+        before = self.project.read_bytes()
+        with self.assertRaisesRegex(ValueError, "move it aside manually"):
+            write_recovery(self.changed(), self.project)
+        with self.assertRaisesRegex(ValueError, "move it aside manually"):
+            clear_recovery(self.project)
+        self.assertEqual(sidecar.read_bytes(), foreign)
+        self.assertEqual(self.project.read_bytes(), before)
+
+    def test_existing_valid_checkpoint_can_be_replaced_and_cleared(self):
+        sidecar = write_recovery(self.changed(), self.project)
+        old_content = sidecar.read_bytes()
+        newer = MediaSequence("audio", (replace(self.clip, end_ms=2800),))
+        self.assertEqual(write_recovery(newer, self.project), sidecar)
+        self.assertNotEqual(sidecar.read_bytes(), old_content)
+        self.assertEqual(load_media_project(sidecar), newer)
+        clear_recovery(self.project)
+        self.assertFalse(sidecar.exists())
+
     def test_symlink_sidecar_rejected(self):
         sidecar = write_recovery(self.changed(), self.project)
         sidecar.unlink()
