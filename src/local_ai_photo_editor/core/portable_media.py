@@ -137,16 +137,21 @@ def create_portable_media_folder(
         target.mkdir(mode=0o700, exist_ok=False)
         published_media = target / "media"
         published_project = target / manifest.name
+        media_published = False
+        project_published = False
         try:
             # Keep the manifest as the last publication step. Without the
             # manifest, an interrupted folder is not a loadable project.
             media_dir.rename(published_media)
+            media_published = True
             manifest.rename(published_project)
+            project_published = True
         except BaseException:
-            # Remove only files created by this exporter; never delete
-            # unrelated files that someone placed in the target meanwhile.
-            published_project.unlink(missing_ok=True)
-            if published_media.is_dir() and not published_media.is_symlink():
+            # Remove only names we successfully published, never an
+            # unrelated file pre-created by another writer in the folder.
+            if project_published:
+                published_project.unlink(missing_ok=True)
+            if media_published and published_media.is_dir() and not published_media.is_symlink():
                 for source_copy in copied.values():
                     (published_media / source_copy.name).unlink(missing_ok=True)
                 try:
