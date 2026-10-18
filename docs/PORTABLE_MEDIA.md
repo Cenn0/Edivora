@@ -1,7 +1,7 @@
 # Portable Edivora audio/video project folders (source-only experimental tool)
 
 The current media editor normally keeps source files in their original locations.
-Its \`.edvp\` and \`.edap\` manifests may include absolute local paths and are not
+Its `.edvp` and `.edap` manifests may include absolute local paths and are not
 portable by themselves. The **source checkout** now includes an explicit
 bounded utility that creates a new portable *directory*, not a ZIP archive.
 
@@ -10,12 +10,12 @@ bounded utility that creates a new portable *directory*, not a ZIP archive.
 Install Edivora from source according to [Getting started](GETTING_STARTED.md).
 First **save** the project in the video/audio editor, then run:
 
-\`python tools/export_portable_media.py "/path/to/saved.edap" "/path/to/new-portable-folder"\`
+`python tools/export_portable_media.py "/path/to/saved.edap" "/path/to/new-portable-folder"`
 
 The second path **must not exist**. The command creates a directory containing
-\`project.edap\` or \`project.edvp\` and \`media/01.wav\`, \`media/02.wav\`, etc.,
+`project.edap` or `project.edvp` and `media/01.wav`, `media/02.wav`, etc.,
 with only relative references. Copy the complete directory to another machine
-and open its \`project.edap\`/\`project.edvp\` through the corresponding editor.
+and open its `project.edap`/`project.edvp` through the corresponding editor.
 The original saved project and original media files are not modified.
 
 ## Constraints and security
@@ -38,7 +38,7 @@ The original saved project and original media files are not modified.
   project does not expose the original absolute media paths. However, media
   payloads may contain EXIF/metadata, embedded names, voices, geolocation,
   faces or private content. Inspect all files before sharing.
-- **Not included:** photo \`.laip\`, inline thumbnails, model weights, plugin
+- **Not included:** photo `.laip`, inline thumbnails, model weights, plugin
   assets, project recovery checkpoints or an exported Windows runtime.
 
 This utility is experimental source functionality and does **not** establish
