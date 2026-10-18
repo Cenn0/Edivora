@@ -92,6 +92,23 @@ undo/redo journal. It has no autosave or recovery log. Opening another
 project or closing an editor after edits asks for confirmation if its
 project was not saved.
 
+### Recovery of saved media projects
+
+For **previously saved** video/audio projects, dirty changes now create a
+local recovery checkpoint about every **15 seconds** while the editor is idle,
+not exporting or running local AI. The recovery is a versioned validated
+`.edvp`/`.edap` manifest in a hidden sidecar file next to the project;
+the authoritative saved file and source media are never overwritten.
+If a newer checkpoint exists on next open, Edivora asks **before** using it.
+A restored checkpoint is unsaved and requires an explicit **Save** to
+become the main project. Successful saves remove obsolete checkpoints.
+
+Limits: the very first unsaved project does **not** have crash recovery until
+it is explicitly saved once; unexpected disk-full/permission errors can
+prevent autosave, and a damaged or stale checkpoint is not automatically
+applied. These checkpoints reference original media paths and may expose
+local folder names; they are local only, not embedded or synchronized.
+
 ## 3. Local AI: two genuinely model-backed workflows
 
 **Audio – Detect speech segments (Silero VAD ONNX 6.2.1).** The app
