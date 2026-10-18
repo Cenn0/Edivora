@@ -102,7 +102,9 @@ not exporting or running local AI. The recovery is a versioned validated
 the authoritative saved file and source media are never overwritten.
 If a newer checkpoint exists on next open, Edivora asks **before** using it.
 A restored checkpoint is unsaved and requires an explicit **Save** to
-become the main project. Successful saves remove obsolete valid checkpoints. If an existing sidecar is\ncorrupt or contains unrelated data, Edivora refuses to overwrite or delete\nthat file. Move it aside manually before creating a new recovery checkpoint.
+become the main project. Successful saves remove obsolete valid checkpoints. If an existing sidecar is
+corrupt or contains unrelated data, Edivora refuses to overwrite or delete
+that file. Move it aside manually before creating a new recovery checkpoint.
 
 Limits: the very first unsaved project does **not** have crash recovery until
 it is explicitly saved once; unexpected disk-full/permission errors can
