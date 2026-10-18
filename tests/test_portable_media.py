@@ -69,6 +69,30 @@ class PortableMediaTests(unittest.TestCase):
         self.assertEqual(sentinel.read_bytes(), b"leave me alone")
         self.assertEqual(self.original.read_bytes(), before)
 
+    def test_target_created_during_final_check_is_never_replaced(self) -> None:
+        from unittest.mock import patch
+        from local_ai_photo_editor.core.portable_media import _target_directory
+
+        target = self.root / "racing-folder"
+        count = 0
+
+        def simulate_race(path):
+            nonlocal count
+            result = _target_directory(path)
+            count += 1
+            if count == 2:
+                target.mkdir()
+                (target / "intruder.txt").write_bytes(b"must survive")
+            return result
+
+        with patch("local_ai_photo_editor.core.portable_media._target_directory",
+                   side_effect=simulate_race):
+            with self.assertRaises(FileExistsError):
+                create_portable_media_folder(self.seq, target)
+        self.assertEqual((target / "intruder.txt").read_bytes(), b"must survive")
+        self.assertEqual(sorted(p.name for p in target.iterdir()), ["intruder.txt"])
+        self.assertEqual(list(self.root.glob(".edivora-portable-*")), [])
+
     def test_over_quota_has_no_partial_published_folder(self) -> None:
         target = self.root / "too-large"
         with self.assertRaisesRegex(ValueError, "quota"):
