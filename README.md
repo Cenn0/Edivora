@@ -36,6 +36,8 @@ Edivora is an open-source desktop suite with English and German interfaces. Edit
 
 The launcher can open Photo, Video and Audio in **separate windows** while remaining open. Export creates a separate file rather than intentionally overwriting the original.
 
+**Project recovery:** Previously saved `.edvp` and `.edap` projects create local recovery checkpoints about every 15 seconds while edited and idle. Opening a newer valid checkpoint requires confirmation; the saved project is not replaced until an explicit Save. New never-saved projects and `.laip` photo projects do not have this recovery mechanism, and media files are not bundled into portable archives.
+
 **AI boundaries:** On CPU, DnCNN processes selected video sections of up to **30 seconds, 720p and 30 fps**. Processing may remove detail or cause flicker. Baked-in filters and lost image detail cannot be reliably reversed. **GPU/CUDA/DirectML operation has not been verified by this project.** `.edvp` and `.edap` project files reference source media and may contain absolute local paths.
 
 ## Run from source
