@@ -87,9 +87,9 @@ def create_portable_media_folder(
 ) -> Path:
     """Publish a new project folder only after copies and manifest all validate.
 
-    The requested destination must not exist. Errors/cancellation clean only a
-    private temporary directory. No source or previously saved project is
-    replaced. Imported folders are opened normally through the existing
+    The destination is reserved with an exclusive mkdir; its manifest is
+    published last after verified staging. Errors/cancellation clean only
+    exporter-owned files. No existing project or source is replaced. Imported folders are opened normally through the existing
     strict media-project loader; there is no ZIP extraction step.
     """
     seq = sequence.validated()
@@ -130,8 +130,32 @@ def create_portable_media_folder(
             raise ValueError("Portable project validation failed.")
         if cancelled is not None and cancelled():
             raise InterruptedError("Portable export cancelled.")
-        # Re-check before publication. An already existing target is NEVER
-        # intentionally replaced, including a symlink or an empty directory.
+        # Reserving the destination with exclusive mkdir is critical:
+        # os.rename(staging, destination) could overwrite an empty directory
+        # on POSIX after a race, despite an earlier exists() check.
         _target_directory(target)
-        root.rename(target)
+        target.mkdir(mode=0o700, exist_ok=False)
+        published_media = target / "media"
+        published_project = target / manifest.name
+        try:
+            # Keep the manifest as the last publication step. Without the
+            # manifest, an interrupted folder is not a loadable project.
+            media_dir.rename(published_media)
+            manifest.rename(published_project)
+        except BaseException:
+            # Remove only files created by this exporter; never delete
+            # unrelated files that someone placed in the target meanwhile.
+            published_project.unlink(missing_ok=True)
+            if published_media.is_dir() and not published_media.is_symlink():
+                for source_copy in copied.values():
+                    (published_media / source_copy.name).unlink(missing_ok=True)
+                try:
+                    published_media.rmdir()
+                except OSError:
+                    pass
+            try:
+                target.rmdir()
+            except OSError:
+                pass
+            raise
     return target / f"project{PROJECT_EXTENSIONS[seq.kind]}"
