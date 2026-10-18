@@ -46,6 +46,18 @@ class PortableMediaTests(unittest.TestCase):
         self.assertEqual(loaded.clips[0].source, loaded.clips[1].source)
         self.assertEqual(loaded.clips[1].start_ms, 1000)
 
+    def test_multiple_sources_use_distinct_relative_media(self) -> None:
+        second = self.root / "second.wav"
+        second.write_bytes(b"other-audio" * 220)
+        second_clip = MediaClip.create("audio", second, 3500)
+        seq = MediaSequence("audio", (self.clip, second_clip))
+        manifest = create_portable_media_folder(seq, self.root / "two-sources")
+        files = sorted(p.name for p in (manifest.parent / "media").iterdir())
+        self.assertEqual(files, ["01.wav", "02.wav"])
+        opened = load_media_project(manifest)
+        self.assertEqual(opened.clips[0].source.read_bytes(), self.original.read_bytes())
+        self.assertEqual(opened.clips[1].source.read_bytes(), second.read_bytes())
+
     def test_existing_target_and_original_cannot_be_replaced(self) -> None:
         target = self.root / "existing"
         target.mkdir()
@@ -70,7 +82,7 @@ class PortableMediaTests(unittest.TestCase):
         def stop() -> bool:
             nonlocal calls
             calls += 1
-            return calls >= 2
+            return calls >= 3
 
         target = self.root / "cancelled"
         with self.assertRaises(InterruptedError):
