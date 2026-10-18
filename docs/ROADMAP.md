@@ -1,6 +1,6 @@
 # Edivora – Produkt- und Technikroadmap 2026/2027
 
-**Aktualisiert: 17.10.2026.** Grundlage: öffentlicher Hauptzweig **main** (bei der Bestandsaufnahme: `7fe7476497fc47ae11915f1a4f1af1819b024759`), Paketversion **0.4.0a1**. Die Versionsnummern unten sind **Planungsziele**, keine veröffentlichten Versionen oder Terminzusagen.
+**Aktualisiert: 18.10.2026.** Grundlage: öffentlicher Hauptzweig **main** (zuletzt geprüfter Merge-Commit: `91a1f0763e4b9e94b29dc9911abe7b2523d3ac98`), Paketversion **0.4.0a1**. Weitergehende Änderungen werden erst nach Merge und Commit-spezifischer CI als umgesetzt markiert. Die Versionsnummern unten sind **Planungsziele**, keine veröffentlichten Versionen oder Terminzusagen.
 
 ## 1. Produktziel und Leitplanken
 
@@ -22,7 +22,7 @@ Edivora ist eine quelloffene, einsteigerfreundliche Desktop-Suite mit unabhängi
 | Video | Bis 24 geordnete Clips auf einer Spur, Trimmen/Teilen/Sortieren, Korrektur-Rezepte, **.edvp**, HD/Full-HD-MP4 | Keine kontinuierliche Sequenzvorschau, mehrere Spuren oder Übergänge |
 | Video-KI | U2NETP für **ein Standbild** und CPU-DnCNN für maximal 30 s / 720p / 30 fps | Keine validierte temporale Restaurierung, generelle Filterentfernung oder geprüfte GPU |
 | Audio | Bis 24 geordnete Clips auf einer Spur, Pegel/Fades, **.edap**, WAV/MP3, Silero VAD | Keine Mehrspurmischung, Transkription oder neuronale Rauschreduktion |
-| Medienprojekte | Schema 2, ältere Schema-1-Dateien werden gelesen, 60 Undo/Redo-Zustände in der Sitzung, sicheres Speichern | Externe Medienreferenzen, kein vollständiges Relinking/Autosave/Crash-Recovery |
+| Medienprojekte | Schema 2, ältere Schema-1-Dateien werden gelesen, 60 Undo/Redo-Zustände in der Sitzung, sicheres Speichern | Externe Medienreferenzen; Relinking und bestätigte Recovery-Checkpoints für bereits gespeicherte Audio-/Videoprojekte vorhanden, aber weder portable Projekte noch Recovery für nie gespeicherte Projekte |
 | Distribution | Öffentliches Apache-2.0-**Quellcode**-Repo; historische Foto-Alpha | **Keine für öffentliche Weiterverteilung freigegebene Windows-Suite** |
 
 **Distributionsstatus:** Es gibt weiterhin **keine genehmigte öffentliche Windows-ZIP**. Der öffentliche Quellcode und erfolgreiche automatisierte Tests allein erlauben keine Weiterverteilung ungeprüfter Qt-/FFmpeg-/Modell-Binärdateien.
@@ -42,7 +42,7 @@ Ein grüner CI-Status beweist **nicht** automatisch die Stufen 3–6.
 
 ### Implementierungsschritte nach der Bestandsaufnahme
 
-- **M3 (Teil):** Verifiziertes, manuelles Relinking verschobener oder geänderter Medienquellen; die unveränderte Projektdatei wird nur nach ausdrücklichem Speichern aktualisiert. Vollständiges Autosave, Recovery und portable Medienpakete stehen aus.
+- **M3 (Teil):** Verifiziertes, manuelles Relinking verschobener oder geänderter Medienquellen; die Projektdatei wird nur nach ausdrücklichem Speichern aktualisiert. Mit [PR #38](https://github.com/Cenn0/Edivora/pull/38) sind alle fünf CI-Prüfungen für einen lokalen, bestätigungspflichtigen Recovery-Checkpoint bereits gespeicherter Audio-/Videoprojekte erfolgreich durchlaufen; der PR wurde als `91a1f07` gemergt. Für neue, nie gespeicherte Projekte, `.laip`-Foto-Recovery und portable Medienpakete gibt es weiterhin keine entsprechende vollständige Umsetzung.
 - **M1 (Teil):** Ganzsequenz-Vorschau über einen lokalen **Vorab-Render** für maximal **2 Minuten** mit dem bestehenden Exportfiltergraphen sowie eine Qt-freie, millisekundengenaue Sequenz-Zeitbasis. Der Vorschauprozess besitzt Zeit-/Dateigrößenlimits, Abbruch und Temp-Cleanup. **Nicht** gleichbedeutend mit kontinuierlicher **Echtzeit**-Vorschau, Mehrspurunterstützung oder einer finalen Windows-Freigabe.
 
 ## 3. Priorisierung und Reihenfolge
@@ -160,7 +160,7 @@ Dokumentation, README-Funktionsmatrix, Lizenzhinweise und Releases müssen dense
 | **2 / P0** | **M0.1–2** Lizenz-/SBOM-Inventar der exakt verteilten Assets und historische Download-Erreichbarkeit | Prüffähiger Report; Issue #3 nachweisbasiert |
 | **3 / P0** | **M0.3–4** Binär-Smokes, Clean Windows 11 und Offline-Abnahme | CI-/Artefakt-SHA, Endanwender-Protokoll, Issue #2 |
 | **4 / P0** | **M1** Sequenz-Zeitbasis, Ganzsequenzwiedergabe und Vorschau-/Export-Vergleich | Mehrclip-Video und -Audio mit geprüften Grenzen konsistent |
-| **5 / P1** | **M3** Relinking und Recovery-Grundlage | Fehlende/verschobene Dateien + Crashs ohne Datenverlust |
+| **5 / P1** | **M3** Portable Medienpakete und restliche Recovery-Fälle | Relinking und Recovery-Checkpoints für bereits gespeicherte Audio-/Videoprojekte sind integriert; Portabilität, nie gespeicherte Projekte und vollständige Abnahme fehlen |
 | **6 / P1** | **M2** Mehrspur-Rendermodell, Übergänge und Audiomischer | Reproduzierbarer Mehrspur-Export und Undo |
 | **7 / P1** | **M4** Modellregister mit CPU-Baseline und genau einem neu validierten Modellpfad | Keine unerkannten Downloads, Lizenzen/HW-Budget geprüft |
 | **8 / P0** | **M5/M6** Endanwender- und Distributionsfreigabe | Alle definierten Go/No-Go-Kriterien erfüllt |
