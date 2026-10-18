@@ -2,12 +2,19 @@
 
 The current media editor normally keeps source files in their original locations.
 Its `.edvp` and `.edap` manifests may include absolute local paths and are not
-portable by themselves. The **source checkout** now includes an explicit
-bounded utility that creates a new portable *directory*, not a ZIP archive.
+portable by themselves. The **source checkout** includes both a Video/Audio UI action and an explicit
+command-line utility. Both create a portable *directory*, not a ZIP archive.
 
 ## Run
 
-Install Edivora from source according to [Getting started](GETTING_STARTED.md).
+**Video/Audio GUI (development source):** Open the editing project, choose
+**Portable project …** in the project tools, then select an existing parent
+directory. Edivora creates a new sibling folder named after the current saved
+project with a `-portable` suffix (or `edivora-project-portable` if not yet
+saved). The folder must not exist beforehand. The copy runs in a cancellable
+background worker; closing the window requests cancellation and cleans staging.
+
+**Command-line alternative:** Install Edivora from source according to [Getting started](GETTING_STARTED.md).
 First **save** the project in the video/audio editor, then run:
 
 `python tools/export_portable_media.py "/path/to/saved.edap" "/path/to/new-portable-folder"`
@@ -20,8 +27,8 @@ The original saved project and original media files are not modified.
 
 ## Constraints and security
 
-- **Source-only CLI:** no polished export button in the Windows UI and no
-  end-user package acceptance; this is a partial M3 implementation.
+- **Development source feature:** the Video/Audio GUI and CLI are implemented,
+  but there is no end-user Windows 11 acceptance; this is a partial M3 feature.
 - **Offline:** no network requests, archiving, extraction, symlinks in the
   package, telemetry, or model download.
 - **Strict size limit:** 2 GiB of unique original media at most, 24 clips at
