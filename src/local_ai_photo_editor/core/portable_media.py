@@ -45,6 +45,7 @@ def _copy_verified(source: Path, destination: Path, *,
     before = source.stat()
     sampled_before = fingerprint(source)
     written_hash = hashlib.sha256()
+    copied_bytes = 0
     with source.open("rb") as incoming, destination.open("xb") as outgoing:
         while True:
             if cancelled is not None and cancelled():
@@ -52,6 +53,9 @@ def _copy_verified(source: Path, destination: Path, *,
             block = incoming.read(_BLOCK_BYTES)
             if not block:
                 break
+            copied_bytes += len(block)
+            if copied_bytes > before.st_size:
+                raise ValueError("Source grew while creating portable media.")
             outgoing.write(block)
             written_hash.update(block)
         outgoing.flush()
