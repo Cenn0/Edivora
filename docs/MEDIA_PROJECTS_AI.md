@@ -88,7 +88,8 @@ untrusted media files still reach native decoders when explicitly loaded.
 Saves are written to a temporary local file and atomically replaced.
 
 The project stores **accepted settings**, not a bitmap snapshot or an
-undo/redo journal. It has no autosave or recovery log. Opening another
+undo/redo journal. The session has bounded recovery sidecars only for
+previously explicitly saved video/audio projects (see below). Opening another
 project or closing an editor after edits asks for confirmation if its
 project was not saved.
 
@@ -101,7 +102,7 @@ not exporting or running local AI. The recovery is a versioned validated
 the authoritative saved file and source media are never overwritten.
 If a newer checkpoint exists on next open, Edivora asks **before** using it.
 A restored checkpoint is unsaved and requires an explicit **Save** to
-become the main project. Successful saves remove obsolete checkpoints.
+become the main project. Successful saves remove obsolete valid checkpoints. If an existing sidecar is\ncorrupt or contains unrelated data, Edivora refuses to overwrite or delete\nthat file. Move it aside manually before creating a new recovery checkpoint.
 
 Limits: the very first unsaved project does **not** have crash recovery until
 it is explicitly saved once; unexpected disk-full/permission errors can
