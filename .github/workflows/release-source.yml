@@ -1,0 +1,113 @@
+name: Release verified source (no redistributable binaries)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versioned tag matching pyproject.toml (for example v0.4.0-alpha.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edivora-source-release
+  cancel-in-progress: false
+
+jobs:
+  source-release:
+    if: github.repository == 'Cenn0/Edivora'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      PYTHONPATH: src
+      QT_QPA_PLATFORM: offscreen
+      HF_HUB_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require exact current main and matching application version
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          git fetch --no-tags origin main
+          test "$GITHUB_SHA" = "$(git rev-parse FETCH_HEAD)"
+          python3 - <<'PY'
+          import os, re, tomllib
+          from pathlib import Path
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:alpha|beta|rc)\.(0|[1-9][0-9]*))?', tag):
+              raise SystemExit('Invalid SemVer tag')
+          actual = tomllib.loads(Path('pyproject.toml').read_text(encoding='utf-8'))['project']['version']
+          canonical = re.sub(r'a([0-9]+)$', r'-alpha.\1', actual)
+          canonical = re.sub(r'b([0-9]+)$', r'-beta.\1', canonical)
+          canonical = re.sub(r'rc([0-9]+)$', r'-rc.\1', canonical)
+          if tag != 'v' + canonical:
+              raise SystemExit(f'Tag must match pyproject version v{canonical}')
+          PY
+          if git ls-remote --tags --exit-code origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo 'Tag already exists: release is immutable by convention.' >&2
+            exit 1
+          fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo 'Release already exists.' >&2
+            exit 1
+          fi
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install headless Qt libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libopengl0 libgl1 libxkbcommon0 libpulse0
+      - name: Install and test source
+        run: |
+          python -m pip install -e .
+          python -m compileall -q src tests tools
+          python -m unittest discover -s tests -v
+          python3 scripts/check_public_docs.py
+          python3 -m unittest discover -s tests -p test_publication_policy.py -v
+      - name: Assemble only tracked public source and verifiable hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          archive="Edivora-${RELEASE_TAG}-source.tar.gz"
+          git archive --format=tar.gz --prefix="Edivora-${RELEASE_TAG}/" HEAD > "release-assets/$archive"
+          tar -tzf "release-assets/$archive" >/dev/null
+          (cd release-assets && sha256sum "$archive" > SHA256SUMS.txt)
+          cat > release-assets/RELEASE-NOTICE.txt <<'EOF'
+          Source-only release. No Windows executables, AI model conversions,
+          FFmpeg binaries, or standalone runtime bundles are distributed.
+          Public redistribution of standalone Windows binaries remains
+          blocked by docs/PUBLIC_RELEASE_CHECKLIST.md. Not a binary approval.
+          EOF
+      - name: Create source-only GitHub release after passing checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=(--target "$GITHUB_SHA")
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            flags+=(--prerelease --latest=false)
+          fi
+          gh release create "$RELEASE_TAG" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Edivora $RELEASE_TAG (source only)" \
+            --notes "Verified source-only release from \`$GITHUB_SHA\`. No Windows executable or bundled third-party binaries are redistributed. Windows binary approval remains blocked by docs/PUBLIC_RELEASE_CHECKLIST.md." \
+            "${flags[@]}"
+      - name: Verify public archive digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-verified
+          gh release download "$RELEASE_TAG" --dir release-verified --pattern '*.tar.gz' --pattern 'SHA256SUMS.txt'
+          (cd release-verified && sha256sum -c SHA256SUMS.txt)
