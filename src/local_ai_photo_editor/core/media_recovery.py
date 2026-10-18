@@ -45,11 +45,33 @@ def _paths(project_file: str | Path) -> tuple[Path, Path]:
     return original, sidecar
 
 
+
+def _verify_sidecar(original: Path, sidecar: Path) -> None:
+    """Fail closed for unrelated or corrupt files at the reserved checkpoint name.
+
+    Even a hidden filename is not proof that the file belongs to Edivora.
+    A damaged checkpoint must be removed manually, never silently clobbered.
+    """
+    if not sidecar.exists():
+        return
+    try:
+        checkpoint = load_media_project(sidecar)
+    except (OSError, ValueError, TypeError) as exc:
+        raise ValueError(
+            "Existing recovery checkpoint is invalid; move it aside manually."
+        ) from exc
+    expected = "audio" if original.suffix.lower() == ".edap" else "video"
+    if checkpoint.kind != expected:
+        raise ValueError("Recovery checkpoint has the wrong media kind.")
+
+
+
 def write_recovery(sequence: MediaSequence, project_file: str | Path) -> Path:
     """Write a checkpoint after the first explicit save."""
     original, sidecar = _paths(project_file)
     if original.suffix.lower() != PROJECT_EXTENSIONS[sequence.kind]:
         raise ValueError("Recovery project kind mismatch.")
+    _verify_sidecar(original, sidecar)
     save_media_project(sequence, sidecar)
     return sidecar
 
@@ -71,5 +93,6 @@ def candidate_recovery(project_file: str | Path) -> RecoveryCandidate | None:
 
 def clear_recovery(project_file: str | Path) -> None:
     """Remove only the exact derived sidecar, refusing aliases/symlinks."""
-    _, sidecar = _paths(project_file)
+    original, sidecar = _paths(project_file)
+    _verify_sidecar(original, sidecar)
     sidecar.unlink(missing_ok=True)
