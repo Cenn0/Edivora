@@ -211,6 +211,7 @@ class SequencerQtTests(unittest.TestCase):
             if w._portable_worker is not None:
                 w._portable_worker.requestInterruption()
                 w._portable_worker.wait(10_000)
+                self.app.processEvents()
             w._dirty = False
             w.close()
             w.deleteLater()
