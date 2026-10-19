@@ -14,17 +14,17 @@
 [![CI](https://github.com/Cenn0/Edivora/actions/workflows/python-checks.yml/badge.svg?branch=main)](https://github.com/Cenn0/Edivora/actions/workflows/python-checks.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-**Direkt zu:** [Funktionen](#funktionen) · [Quellcode-Start](#aus-dem-quellcode-starten) · [Dokumentation](docs/README.md) · [Roadmap](docs/ROADMAP.md) · [Mitwirken](docs/CONTRIBUTING.md)
+**Direkt zu:** [Funktionen](#funktionen) · [Architektur](#architektur) · [Quellcode-Start](#aus-dem-quellcode-starten) · [Dokumentation](docs/README.md) · [Roadmap](docs/ROADMAP.md) · [Mitwirken](docs/CONTRIBUTING.md)
 
 **Oberflächenvorschau** – [deutschen UI-Test-Screenshot ansehen](docs/screenshots/ui-smoke-de.png):
 
 <a href="docs/screenshots/ui-smoke-de.png"><img src="docs/screenshots/ui-smoke-de.png" alt="Edivora-Oberfläche aus einem deutschsprachigen UI-Smoke-Test" width="820"></a>
 
-Die Aufnahme zeigt einen Quellcode-Teststand, **keine freigegebene Windows-Binärversion**.
+Der Screenshot zeigt den Entwicklungsstand im Quellcode, kein veröffentlichtes Windows-Paket.
 
 Edivora ist eine Open-Source-Desktop-Suite mit deutsch- und englischsprachiger Oberfläche. Die Bearbeitung läuft lokal, ohne Benutzerkonto oder Cloud-KI. KI-Modelle müssen vor der ersten Nutzung separat vorbereitet werden; die Anwendung lädt sie nicht automatisch herunter.
 
-> **Entwicklungsstand: 0.4.0a1 (Quellcode).** Für die aktuelle Suite ist **kein öffentlich zur Weiterverteilung freigegebenes Windows-Paket** verfügbar. Die Freigabe hängt unter anderem von der Prüfung der Qt-, FFmpeg- und Modelllizenzen sowie einer Windows-11-Abnahme ab. Historische Foto-Testpakete enthalten weder den aktuellen Launcher noch Video- und Audiofunktionen.
+> **Version: 0.4.0a1 (Entwicklungsquellcode).** Für die aktuelle Suite existiert **kein veröffentlichtes Windows-Paket**. Vor einer gemeinsamen Binärverteilung müssen die Weiterverteilungsbedingungen für Qt/FFmpeg/Modelle und die Kompatibilität auf den Zielsystemen überprüft werden. Historische Foto-Testpakete enthalten weder den aktuellen Launcher noch Video- und Audiofunktionen.
 
 ## Funktionen
 
@@ -37,6 +37,26 @@ Edivora ist eine Open-Source-Desktop-Suite mit deutsch- und englischsprachiger O
 Der Launcher öffnet Foto, Video und Audio in **getrennten Fenstern** und bleibt für weitere Starts verfügbar. Bearbeitete Dateien werden separat exportiert; das Original soll nicht überschrieben werden.
 
 **Grenzen der KI:** DnCNN verarbeitet auf der CPU ausgewählte Videoabschnitte bis **30 Sekunden bei maximal 720p/30 fps**. Das Ergebnis kann Details verlieren oder flimmern. Eingebrannte Filter und bereits verlorene Bildinformationen lassen sich nicht zuverlässig rekonstruieren. **GPU/CUDA/DirectML sind projektseitig nicht verifiziert.** `.edvp`- und `.edap`-Projektdateien verweisen auf Quelldateien und können absolute lokale Pfade enthalten.
+
+## Architektur
+
+Edivora ist eine **lokale Qt-Desktop-Suite**, kein Web- oder Clouddienst. Der Launcher öffnet unabhängige Editorfenster; KI-Verarbeitung und Medienexport werden in begrenzten lokalen Prozessen ausgeführt.
+
+```mermaid
+flowchart TB
+  L["Qt-Launcher"] --> P["Fotoeditor"]
+  L --> M["Video- und Audioeditor"]
+  P --> C["Lokaler Dokument- und Projektkern"]
+  M --> C
+  P --> W["Separater KI-Prozess"]
+  M --> W
+  M --> F["Lokaler FFmpeg-Renderprozess"]
+  W --> O["Festgelegte ONNX-Modelle auf CPU"]
+  C --> D[("Lokale Projektdateien und Medienverweise")]
+  F --> E[("Neue Exportdateien")]
+```
+
+Der [Architekturleitfaden](docs/ARCHITECTURE.md) beschreibt die Modulgrenzen. Der KI-Prozess verbessert Reaktionsfähigkeit und Abbruchverhalten, ist aber **keine Sicherheits-Sandbox**. Modelldateien werden nur während einer ausdrücklich gestarteten Vorbereitung geladen. Video-/Audioprojekte können lokale Dateipfade enthalten; vor dem Weitergeben prüfen.
 
 ## Aus dem Quellcode starten
 
@@ -55,7 +75,7 @@ py -3.12 -m venv .venv
 
 Die Modellvorbereitung benötigt Internetzugang und prüft festgelegte Modellartefakte. Der letzte Befehl öffnet den Launcher. Einzelne Editoren starten mit `--tool photo`, `--tool video` oder `--tool audio`.
 
-Der derzeitige Windows-Entwicklungsbuild verwendet noch den Dateinamen `LocalAiPhotoEditor.exe` und benötigt seinen vollständigen Begleitordner. Eine herunterladbare, freigegebene `Edivora.exe` wird nicht behauptet. Weitere Hinweise: [Erste Schritte](docs/GETTING_STARTED.md).
+Der derzeitige Windows-Entwicklungsbuild verwendet noch den Dateinamen `LocalAiPhotoEditor.exe` und benötigt seinen vollständigen Begleitordner. Eine herunterladbare `Edivora.exe` der aktuellen Suite ist **nicht verfügbar**. Weitere Hinweise: [Erste Schritte](docs/GETTING_STARTED.md).
 
 ## Entwickeln und testen
 
@@ -66,7 +86,7 @@ Technische Basis: **Python 3.12**, **PySide6/Qt**, **Pillow/NumPy**, **ONNX Runt
 .venv\Scripts\python -m compileall -q src tests tools
 ```
 
-Automatisierte Tests belegen nur die jeweils getesteten Fälle; sie ersetzen weder eine Prüfung der Modellqualität noch eine Abnahme installierbarer Windows-Binärpakete. Mediendateien werden mit nativen Decodern verarbeitet und sind **keine vertrauenswürdigen Eingaben**.
+Automatisierte Tests belegen nur die jeweils getesteten Fälle; sie ersetzen weder die Prüfung der Modellqualität noch die Prüfung der Weiterverteilungsrechte für installierbare Windows-Binärpakete. Mediendateien werden mit nativen Decodern verarbeitet und sind **keine vertrauenswürdigen Eingaben**.
 
 ## Dokumentation
 
