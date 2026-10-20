@@ -126,7 +126,16 @@ def create_portable_media_folder(
         )
         manifest = root / f"project{PROJECT_EXTENSIONS[seq.kind]}"
         save_media_project(portable, manifest)
-        if load_media_project(manifest) != portable:
+        # The loader canonicalizes media paths. On Windows, the staging
+        # directory may have an alternate spelling (for example, a short path).
+        # Compare against canonical paths without relaxing manifest validation.
+        reloaded = load_media_project(manifest)
+        canonical_portable = replace(
+            portable,
+            clips=tuple(replace(clip, source=clip.source.resolve(strict=True))
+                        for clip in portable.clips),
+        )
+        if reloaded != canonical_portable:
             raise ValueError("Portable project validation failed.")
         if cancelled is not None and cancelled():
             raise InterruptedError("Portable export cancelled.")
