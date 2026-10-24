@@ -30,6 +30,7 @@ from ..core.media_project import (
 )
 from ..core.media_sequence import SequenceExport, commit_sequence_export
 from ..core.media_recovery import candidate_recovery, clear_recovery, write_recovery
+from .portable_worker import PortableMediaWorker
 from ..core.media_history import MediaHistory, same_content
 from ..core.process_tree import kill_media_ai_process_group
 from .media_strings import text
@@ -50,6 +51,8 @@ class SequenceWindow(MediaWindow):
         self._dirty = False
         self._relink_unsaved = False
         self._recovery_pending = False
+        self._portable_worker: PortableMediaWorker | None = None
+        self._portable_close_requested = False
         self._history_restoring = False
         self._export_progress_buffer = bytearray()
         self._ui_ready = False
@@ -143,6 +146,9 @@ class SequenceWindow(MediaWindow):
         self.save_as_button.clicked.connect(self.save_media_project_as)
         project_layout.insertWidget(1, self.open_project_button)
         project_layout.insertWidget(2, self.save_as_button)
+        self.portable_button = IconButton(key="media_portable_export")
+        self.portable_button.clicked.connect(self.export_portable_project)
+        project_layout.insertWidget(3, self.portable_button)
         self.sequence_preview_button = IconButton(icon_name="play")
         self.sequence_preview_button.setObjectName("quickAction")
         self.sequence_preview_button.clicked.connect(self.preview_whole_sequence)
@@ -185,7 +191,7 @@ class SequenceWindow(MediaWindow):
             self.source_preview_hint.setWordWrap(True)
             self.source_preview_hint.setObjectName("muted")
             self.picture_tools_layout.insertWidget(1, self.source_preview_hint)
-        for button in (self.open_project_button, self.save_as_button, self.ai_button, self.enhance_button, self.sequence_preview_button):
+        for button in (self.open_project_button, self.save_as_button, self.portable_button, self.ai_button, self.enhance_button, self.sequence_preview_button):
             if button is not None:
                 button.setFitToWidth()
         self.language_combo.currentIndexChanged.connect(self._translate_sequence)
@@ -203,6 +209,7 @@ class SequenceWindow(MediaWindow):
             (self.open_project_button, "media_project_open"),
             (self.save_project_button, "media_project_save"),
             (self.save_as_button, "media_project_save_as"),
+            (self.portable_button, "media_portable_export"),
         ):
             button.setText(key(name))
         self.undo_button.setText(video_text(self.language, "undo") + " (Ctrl+Z)")
@@ -225,7 +232,8 @@ class SequenceWindow(MediaWindow):
         self._refresh_clips()
 
     def _is_busy(self) -> bool:
-        return super()._is_busy() or self._ai_process is not None
+        return (super()._is_busy() or self._ai_process is not None
+                or self._portable_worker is not None)
 
     def _valid_selection(self) -> bool:
         # Master audio fades affect the *assembled sequence*, not just the
@@ -257,6 +265,7 @@ class SequenceWindow(MediaWindow):
         self.open_project_button.setEnabled(not busy)
         self.save_project_button.setEnabled(not busy and bool(self.clips))
         self.save_as_button.setEnabled(not busy and bool(self.clips))
+        self.portable_button.setEnabled(not busy and bool(self.clips))
         from .sequence_preview import MAX_PREVIEW_MS
         preview_possible = (ready and self._can_render()
                             and self._snapshot().length_ms <= MAX_PREVIEW_MS)
@@ -800,6 +809,55 @@ class SequenceWindow(MediaWindow):
         self._update_project_heading()
         return True
 
+    def export_portable_project(self) -> None:
+        """Create an explicit local copy without changing the current project."""
+        if self._is_busy() or not self.clips or not self._capture_selected():
+            return
+        try:
+            snapshot = self._snapshot().validated()
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, self._t("error"), str(exc))
+            return
+        initial = str(self._project_file.parent if self._project_file else self.clips[0].source.parent)
+        parent = QFileDialog.getExistingDirectory(
+            self, self._t("media_portable_choose"), initial
+        )
+        if not parent:
+            return
+        label = (self._project_file.stem if self._project_file else "edivora-project")
+        target = Path(parent) / (label[:90] + "-portable")
+        if target.exists() or target.is_symlink():
+            QMessageBox.warning(self, self._t("error"), self._t("media_portable_exists"))
+            return
+        worker = PortableMediaWorker(snapshot, target, self)
+        self._portable_worker = worker
+        worker.succeeded.connect(self._portable_succeeded)
+        worker.failed.connect(self._portable_failed)
+        worker.finished.connect(self._portable_finished)
+        self._set_status("media_portable_running")
+        self._update_enabled()
+        worker.start()
+
+    def _portable_succeeded(self, project: str) -> None:
+        self._set_status("media_portable_done", name=Path(project).parent.name)
+
+    def _portable_failed(self, error: str) -> None:
+        if "cancelled" in error.lower():
+            self._set_status("media_portable_cancelled")
+        else:
+            self._set_status("media_portable_failed")
+            QMessageBox.warning(self, self._t("error"), error)
+
+    def _portable_finished(self) -> None:
+        worker = self._portable_worker
+        self._portable_worker = None
+        self._update_enabled()
+        if worker is not None:
+            worker.deleteLater()
+        if self._portable_close_requested:
+            self._portable_close_requested = False
+            QTimer.singleShot(0, self.close)
+
     def _sequence_export(self, destination: Path) -> SequenceExport:
         if not self._capture_selected():
             raise ValueError(self._t("invalid_selection"))
@@ -1102,6 +1160,16 @@ class SequenceWindow(MediaWindow):
             return
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        if self._portable_worker is not None:
+            if QMessageBox.question(
+                self, self._t("error"), self._t("close_processing"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            ) == QMessageBox.StandardButton.Yes:
+                self._portable_close_requested = True
+                self._portable_worker.requestInterruption()
+            event.ignore()
+            return
         if self._dirty and not self._confirm_unsaved():
             event.ignore()
             return

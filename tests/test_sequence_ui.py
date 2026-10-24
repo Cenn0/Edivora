@@ -179,6 +179,45 @@ class SequencerQtTests(unittest.TestCase):
             self.app.processEvents()
             self.QTest.qWait(150)
 
+    def test_portable_export_button_copies_without_changing_open_project(self) -> None:
+        from unittest.mock import patch
+        from local_ai_photo_editor.core.media_project import load_media_project
+
+        source = self.make_audio("portable.wav", 435)
+        project = self.root / "saved.edap"
+        w = self.window_type("audio")
+        w.show()
+        self.app.processEvents()
+        try:
+            w.open_path(source)
+            self.wait_for(lambda: len(w.clips) == 1 and w.duration_ms > 0)
+            self.assertTrue(w._save_to(project))
+            original_project = project.read_bytes()
+            original_audio = source.read_bytes()
+            with patch("local_ai_photo_editor.ui.sequence_window.QFileDialog.getExistingDirectory",
+                       return_value=str(self.root)):
+                w.export_portable_project()
+            self.wait_for(lambda: w._portable_worker is None, max_time=30)
+            manifest = self.root / "saved-portable" / "project.edap"
+            self.assertTrue(manifest.exists())
+            portable = load_media_project(manifest)
+            self.assertEqual(portable.clips[0].source.read_bytes(), original_audio)
+            self.assertEqual(w._project_file, project)
+            self.assertFalse(w._dirty)
+            self.assertEqual(source.read_bytes(), original_audio)
+            self.assertEqual(project.read_bytes(), original_project)
+        finally:
+            # Ensure a worker can never outlive its QWidget during test cleanup.
+            if w._portable_worker is not None:
+                w._portable_worker.requestInterruption()
+                w._portable_worker.wait(10_000)
+                self.app.processEvents()
+            w._dirty = False
+            w.close()
+            w.deleteLater()
+            self.app.processEvents()
+            self.QTest.qWait(150)
+
     def test_autosave_recovery_requires_consent_and_explicit_save(self) -> None:
         from unittest.mock import patch
         from local_ai_photo_editor.core.media_recovery import (

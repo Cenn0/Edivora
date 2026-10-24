@@ -13,7 +13,7 @@ Some detailed guides are currently written primarily in German; the main README 
 | Set up the current development source and prepare local models | [Getting started](GETTING_STARTED.md) |
 | Understand photo tools and foreground editing | [Photo adjustments](EDITING_TOOLS.md) · [Subject selection](AI_SUBJECT_TOOLS.md) · [Mask refinement](MASK_REFINEMENT.md) |
 | Edit video and audio, and understand single-lane timelines | [Media workflows](MEDIA_MVP.md) · [Projects and local AI](MEDIA_PROJECTS_AI.md) |
-| Learn file portability and original-file safeguards | [Photo project format](PROJECT_FORMAT.md) · [Media project format](MEDIA_PROJECTS_AI.md) |
+| Learn file portability and original-file safeguards | [Photo project format](PROJECT_FORMAT.md) · [Media project format](MEDIA_PROJECTS_AI.md) · [Portable media CLI (source only)](PORTABLE_MEDIA.md) |
 | Understand what DnCNN can and cannot restore | [Video restoration](VIDEO_RESTORATION.md) |
 
 ## Engineering and contributing
