@@ -31,7 +31,8 @@ class PortableMediaTests(unittest.TestCase):
         loaded = load_media_project(manifest)
         self.assertEqual(loaded.clips[0].id, self.clip.id)
         self.assertEqual(loaded.clips[0].source.read_bytes(), original)
-        self.assertEqual(loaded.clips[0].source.parent, target / "media")
+        self.assertEqual(loaded.clips[0].source.parent.resolve(strict=True),
+                         (target / "media").resolve(strict=True))
         self.assertEqual(original, self.original.read_bytes())
         raw = json.loads(manifest.read_text(encoding="utf-8"))
         self.assertEqual(raw["clips"][0]["source"], "media/01.wav")
