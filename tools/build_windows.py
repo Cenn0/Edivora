@@ -15,6 +15,7 @@ from collect_licenses import collect
 from brand_assets import build_windows_icon
 from package_boundary import runtime_exclusion_arguments, verify_runtime_boundary
 from binary_inventory import write_inventory
+from version_inventory import write_version_inventory
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -149,8 +150,9 @@ def main() -> int:
         "provider": "CPUExecutionProvider",
         "release_channel": "unsigned-development-alpha",
     }, indent=2), encoding="utf-8")
-    with (destination / "build-resolved.txt").open("w", encoding="utf-8") as stream:
-        subprocess.run([sys.executable, "-m", "pip", "freeze"], stdout=stream, check=True)
+    # pip freeze may embed editable paths and credentialed direct URLs.
+    # Keep only validated package names and versions in distributable output.
+    write_version_inventory(destination / "build-resolved.txt")
     # External deterministic per-file hashes; no rights or release approval is
     # inferred. Generated AFTER all intended package files are copied. This
     # manifest is build evidence and is not part of the scanned package.
