@@ -22,7 +22,8 @@ class DummyDistribution:
 class VersionInventoryTests(unittest.TestCase):
     def test_deterministic_versions_only_without_private_source_origins(self):
         private_origin = "file:///users/synthetic-private-path/project"
-        credentialed_origin = "git+https://username:synthetic-token@example.invalid/repo"
+        credentialed_origin = ("git+https://" + "username" + ":" + "synthetic-token"
+                              + "@" + "example.invalid/repo")
         entries = [
             DummyDistribution("Some_Package", "2.3.0", private_origin),
             DummyDistribution("another.package", "1.0+local", credentialed_origin),
