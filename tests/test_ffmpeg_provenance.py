@@ -50,5 +50,12 @@ class FfmpegProvenanceTests(unittest.TestCase):
         self.assertNotIn('"media_engine": "imageio-ffmpeg 0.6.0 standalone binary"', source)
 
 
+    def test_public_license_notice_stays_version_neutral(self) -> None:
+        notice = (ROOT / "THIRD_PARTY_NOTICES.md").read_text("utf-8")
+        self.assertNotIn("imageio-ffmpeg==0.6.0", notice)
+        self.assertIn("FFMPEG_BUILD_PROVENANCE.json", notice)
+        self.assertIn("NOT YET PUBLICATION-READY", notice)
+
+
 if __name__ == "__main__":
     unittest.main()
