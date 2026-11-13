@@ -15,7 +15,7 @@ from collect_licenses import collect
 from brand_assets import build_windows_icon
 from package_boundary import runtime_exclusion_arguments, verify_runtime_boundary
 from binary_inventory import write_inventory
-from ffmpeg_provenance import installed_ffmpeg_provenance
+from ffmpeg_provenance import installed_ffmpeg_provenance, verified_bundled_ffmpeg_path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -38,7 +38,9 @@ def main() -> int:
     verified_restoration()
     import imageio_ffmpeg
     ffmpeg_distribution, media_engine = installed_ffmpeg_provenance()
-    ffmpeg_binary = Path(imageio_ffmpeg.get_ffmpeg_exe()).resolve()
+    ffmpeg_binary = verified_bundled_ffmpeg_path(
+        imageio_ffmpeg.get_ffmpeg_exe(), imageio_ffmpeg.__file__
+    )
     if not ffmpeg_binary.is_file():
         raise RuntimeError("The pinned FFmpeg wheel does not contain a local executable.")
     # Evidence for legal review: never equate the imageio wrapper license
