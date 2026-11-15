@@ -1,11 +1,14 @@
 """Regression tests for FFmpeg wheel version recorded by Windows packaging."""
 from __future__ import annotations
 
+import base64
+import hashlib
 import importlib.util
 from importlib import metadata
 from pathlib import Path
 import unittest
 import tempfile
+from types import SimpleNamespace
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,6 +78,22 @@ class BundledFfmpegPathTests(unittest.TestCase):
         self.package_file.write_text("", encoding="utf-8")
         self.binary = self.binaries_dir / "ffmpeg-win-x86_64.exe"
         self.binary.write_bytes(b"synthetic binary")
+        digest = base64.urlsafe_b64encode(
+            hashlib.sha256(self.binary.read_bytes()).digest()
+        ).decode("ascii").rstrip("=")
+        self.wheel_record = metadata.PackagePath(
+            "imageio_ffmpeg/binaries/ffmpeg-win-x86_64.exe"
+        )
+        self.wheel_record.hash = SimpleNamespace(mode="sha256", value=digest)
+        self.distribution = SimpleNamespace(
+            files=[self.wheel_record],
+            locate_file=lambda entry: self.root / str(entry),
+        )
+        patcher = mock.patch.object(
+            provenance.metadata, "distribution", return_value=self.distribution
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_wheel_binary_accepted(self) -> None:
         self.assertEqual(
@@ -130,6 +149,36 @@ class BundledFfmpegPathTests(unittest.TestCase):
                 elsewhere / "ffmpeg.exe", self.package_file
             )
 
+
+    def test_unrecorded_file_in_wheel_directory_is_rejected(self) -> None:
+        other = self.binaries_dir / "ffmpeg-injected.exe"
+        other.write_bytes(b"synthetic injected binary")
+        with self.assertRaises(RuntimeError):
+            provenance.verified_bundled_ffmpeg_path(other, self.package_file)
+
+    def test_recorded_binary_modified_after_install_is_rejected(self) -> None:
+        self.binary.write_bytes(b"synthetic modified binary")
+        with self.assertRaises(RuntimeError):
+            provenance.verified_bundled_ffmpeg_path(self.binary, self.package_file)
+
+    def test_missing_or_unsupported_record_hash_is_rejected(self) -> None:
+        for bad_hash in (None, SimpleNamespace(mode="md5", value="placeholder"),
+                         SimpleNamespace(mode="sha256", value="")):
+            with self.subTest(bad_hash=bad_hash):
+                self.wheel_record.hash = bad_hash
+                with self.assertRaises(RuntimeError):
+                    provenance.verified_bundled_ffmpeg_path(
+                        self.binary, self.package_file
+                    )
+
+    def test_missing_wheel_record_is_rejected(self) -> None:
+        for records in (None, []):
+            with self.subTest(records=records):
+                self.distribution.files = records
+                with self.assertRaises(RuntimeError):
+                    provenance.verified_bundled_ffmpeg_path(
+                        self.binary, self.package_file
+                    )
 
 if __name__ == "__main__":
     unittest.main()
