@@ -51,6 +51,9 @@ class FfmpegProvenanceTests(unittest.TestCase):
         self.assertIn("ffmpeg_distribution, media_engine = installed_ffmpeg_provenance()", source)
         self.assertIn('"source_python_distribution": ffmpeg_distribution,', source)
         self.assertIn("verified_bundled_ffmpeg_path(", source)
+        self.assertIn("verified_packaged_ffmpeg_sha256(", source)
+        self.assertIn('"shipped_executable_sha256": shipped_ffmpeg_sha256,', source)
+        self.assertIn('"media_binary_sha256": shipped_ffmpeg_sha256,', source)
         self.assertIn("imageio_ffmpeg.get_ffmpeg_exe(), imageio_ffmpeg.__file__", source)
         self.assertIn('"media_engine": media_engine,', source)
         self.assertNotIn('"source_python_distribution": "imageio-ffmpeg==0.6.0"', source)
@@ -223,6 +226,55 @@ class BundledFfmpegPathTests(unittest.TestCase):
                     provenance.verified_bundled_ffmpeg_path(
                         self.binary, self.package_file
                     )
+
+
+    def test_packaged_copy_is_bound_to_the_verified_wheel_bytes(self) -> None:
+        shipped = self.root / "dist" / "ffmpeg.exe"
+        shipped.parent.mkdir()
+        shipped.write_bytes(self.binary.read_bytes())
+        expected = hashlib.sha256(self.binary.read_bytes()).hexdigest()
+        self.assertEqual(
+            provenance.verified_packaged_ffmpeg_sha256(
+                self.binary, self.package_file, shipped
+            ),
+            expected,
+        )
+
+    def test_modified_packaged_copy_is_rejected_without_path_disclosure(self) -> None:
+        shipped = self.root / "synthetic-private-build-location" / "ffmpeg.exe"
+        shipped.parent.mkdir()
+        shipped.write_bytes(b"synthetic tampered packaged binary")
+        with self.assertRaises(RuntimeError) as raised:
+            provenance.verified_packaged_ffmpeg_sha256(
+                self.binary, self.package_file, shipped
+            )
+        self.assertEqual(
+            str(raised.exception),
+            "Packaged FFmpeg executable differs from the verified wheel binary",
+        )
+        self.assertNotIn("synthetic-private-build-location", str(raised.exception))
+
+    def test_source_modified_during_build_cannot_be_recorded_as_wheel_binary(self) -> None:
+        provenance.verified_bundled_ffmpeg_path(self.binary, self.package_file)
+        self.binary.write_bytes(b"synthetic source changed after initial verification")
+        shipped = self.root / "dist-ffmpeg.exe"
+        shipped.write_bytes(self.binary.read_bytes())
+        with self.assertRaises(RuntimeError):
+            provenance.verified_packaged_ffmpeg_sha256(
+                self.binary, self.package_file, shipped
+            )
+
+    def test_symlinked_packaged_copy_is_rejected(self) -> None:
+        shipped = self.root / "package-link.exe"
+        try:
+            shipped.symlink_to(self.binary)
+        except (OSError, NotImplementedError):
+            self.skipTest("Symlinks unavailable")
+        with self.assertRaises(RuntimeError):
+            provenance.verified_packaged_ffmpeg_sha256(
+                self.binary, self.package_file, shipped
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
