@@ -15,7 +15,8 @@ from collect_licenses import collect
 from brand_assets import build_windows_icon
 from package_boundary import runtime_exclusion_arguments, verify_runtime_boundary
 from binary_inventory import write_inventory
-from ffmpeg_provenance import installed_ffmpeg_provenance, verified_bundled_ffmpeg_path
+from ffmpeg_provenance import (checked_ffmpeg_output, installed_ffmpeg_provenance,
+                               verified_bundled_ffmpeg_path)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -45,21 +46,12 @@ def main() -> int:
         raise RuntimeError("The pinned FFmpeg wheel does not contain a local executable.")
     # Evidence for legal review: never equate the imageio wrapper license
     # with the exact third-party FFmpeg executable shipped in the package.
-    ffmpeg_version = subprocess.check_output(
-        [str(ffmpeg_binary), "-version"], text=True, errors="replace", timeout=20,
-    )
-    ffmpeg_buildconf = subprocess.check_output(
-        [str(ffmpeg_binary), "-buildconf"], text=True, errors="replace", timeout=20,
-    )
-    ffmpeg_license = subprocess.check_output(
-        [str(ffmpeg_binary), "-L"], text=True, errors="replace", timeout=20,
-    )
+    ffmpeg_version = checked_ffmpeg_output(ffmpeg_binary, "-version")
+    ffmpeg_buildconf = checked_ffmpeg_output(ffmpeg_binary, "-buildconf")
+    ffmpeg_license = checked_ffmpeg_output(ffmpeg_binary, "-L")
     if "--enable-nonfree" in ffmpeg_version:
         raise RuntimeError("Refusing to bundle an FFmpeg binary configured with --enable-nonfree.")
-    codec_listing = subprocess.check_output(
-        [str(ffmpeg_binary), "-hide_banner", "-encoders"],
-        text=True, timeout=20,
-    )
+    codec_listing = checked_ffmpeg_output(ffmpeg_binary, "-hide_banner", "-encoders")
     for codec in ("mpeg4", "aac", "pcm_s16le", "libmp3lame"):
         if not any(line.split()[1:2] == [codec] for line in codec_listing.splitlines()):
             raise RuntimeError(f"Bundled FFmpeg is missing the MVP encoder: {codec}")
@@ -126,8 +118,7 @@ def main() -> int:
     shutil.copy2(ROOT / "docs" / "qt-licenses" / "GPL-3.0-only.txt",
                  media_tools / "GPL-3.0-license.txt")
     # This FFmpeg command-line binary is distinct from Qt's playback backend.
-    subprocess.run([str(media_tools / "ffmpeg.exe"), "-version"], check=True, timeout=20,
-                   stdout=subprocess.DEVNULL)
+    checked_ffmpeg_output(media_tools / "ffmpeg.exe", "-version")
 
     for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
         shutil.copy2(ROOT / name, destination / name)
