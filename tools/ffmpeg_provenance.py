@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import hmac
+import subprocess
 from importlib import metadata
 from pathlib import Path
 
@@ -62,3 +63,19 @@ def verified_bundled_ffmpeg_path(executable: str | Path, package_file: str | Pat
     except (OSError, TypeError, ValueError, RuntimeError, metadata.PackageNotFoundError):
         raise RuntimeError(failure) from None
     return candidate
+
+
+def checked_ffmpeg_output(executable: str | Path, *flags: str) -> str:
+    """Collect FFmpeg diagnostics without publishing local paths or process stderr.
+
+    Only call after verified_bundled_ffmpeg_path; flags are fixed by the packager.
+    A failing FFmpeg invocation must not echo its command, executable location,
+    or untrusted stderr into public build logs.
+    """
+    try:
+        return subprocess.check_output(
+            [str(executable), *flags], text=True, errors="replace", timeout=20,
+            stderr=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        raise RuntimeError("Bundled FFmpeg diagnostic failed") from None
