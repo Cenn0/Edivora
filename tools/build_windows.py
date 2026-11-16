@@ -15,6 +15,9 @@ from collect_licenses import collect
 from brand_assets import build_windows_icon
 from package_boundary import runtime_exclusion_arguments, verify_runtime_boundary
 from binary_inventory import write_inventory
+from ffmpeg_provenance import (checked_ffmpeg_output, installed_ffmpeg_provenance,
+                               verified_bundled_ffmpeg_path,
+                               verified_packaged_ffmpeg_sha256)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -36,26 +39,20 @@ def main() -> int:
     verified_voice_model()
     verified_restoration()
     import imageio_ffmpeg
-    ffmpeg_binary = Path(imageio_ffmpeg.get_ffmpeg_exe()).resolve()
+    ffmpeg_distribution, media_engine = installed_ffmpeg_provenance()
+    ffmpeg_binary = verified_bundled_ffmpeg_path(
+        imageio_ffmpeg.get_ffmpeg_exe(), imageio_ffmpeg.__file__
+    )
     if not ffmpeg_binary.is_file():
         raise RuntimeError("The pinned FFmpeg wheel does not contain a local executable.")
     # Evidence for legal review: never equate the imageio wrapper license
     # with the exact third-party FFmpeg executable shipped in the package.
-    ffmpeg_version = subprocess.check_output(
-        [str(ffmpeg_binary), "-version"], text=True, errors="replace", timeout=20,
-    )
-    ffmpeg_buildconf = subprocess.check_output(
-        [str(ffmpeg_binary), "-buildconf"], text=True, errors="replace", timeout=20,
-    )
-    ffmpeg_license = subprocess.check_output(
-        [str(ffmpeg_binary), "-L"], text=True, errors="replace", timeout=20,
-    )
+    ffmpeg_version = checked_ffmpeg_output(ffmpeg_binary, "-version")
+    ffmpeg_buildconf = checked_ffmpeg_output(ffmpeg_binary, "-buildconf")
+    ffmpeg_license = checked_ffmpeg_output(ffmpeg_binary, "-L")
     if "--enable-nonfree" in ffmpeg_version:
         raise RuntimeError("Refusing to bundle an FFmpeg binary configured with --enable-nonfree.")
-    codec_listing = subprocess.check_output(
-        [str(ffmpeg_binary), "-hide_banner", "-encoders"],
-        text=True, timeout=20,
-    )
+    codec_listing = checked_ffmpeg_output(ffmpeg_binary, "-hide_banner", "-encoders")
     for codec in ("mpeg4", "aac", "pcm_s16le", "libmp3lame"):
         if not any(line.split()[1:2] == [codec] for line in codec_listing.splitlines()):
             raise RuntimeError(f"Bundled FFmpeg is missing the MVP encoder: {codec}")
@@ -105,13 +102,14 @@ def main() -> int:
     media_tools = destination / "media-tools"
     media_tools.mkdir()
     shutil.copy2(ffmpeg_binary, media_tools / "ffmpeg.exe")
+    shipped_ffmpeg_sha256 = verified_packaged_ffmpeg_sha256(
+        ffmpeg_binary, imageio_ffmpeg.__file__, media_tools / "ffmpeg.exe"
+    )
     (media_tools / "FFMPEG_BUILD_PROVENANCE.json").write_text(
         json.dumps({
-            "source_python_distribution": "imageio-ffmpeg==0.6.0",
+            "source_python_distribution": ffmpeg_distribution,
             "source_executable_filename": ffmpeg_binary.name,
-            "shipped_executable_sha256": hashlib.sha256(
-                (media_tools / "ffmpeg.exe").read_bytes()
-            ).hexdigest(),
+            "shipped_executable_sha256": shipped_ffmpeg_sha256,
             "ffmpeg_version": ffmpeg_version,
             "ffmpeg_buildconf": ffmpeg_buildconf,
             "ffmpeg_license_output": ffmpeg_license,
@@ -122,8 +120,7 @@ def main() -> int:
     shutil.copy2(ROOT / "docs" / "qt-licenses" / "GPL-3.0-only.txt",
                  media_tools / "GPL-3.0-license.txt")
     # This FFmpeg command-line binary is distinct from Qt's playback backend.
-    subprocess.run([str(media_tools / "ffmpeg.exe"), "-version"], check=True, timeout=20,
-                   stdout=subprocess.DEVNULL)
+    checked_ffmpeg_output(media_tools / "ffmpeg.exe", "-version")
 
     for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
         shutil.copy2(ROOT / name, destination / name)
@@ -140,10 +137,8 @@ def main() -> int:
         "media_project_version": 2,
         "media_project_formats": [".edvp", ".edap"],
         "ai_features": ["single-video-frame-U2NETP", "audio-Silero-VAD-v6.2.1", "video-DnCNN-RGB-denoising"],
-        "media_binary_sha256": hashlib.sha256(
-            (destination / "media-tools" / "ffmpeg.exe").read_bytes()
-        ).hexdigest(),
-        "media_engine": "imageio-ffmpeg 0.6.0 standalone binary",
+        "media_binary_sha256": shipped_ffmpeg_sha256,
+        "media_engine": media_engine,
         "media_license_review": "Required before wider redistribution",
         "converter_packages_excluded": ["torch", "onnx"],
         "provider": "CPUExecutionProvider",
