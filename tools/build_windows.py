@@ -16,7 +16,8 @@ from brand_assets import build_windows_icon
 from package_boundary import runtime_exclusion_arguments, verify_runtime_boundary
 from binary_inventory import write_inventory
 from ffmpeg_provenance import (checked_ffmpeg_output, installed_ffmpeg_provenance,
-                               verified_bundled_ffmpeg_path)
+                               verified_bundled_ffmpeg_path,
+                               verified_packaged_ffmpeg_sha256)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -101,13 +102,14 @@ def main() -> int:
     media_tools = destination / "media-tools"
     media_tools.mkdir()
     shutil.copy2(ffmpeg_binary, media_tools / "ffmpeg.exe")
+    shipped_ffmpeg_sha256 = verified_packaged_ffmpeg_sha256(
+        ffmpeg_binary, imageio_ffmpeg.__file__, media_tools / "ffmpeg.exe"
+    )
     (media_tools / "FFMPEG_BUILD_PROVENANCE.json").write_text(
         json.dumps({
             "source_python_distribution": ffmpeg_distribution,
             "source_executable_filename": ffmpeg_binary.name,
-            "shipped_executable_sha256": hashlib.sha256(
-                (media_tools / "ffmpeg.exe").read_bytes()
-            ).hexdigest(),
+            "shipped_executable_sha256": shipped_ffmpeg_sha256,
             "ffmpeg_version": ffmpeg_version,
             "ffmpeg_buildconf": ffmpeg_buildconf,
             "ffmpeg_license_output": ffmpeg_license,
@@ -135,9 +137,7 @@ def main() -> int:
         "media_project_version": 2,
         "media_project_formats": [".edvp", ".edap"],
         "ai_features": ["single-video-frame-U2NETP", "audio-Silero-VAD-v6.2.1", "video-DnCNN-RGB-denoising"],
-        "media_binary_sha256": hashlib.sha256(
-            (destination / "media-tools" / "ffmpeg.exe").read_bytes()
-        ).hexdigest(),
+        "media_binary_sha256": shipped_ffmpeg_sha256,
         "media_engine": media_engine,
         "media_license_review": "Required before wider redistribution",
         "converter_packages_excluded": ["torch", "onnx"],
