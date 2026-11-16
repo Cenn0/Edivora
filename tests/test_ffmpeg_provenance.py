@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import subprocess
 import importlib.util
 from importlib import metadata
 from pathlib import Path
@@ -62,6 +63,49 @@ class FfmpegProvenanceTests(unittest.TestCase):
         self.assertIn("FFMPEG_BUILD_PROVENANCE.json", notice)
         self.assertIn("NOT YET PUBLICATION-READY", notice)
 
+
+
+class FfmpegDiagnosticsPrivacyTests(unittest.TestCase):
+    """Failing FFmpeg metadata probes must not expose private runner paths."""
+
+    def test_success_collects_stdout_with_stderr_suppressed_and_timeout(self) -> None:
+        binary = Path("synthetic-private-build-directory") / "ffmpeg.exe"
+        with mock.patch.object(
+            provenance.subprocess, "check_output", return_value="synthetic ffmpeg version"
+        ) as run:
+            self.assertEqual(
+                provenance.checked_ffmpeg_output(binary, "-version"),
+                "synthetic ffmpeg version",
+            )
+        run.assert_called_once_with(
+            [str(binary), "-version"],
+            text=True, errors="replace", timeout=20,
+            stderr=subprocess.DEVNULL,
+        )
+
+    def test_process_failures_never_echo_binary_path_or_stderr(self) -> None:
+        binary = "synthetic-private-build-directory/ffmpeg.exe"
+        command = [binary, "-version"]
+        failures = (
+            subprocess.CalledProcessError(1, command, stderr="synthetic-secret"),
+            subprocess.TimeoutExpired(command, 20),
+            OSError("synthetic-private-build-directory/ffmpeg.exe: denied"),
+        )
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__), mock.patch.object(
+                provenance.subprocess, "check_output", side_effect=failure
+            ):
+                with self.assertRaises(RuntimeError) as raised:
+                    provenance.checked_ffmpeg_output(binary, "-version")
+                self.assertEqual(str(raised.exception), "Bundled FFmpeg diagnostic failed")
+                self.assertNotIn("synthetic-private-build-directory", str(raised.exception))
+                self.assertNotIn("synthetic-secret", str(raised.exception))
+
+    def test_windows_packager_uses_redacted_probe_for_every_invocation(self) -> None:
+        source = (ROOT / "tools" / "build_windows.py").read_text("utf-8")
+        self.assertEqual(source.count("checked_ffmpeg_output("), 5)
+        self.assertNotIn("subprocess.check_output(", source)
+        self.assertIn('checked_ffmpeg_output(media_tools / "ffmpeg.exe", "-version")', source)
 
 
 class BundledFfmpegPathTests(unittest.TestCase):
