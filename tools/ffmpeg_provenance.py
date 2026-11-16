@@ -65,6 +65,40 @@ def verified_bundled_ffmpeg_path(executable: str | Path, package_file: str | Pat
     return candidate
 
 
+
+def verified_packaged_ffmpeg_sha256(
+    source_executable: str | Path, package_file: str | Path,
+    packaged_executable: str | Path,
+) -> str:
+    """Recheck the wheel RECORD and confirm the final copied binary is identical.
+
+    Packaging can take minutes between the initial source verification and
+    copying FFmpeg. Do not silently record new, unverified bytes if the source
+    changed during the intervening build. Never expose runner paths in errors.
+    """
+    failure = "Packaged FFmpeg executable differs from the verified wheel binary"
+    try:
+        source = verified_bundled_ffmpeg_path(source_executable, package_file)
+        packaged = Path(packaged_executable)
+        if packaged.is_symlink() or not packaged.is_file():
+            raise RuntimeError(failure)
+
+        def digest(path: Path) -> bytes:
+            value = hashlib.sha256()
+            with path.open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                    value.update(chunk)
+            return value.digest()
+
+        trusted = digest(source)
+        shipped = digest(packaged)
+        if not hmac.compare_digest(trusted, shipped):
+            raise RuntimeError(failure)
+        return shipped.hex()
+    except (OSError, TypeError, ValueError, RuntimeError, metadata.PackageNotFoundError):
+        raise RuntimeError(failure) from None
+
+
 def checked_ffmpeg_output(executable: str | Path, *flags: str) -> str:
     """Collect FFmpeg diagnostics without publishing local paths or process stderr.
 
