@@ -13,7 +13,33 @@ import os
 from pathlib import Path
 import subprocess
 import time
-import traceback
+
+
+_SAFE_PHASES = frozenset({
+    "verify_model", "generate_media", "real_cpu_worker", "project_v2",
+    "native_layout_matrix", "native_real_preview_dialog", "complete",
+})
+
+
+def _safe_failure_details(phase: object, exc: BaseException) -> dict[str, str]:
+    # suite-smoke.json may be printed into public CI logs on failure.
+    # Never serialize arbitrary exception messages, tracebacks or paths.
+    safe_phase = phase if isinstance(phase, str) and phase in _SAFE_PHASES else "unknown"
+    kind = type(exc).__name__
+    return {
+        "status": "error",
+        "error_phase": safe_phase,
+        "error_type": kind if kind.isascii() and kind.isidentifier() else "Exception",
+    }
+
+
+def _run_neural_worker(command: list[str]) -> None:
+    # Worker stderr may contain user-controlled file paths or local environment data.
+    result = subprocess.run(command, stdin=subprocess.DEVNULL,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                            timeout=90, check=False)
+    if result.returncode != 0:
+        raise RuntimeError("Neural worker subprocess failed.")
 
 
 class _LayoutSurface:
@@ -77,7 +103,7 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
     from .ui.responsive import in_viewport
     from .ui.video_dialog import VideoEnhancementDialog
     output.mkdir(parents=True, exist_ok=False)
-    report = {"status": "running", "executable": executable, "qt": qVersion(),
+    report = {"status": "running", "executable": "standalone" if executable else "source", "qt": qVersion(),
               "platform": os.environ.get("QT_QPA_PLATFORM"), "scale": os.environ.get("QT_SCALE_FACTOR", "1"),
               "scope": "synthetic source or standalone suite regression; native top-level windows where the desktop fits, embedded native-Qt client layouts otherwise; not Windows 11 / quality / licence approval",
               "layout_observations": []}
@@ -162,8 +188,7 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
         request = VideoJob(source, 0, 400, 100, recipe, 60, "render")
         (job / "request.json").write_text(json.dumps(request.to_dict()), encoding="utf-8")
         program, args = media_job_command("restore", job)
-        result = subprocess.run([program, *args], capture_output=True, timeout=90)
-        check(result.returncode == 0, result.stderr.decode("utf-8", errors="replace")[-1000:])
+        _run_neural_worker([program, *args])
         report["neural_result"] = json.loads((job / "result.json").read_text("utf-8"))
         check(report["neural_result"]["frames"] == 12, "Wrong restored frame count.")
         audio = subprocess.check_output([ffmpeg, "-v", "error", "-i", str(job / "output.mp4"),
@@ -248,9 +273,10 @@ def suite_smoke(output: Path, executable: str | None = None) -> int:
         report.update(status="ok", source_sha256=original_hash, actual_model_inference=True,
                       layouts=["640x480", "960x540", "1280x800", "1920x1080"], languages=["de", "en"])
         code = 0
-    except Exception:
-        report.update(status="error", traceback=traceback.format_exc())
-        print(report["traceback"], flush=True)
+    except Exception as exc:
+        details = _safe_failure_details(report.get("phase"), exc)
+        report.update(details)
+        print(f"Suite smoke failed ({details['error_phase']}: {details['error_type']}).", flush=True)
         code = 1
     finally:
         for window in reversed(windows):
