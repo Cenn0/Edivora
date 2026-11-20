@@ -59,6 +59,11 @@ class RecoveryCheckpointTests(unittest.TestCase):
         before = self.project.read_bytes()
         sidecar = write_recovery(self.changed(), self.project)
         sidecar.write_text('{"invalid":"json"}', encoding="utf-8")
+        # A just-written file can share the project's mtime on Windows.
+        # Prove the candidate is newer before exercising the corruption gate.
+        newer = max(sidecar.stat().st_mtime_ns, self.project.stat().st_mtime_ns) + 3_000_000_000
+        os.utime(sidecar, ns=(newer, newer))
+        self.assertGreater(sidecar.stat().st_mtime_ns, self.project.stat().st_mtime_ns)
         with self.assertRaises(ValueError):
             candidate_recovery(self.project)
         self.assertEqual(before, self.project.read_bytes())
